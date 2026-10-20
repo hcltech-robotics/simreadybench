@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Run OpenUSD reconstruction benchmarks locally or on Daytona, define model, harness and skills experiments and obtain formal, visual and kinematic fidelity scores.">
+  <meta name="description" content="SimReadyBench evaluates AI-generated OpenUSD assets for simulation readiness, visual fidelity and joint motion. Compare models, agent harnesses and skills.">
   <meta name="author" content="Chris von Csefalvay and Tamas Foldi">
-  <meta property="og:title" content="SimReadyBench">
-  <meta property="og:description" content="A benchmark for simulation-ready asset reconstruction.">
+  <meta name="robots" content="max-image-preview:large">
+  <meta property="og:title" content="SimReadyBench: OpenUSD Asset Generation Benchmark">
+  <meta property="og:description" content="SimReadyBench evaluates AI-generated OpenUSD assets for simulation readiness, visual fidelity and joint motion. Compare models, agent harnesses and skills.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SimReadyBench">
+  <meta property="og:locale" content="en_GB">
   <meta property="og:url" content="https://hcltech-robotics.github.io/simreadybench/">
   <meta property="og:image" content="https://hcltech-robotics.github.io/simreadybench/assets/social-card.png">
   <meta property="og:image:type" content="image/png">
@@ -16,13 +18,14 @@
   <meta property="og:image:height" content="909">
   <meta property="og:image:alt" content="SimReadyBench, a benchmark for simulation-ready asset reconstruction, with a reference asset shown as wireframe and a textured surface.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="SimReadyBench">
-  <meta name="twitter:description" content="A benchmark for simulation-ready asset reconstruction.">
+  <meta name="twitter:title" content="SimReadyBench: OpenUSD Asset Generation Benchmark">
+  <meta name="twitter:description" content="SimReadyBench evaluates AI-generated OpenUSD assets for simulation readiness, visual fidelity and joint motion. Compare models, agent harnesses and skills.">
   <meta name="twitter:image" content="https://hcltech-robotics.github.io/simreadybench/assets/social-card.png">
   <meta name="twitter:image:alt" content="SimReadyBench with formal, visual and kinematic fidelity and a reference eyeglasses asset.">
-  <title>SimReadyBench: a benchmark for simulation-ready asset reconstruction</title>
+  <title>SimReadyBench: OpenUSD Asset Generation Benchmark</title>
   <link rel="icon" href="data:,">
   <link rel="canonical" href="https://hcltech-robotics.github.io/simreadybench/">
+  <link rel="sitemap" type="application/xml" href="https://hcltech-robotics.github.io/simreadybench/sitemap.xml">
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/index.css">
   <link rel="stylesheet" href="style.css?v=3">
@@ -33,18 +36,39 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareSourceCode",
-    "name": "SimReadyBench",
-    "softwareVersion": "1.0.0",
-    "description": "A benchmark for simulation-ready asset reconstruction",
-    "codeRepository": "https://github.com/hcltech-robotics/simreadybench",
-    "url": "https://hcltech-robotics.github.io/simreadybench/",
-    "author": [
-      {"@type":"Person","name":"Chris von Csefalvay","affiliation":{"@type":"Organization","name":"HCLTech"}},
-      {"@type":"Person","name":"Tamas Foldi","affiliation":{"@type":"Organization","name":"HCLTech"}}
-    ],
-    "programmingLanguage": "Python",
-    "license": "https://opensource.org/license/mit"
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://hcltech-robotics.github.io/simreadybench/#webpage",
+        "url": "https://hcltech-robotics.github.io/simreadybench/",
+        "name": "SimReadyBench: OpenUSD Asset Generation Benchmark",
+        "description": "SimReadyBench evaluates AI-generated OpenUSD assets for simulation readiness, visual fidelity and joint motion. Compare models, agent harnesses and skills.",
+        "inLanguage": "en-GB",
+        "mainEntity": {"@id": "https://hcltech-robotics.github.io/simreadybench/#software"},
+        "primaryImageOfPage": {
+          "@type": "ImageObject",
+          "url": "https://hcltech-robotics.github.io/simreadybench/assets/social-card.png",
+          "width": 1730,
+          "height": 909
+        }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://hcltech-robotics.github.io/simreadybench/#software",
+        "name": "SimReadyBench",
+        "version": "1.0.0",
+        "description": "An OpenUSD asset reconstruction benchmark comparing models, agent harnesses and authoring skills through formal, visual and kinematic fidelity. Harbor environments also provide validator feedback and rewards for reinforcement learning.",
+        "codeRepository": "https://github.com/hcltech-robotics/simreadybench",
+        "url": "https://hcltech-robotics.github.io/simreadybench/",
+        "mainEntityOfPage": {"@id": "https://hcltech-robotics.github.io/simreadybench/#webpage"},
+        "author": [
+          {"@type":"Person","name":"Chris von Csefalvay","url":"https://chrisvoncsefalvay.com","affiliation":{"@type":"Organization","name":"HCLTech"}},
+          {"@type":"Person","name":"Tamas Foldi","url":"https://github.com/tfoldi","affiliation":{"@type":"Organization","name":"HCLTech"}}
+        ],
+        "programmingLanguage": "Python",
+        "license": "https://opensource.org/license/mit"
+      }
+    ]
   }
   </script>
 </head>
@@ -57,7 +81,7 @@
           <div class="columns is-centered">
             <div class="column has-text-centered">
               <h1 class="title is-1 publication-title">SimReadyBench</h1>
-              <h2 class="subtitle is-3 publication-subtitle">A benchmark for simulation-ready asset reconstruction</h2>
+              <h2 class="subtitle is-3 publication-subtitle">A benchmark for simulation-ready OpenUSD asset reconstruction</h2>
               <div class="is-size-5 publication-authors">
                 <span class="author-block"><a href="https://chrisvoncsefalvay.com">Chris von Csefalvay</a><sup>1</sup> and</span>
                 <span class="author-block">Tamas Foldi<sup>1</sup></span>
@@ -89,7 +113,7 @@
           <div class="column is-four-fifths">
             <h2 class="title is-3">Abstract</h2>
             <div class="content has-text-left">
-              <p>SimReadyBench evaluates OpenUSD asset reconstruction in Harbor environments on a local Docker host or Daytona. A model receives reference views, nominal dimensions and an authoring brief, then produces a USD package for validation and comparison with the reference. Users can evaluate the public reference sets, define experiments over their own assets, models, harnesses and authoring skills or use the reconstruction tasks and rewards with an external reinforcement-learning trainer. Formal, visual and kinematic fidelity are reported independently.</p>
+              <p>SimReadyBench evaluates how AI agents reconstruct simulation-ready 3D assets in OpenUSD (Universal Scene Description). Reconstruction tasks run in Harbor environments on a local Docker host or Daytona. A model receives reference views, nominal dimensions and an authoring brief, then produces a USD package for validation and comparison with the reference. Users can evaluate the public reference sets, define experiments over their own assets, models, harnesses and authoring skills or use the reconstruction tasks and rewards with an external reinforcement-learning trainer. Formal, visual and kinematic fidelity are reported independently.</p>
             </div>
           </div>
         </div>

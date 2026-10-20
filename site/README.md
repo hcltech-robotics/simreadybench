@@ -19,3 +19,13 @@ The protocol and evaluation-factor illustrations in `assets/` are the same figur
 The scoring section summarises the evaluation measures and links to the [scoring documentation](https://github.com/hcltech-robotics/simreadybench/blob/main/docs/evaluation.md), which contains the formal, visual and kinematic fidelity charts.
 
 The template's `bulma.min.css` and `index.css` are in `static/css/`. Benchmark typography, table and command styles are in `style.css`. The footer and [template licence](TEMPLATE-LICENSE.md) provide the required attribution.
+
+## Search indexing
+
+The page serves its benchmark description, methods and documentation links in HTML. JavaScript adds the live leaderboard, with a Hugging Face link available before it loads. The HTML head contains the canonical URL, matching search and social descriptions, and linked `WebPage`/`SoftwareSourceCode` metadata.
+
+After deployment, submit `https://hcltech-robotics.github.io/simreadybench/sitemap.xml` in Google Search Console for the `https://hcltech-robotics.github.io/simreadybench/` URL-prefix property and request indexing of the homepage. The sitemap contains the canonical page URL. Section anchors are parts of that page.
+
+GitHub Pages hosts this project under `/simreadybench/`. Crawlers read `robots.txt` at `https://hcltech-robotics.github.io/robots.txt`, which belongs to the organisation's root site. A `robots.txt` in this directory would not control crawling. If the organisation maintains a root robots file, it can advertise this sitemap there.
+
+When moving the site, update the canonical URL, social URLs, JSON-LD identifiers and sitemap together. Keep the software version consistent with `pyproject.toml` and add publication metadata when the paper is available.
