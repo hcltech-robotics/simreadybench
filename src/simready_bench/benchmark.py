@@ -84,6 +84,8 @@ def _copy_file(source, destination, *, maximum=1024**3):
         raise ValueError("Asset and skill inputs must be regular files without links")
     if source.stat().st_size > maximum:
         raise ValueError("Input file exceeds the package size limit")
+    if source == destination:
+        return
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if destination.exists():
         if (
@@ -826,7 +828,19 @@ def _aggregate_reports(
             for kind in ("images", "traces"):
                 for item in row.get(kind, []):
                     original = attempt / "evidence" / item["path"]
-                    name = evidence_prefix + "-" + Path(item["path"]).name
+                    name = item["path"]
+                    if attempt != output:
+                        name = evidence_prefix + "-" + Path(name).name
+                        if len(name.encode("utf-8")) > 255:
+                            suffix = Path(item["path"]).suffix
+                            if len(suffix.encode("utf-8")) > 16:
+                                suffix = ""
+                            name = (
+                                evidence_prefix
+                                + "-"
+                                + hashlib.sha256(item["path"].encode()).hexdigest()
+                                + suffix
+                            )
                     _copy_file(original, evidence / name, maximum=32 * 1024**2)
                     item["path"] = name
             candidate = row.get("candidate") or {}
@@ -838,7 +852,10 @@ def _aggregate_reports(
             nvidia = row.get("nvidia_validator_report_file")
             if nvidia:
                 nvidia["path"] = relative_prefix + nvidia["path"]
-            row["report_path"] = relative_prefix + "report.html"
+            if attempt != output:
+                row["report_path"] = relative_prefix + "report.html"
+            else:
+                row.setdefault("report_path", "report.html")
             rows.append(row)
     completed = sum(row.get("status") == "completed" for row in rows)
     summary = {
