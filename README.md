@@ -18,7 +18,6 @@
 
 SimReadyBench turns reference OpenUSD assets into Harbor reconstruction tasks and evaluates the generated assets. It measures formal fidelity, visual fidelity and kinematic fidelity, with models, agent harnesses and authoring skills as independent experimental factors. The same environment supplies validator feedback and terminal rewards for reinforcement learning with an externally trained policy.
 
-[Project page](https://hcltech-robotics.github.io/simreadybench/) | [Quickstart](docs/quickstart.md) | [Agent skills](docs/agent-skills.md) | [Configuration](docs/configuration.md) | [Reinforcement learning](docs/reinforcement-learning.md) | [Deployment](docs/deployment.md) | [Scoring](docs/evaluation.md) | [Reporting](docs/reporting.md) | [Results](https://huggingface.co/datasets/hcltech-robotics/simreadybench)
 
 ## Install
 
