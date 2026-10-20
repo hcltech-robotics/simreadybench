@@ -5,7 +5,7 @@
     <a href="https://chrisvoncsefalvay.com">Chris von Csefalvay</a> and
     <a href="https://github.com/tfoldi">Tamas Foldi</a>
   </p>
-  <p><a href="https://www.hcltech.com/">HCLTech</a></p>
+  <p><a href="https://www.hcltech.com/">Robotics Intelligence CoE, HCLTech, Santa Clara, CA</a></p>
   <p>
     <a href="https://hcltech-robotics.github.io/simreadybench/"><img src="https://img.shields.io/badge/Project-page-006B73?style=flat-square" alt="Project page"></a>
     <a href="https://hcltech-robotics.github.io/simreadybench/#paper"><img src="https://img.shields.io/badge/Paper-coming_soon-8A6D3B?style=flat-square" alt="Paper coming soon"></a>
