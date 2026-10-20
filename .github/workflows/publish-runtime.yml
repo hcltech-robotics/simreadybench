@@ -1,0 +1,77 @@
+name: Publish runtime
+
+on:
+  push:
+    tags:
+      - runtime-v*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Runtime version
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: runtime-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RUNTIME_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Free space for nested runtime images
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h /
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked build tools
+        run: python -m pip install --require-hashes -r locks/build.txt
+      - name: Build the package
+        run: python -m build --wheel --no-isolation
+      - name: Sign in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish the runtime
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          version = os.environ.get('RUNTIME_VERSION') or os.environ['GITHUB_REF_NAME'].removeprefix('runtime-v')
+          wheels = list(Path('dist').glob('simready_bench-*-py3-none-any.whl'))
+          if len(wheels) != 1:
+              raise ValueError('Expected one built package wheel')
+          subprocess.run([
+              sys.executable, 'containers/daytona/release_runtime.py',
+              '--repository', 'ghcr.io/' + os.environ['GITHUB_REPOSITORY_OWNER'].lower() + '/simreadybench-runtime',
+              '--version', version, '--wheel', str(wheels[0]),
+              '--output', os.environ['RUNNER_TEMP'] + '/simready-runtime',
+              '--revision', os.environ['GITHUB_SHA'],
+          ], check=True)
+          PY
+      - name: Retain the release manifest and build receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: runtime-release
+          path: |
+            ${{ runner.temp }}/simready-runtime/runtime-release.json
+            ${{ runner.temp }}/simready-runtime/build-receipt.json
+            ${{ runner.temp }}/simready-runtime/consumer-check.json
+            ${{ runner.temp }}/simready-runtime/consumer-check.log
+          if-no-files-found: ignore

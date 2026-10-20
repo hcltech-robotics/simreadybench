@@ -1,0 +1,11 @@
+{
+  "schema": "simready-bench-runtime-release/v1",
+  "version": "1.0.2",
+  "platform": "linux/amd64",
+  "snapshot_image": "ghcr.io/hcltech-robotics/simreadybench-runtime@sha256:5191a01295e5e946f26b6051cd39d7796a636477ea355889c40ecb92c8901054",
+  "images": {
+    "actor": "sha256:36643ab216df8cb434b97c2b0f3b6202d9c2271bee5bed6393c7fcf68b065bc3",
+    "verifier": "sha256:a5c8d12c544bc61586c5c689d3de8e8d6747e0278fb376c7934afb6e693bf256",
+    "cpu": "sha256:f62c16159df80eaa0d9ad0a2ee9bd651c78d001a24e99d0d585f1f56ce0c9a63"
+  }
+}

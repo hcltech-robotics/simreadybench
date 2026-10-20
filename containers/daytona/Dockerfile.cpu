@@ -1,0 +1,15 @@
+FROM docker@sha256:849c204079272f607d13c42c5f5cd8b3e9c03a20d094806154da19827986ad9e AS dockercli
+FROM ubuntu:24.04@sha256:a2d43bffc46670d7108bb3c0468c67c5557c4c92e83e1e34cbff1322ad1b94dc
+ENV DEBIAN_FRONTEND=noninteractive PYTHONDONTWRITEBYTECODE=1
+RUN apt-get update && apt-get install -y --no-install-recommends python3.12 python3.12-venv ca-certificates openssh-client && rm -rf /var/lib/apt/lists/*
+COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=dockercli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
+COPY runtime.txt /opt/simready/runtime.txt
+COPY wheels/ /opt/simready/wheels/
+RUN python3.12 -m venv /opt/simready/venv && /opt/simready/venv/bin/python -m pip install --no-cache-dir --require-hashes -r /opt/simready/runtime.txt && /opt/simready/venv/bin/python -m pip install --no-cache-dir --no-deps /opt/simready/wheels/*.whl && /opt/simready/venv/bin/python -m pip check && mkdir -p /work && chown 1000:1000 /work
+ENV PATH=/opt/simready/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/work
+LABEL org.opencontainers.image.title="SimReadyBench CPU runtime" org.opencontainers.image.version="1.0.0" org.opencontainers.image.source="https://github.com/hcltech-robotics/simreadybench"
+USER 1000:1000
+WORKDIR /work
+ENTRYPOINT []
+CMD ["simready-bench", "--help"]

@@ -1,0 +1,36 @@
+%%{init: {"startOnLoad":false,"securityLevel":"strict","theme":"base","look":"classic","fontFamily":"Geist Sans, sans-serif","fontSize":22,"htmlLabels":true,"themeVariables":{"fontFamily":"Geist Sans, sans-serif","fontSize":"22px","background":"#ffffff","primaryColor":"#ffffff","primaryTextColor":"#222222","primaryBorderColor":"#555555","lineColor":"#777777","secondaryColor":"#ffffff","tertiaryColor":"#ffffff","edgeLabelBackground":"#ffffff"},"flowchart":{"htmlLabels":true,"curve":"linear","nodeSpacing":32,"rankSpacing":52,"padding":20,"diagramPadding":20,"useMaxWidth":false,"wrappingWidth":460}}}%%
+%% SimReadyBench kinematic fidelity. Joint qualities and recoveries are fractions.
+%% Sources: kinematics.py:165-225,243-300,313-371,417-464;
+%% composites.py:152-162.
+flowchart LR
+    accTitle: Kinematic fidelity aggregation
+    accDescr: Each matched joint quality is the product of motion, unwrapped extent and limit pattern agreement. Moving-joint and fixed-constraint recovery each use twice the summed joint quality divided by the combined reference and candidate count. Kinematic fidelity is the geometric mean of active recovery groups, expressed as a percentage.
+
+    motion["Motion agreement<br/>$$m_j = \frac{1}{1+(d_j/b)^2}$$<br/>$$d_j = \text{landmark RMS displacement}$$<br/>$$b = \text{configured position tolerance}$$"]
+    extent["Unwrapped extent agreement<br/>$$e_j = \frac{1}{1+(\delta_j/t_j)^2}$$<br/>$$\delta_j = \text{interval-width error}$$<br/>$$t_j = \text{absolute}+\text{relative}\cdot\text{reference width}$$<br/>$$e_j=1$$ unless both intervals are finite"]
+    pattern["Limit pattern agreement<br/>$$p_j = \frac{1}{1+h_j}$$<br/>$$h_j = \text{mismatched lower/upper patterns}$$<br/>Finite or signed unbounded"]
+    joint["Matched joint quality<br/>$$q_j = m_j e_j p_j$$<br/>One-to-one type and connectivity matching<br/>Fixed constraints: $$e_j = p_j = 1$$"]
+    moving["Moving-joint recovery<br/>$$r_m = \frac{2\sum_{j=1}^{R_m}q_j}{R_m+C_m}$$"]
+    fixed["Fixed-constraint recovery<br/>$$r_f = \frac{2\sum_{j=1}^{R_f}q_j}{R_f+C_f}$$"]
+    score["Kinematic fidelity (%)<br/>$$K = 100\sqrt{r_m r_f}$$<br/>Geometric mean of active groups"]
+    counts["$$R_g,\ C_g = \text{reference/candidate group counts}$$<br/>Missing or invalid matches earn zero.<br/>Extra joints increase the denominator."]
+    state["Omit empty groups. One active group: $$K = 100 r_g$$<br/>Both groups empty: not applicable.<br/>Unmeasured reference semantics: score unmeasured, with bounds."]
+
+    motion --> joint
+    extent --> joint
+    pattern --> joint
+    joint --> moving
+    joint --> fixed
+    moving --> score
+    fixed --> score
+    counts -.- joint
+    state -.- score
+
+    classDef input fill:#ffffff,stroke:#9a9a9a,stroke-width:1px,color:#222222;
+    classDef calculation fill:#ffffff,stroke:#555555,stroke-width:1.2px,color:#222222;
+    classDef result fill:#f2f2f2,stroke:#222222,stroke-width:1.6px,color:#111111,font-weight:600;
+    classDef note fill:#ffffff,stroke:none,color:#555555,font-size:18px;
+    class motion,extent,pattern input;
+    class joint,moving,fixed calculation;
+    class score result;
+    class counts,state note;

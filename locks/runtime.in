@@ -1,0 +1,14 @@
+harbor==0.24.0
+PyYAML==6.0.3
+Pillow==13.0.0
+mcp==2.3.0
+aiohttp==3.14.5
+numpy==2.5.4
+simready-foundation-tier-core==2026.8.0
+simready-validate==2026.8.0
+usd-validation-nvidia==1.22.0
+usd-profiles-nvidia==1.22.0
+usd-core==26.8
+physx-usd-schemas==25.11.2.72696984
+MaterialX==1.39.5
+daytona==0.225.0

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Run OpenUSD reconstruction benchmarks locally or on Daytona, define model, harness and skills experiments and obtain formal, visual and kinematic fidelity scores.">
+  <meta name="author" content="Chris von Csefalvay and Tamas Foldi">
+  <meta property="og:title" content="SimReadyBench">
+  <meta property="og:description" content="A benchmark for simulation-ready asset reconstruction.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SimReadyBench">
+  <meta property="og:url" content="https://hcltech-robotics.github.io/simreadybench/">
+  <meta property="og:image" content="https://hcltech-robotics.github.io/simreadybench/assets/social-card.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1730">
+  <meta property="og:image:height" content="909">
+  <meta property="og:image:alt" content="SimReadyBench, a benchmark for simulation-ready asset reconstruction, with a reference asset shown as wireframe and a textured surface.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SimReadyBench">
+  <meta name="twitter:description" content="A benchmark for simulation-ready asset reconstruction.">
+  <meta name="twitter:image" content="https://hcltech-robotics.github.io/simreadybench/assets/social-card.png">
+  <meta name="twitter:image:alt" content="SimReadyBench with formal, visual and kinematic fidelity and a reference eyeglasses asset.">
+  <title>SimReadyBench: a benchmark for simulation-ready asset reconstruction</title>
+  <link rel="icon" href="data:,">
+  <link rel="canonical" href="https://hcltech-robotics.github.io/simreadybench/">
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <script src="app.js" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "SimReadyBench",
+    "softwareVersion": "1.0.0",
+    "description": "A benchmark for simulation-ready asset reconstruction",
+    "codeRepository": "https://github.com/hcltech-robotics/simreadybench",
+    "url": "https://hcltech-robotics.github.io/simreadybench/",
+    "author": [
+      {"@type":"Person","name":"Chris von Csefalvay","affiliation":{"@type":"Organization","name":"HCLTech"}},
+      {"@type":"Person","name":"Tamas Foldi","affiliation":{"@type":"Organization","name":"HCLTech"}}
+    ],
+    "programmingLanguage": "Python",
+    "license": "https://opensource.org/license/mit"
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <main id="main-content">
+    <section class="hero publication-header">
+      <div class="hero-body">
+        <div class="container is-max-desktop">
+          <div class="columns is-centered">
+            <div class="column has-text-centered">
+              <h1 class="title is-1 publication-title">SimReadyBench</h1>
+              <h2 class="subtitle is-3 publication-subtitle">A benchmark for simulation-ready asset reconstruction</h2>
+              <div class="is-size-5 publication-authors">
+                <span class="author-block"><a href="https://chrisvoncsefalvay.com">Chris von Csefalvay</a><sup>1</sup> and</span>
+                <span class="author-block">Tamas Foldi<sup>1</sup></span>
+              </div>
+              <div class="is-size-5 publication-authors">
+                <span class="author-block"><sup>1</sup> HCLTech</span>
+              </div>
+              <div class="column has-text-centered">
+                <div class="publication-links">
+                  <span class="link-block"><a href="#paper" class="button is-normal is-rounded is-dark" aria-describedby="paper-status"><span>Paper (coming soon)</span></a></span>
+                  <span class="link-block"><a href="https://github.com/hcltech-robotics/simreadybench" class="external-link button is-normal is-rounded is-dark"><span>Code</span></a></span>
+                  <span class="link-block"><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench" class="external-link button is-normal is-rounded is-dark"><span>Results</span></a></span>
+                  <span class="link-block"><a href="#quickstart" class="button is-normal is-rounded is-dark"><span>Quickstart</span></a></span>
+                  <span class="link-block"><a href="#custom-benchmark" class="button is-normal is-rounded is-dark"><span>Your benchmark</span></a></span>
+                  <span class="link-block"><a href="#reinforcement-learning" class="button is-normal is-rounded is-dark"><span>Reinforcement learning</span></a></span>
+                  <span class="link-block"><a href="#method" class="button is-normal is-rounded is-dark"><span>Scoring</span></a></span>
+                  <span class="link-block"><a href="#leaderboard" class="button is-normal is-rounded is-dark"><span>Leaderboard</span></a></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section hero is-light" id="abstract">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3">Abstract</h2>
+            <div class="content has-text-left">
+              <p>SimReadyBench evaluates OpenUSD asset reconstruction in Harbor environments on a local Docker host or Daytona. A model receives reference views, nominal dimensions and an authoring brief, then produces a USD package for validation and comparison with the reference. Users can evaluate the public reference sets, define experiments over their own assets, models, harnesses and authoring skills or use the reconstruction tasks and rewards with an external reinforcement-learning trainer. Formal, visual and kinematic fidelity are reported independently.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="paper">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3">Paper</h2>
+        <p id="paper-status">The paper is coming soon.</p>
+      </div>
+    </section>
+
+    <section class="section" id="quickstart">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3">Install and run your first benchmark</h2>
+        <p>Use Python 3.12 on Linux or in an Ubuntu WSL shell. Install from the source checkout:</p>
+        <pre tabindex="0" aria-label="Install SimReadyBench"><code>git clone https://github.com/hcltech-robotics/simreadybench.git
+cd simreadybench
+python3.12 -m venv .venv
+. .venv/bin/activate
+python -m pip install '.[daytona,publish]'</code></pre>
+        <p>Set the <a href="#providers">model provider credentials</a>, then choose where the benchmark runs. NV25 evaluates four reconstructions of each of its 25 public reference assets, giving 100 attempts with up to 64 authoring turns each.</p>
+        <h3 class="title is-5">Daytona</h3>
+        <p>Set <code>DAYTONA_API_KEY</code>, then import the published runtime into your organisation:</p>
+        <pre tabindex="0" aria-label="Import the Daytona runtime"><code>simready-bench setup daytona --output ../simreadybench-runtime.json</code></pre>
+        <p>Setup saves the matching image configuration. Use it when starting the benchmark:</p>
+        <pre tabindex="0" aria-label="Run NV25 on Daytona"><code>simready-bench benchmark nvidia-25 \
+  --model gpt-6.1-sol --reasoning medium \
+  --harness pi --deploy daytona --repetitions 4 \
+  --runtime-images ../simreadybench-runtime.json \
+  --authoring-turns 64 --workers 4 --supervise \
+  --output-dir ../simreadybench-results</code></pre>
+        <h3 class="title is-5">Local</h3>
+        <p>Use a Linux Docker host with the <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/deployment.md#local">CPU runtime images</a> and their <code>local-runtime-images.json</code> configuration.</p>
+        <pre tabindex="0" aria-label="Run NV25 locally"><code>python -m pip install '.[validator]'
+simready-bench benchmark nvidia-25 \
+  --model gpt-6.1-sol --reasoning medium \
+  --harness pi --deploy local --repetitions 4 --authoring-turns 64 \
+  --runtime-images /tmp/srb-snapshot/local-runtime-images.json \
+  --output-dir ../simreadybench-local-results</code></pre>
+        <p>Open <code>report.html</code> in the output directory to inspect scores, generated USDs and orientation-aligned captures. Each completed reconstruction also enters <code>scores.csv</code> and <code>results.json</code>. Add <code>--hf-repo YOUR_ACCOUNT/RESULTS --hf-run RUN_ID</code> to publish completed reconstructions to Hugging Face during execution.</p>
+        <p>The default accounting allowance covers the permitted requests at full native provider capacity. Add <code>--max-spend-usd AMOUNT</code> to impose a monetary ceiling. On Daytona, <code>--supervise</code> restarts an interrupted coordinator against the saved run, and <code>--resume</code> reconnects its workers after closing the shell.</p>
+        <p><a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/quickstart.md">Quickstart and result inspection</a> | <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/deployment.md">Runtime setup</a></p>
+      </div>
+    </section>
+
+    <section class="section hero is-light" id="providers">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3">Connect a model provider</h2>
+        <p>The selected model receives images and uses tools to author the asset. The same provider connection works with local and Daytona execution.</p>
+        <div class="table-container">
+          <table class="table is-fullwidth">
+            <thead><tr><th scope="col">Provider</th><th scope="col">Connection</th><th scope="col">Credentials</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">OpenAI</th><td><code>--provider openai --model gpt-6.1-sol --reasoning medium</code>, using the Responses API</td><td><code>OPENAI_API_KEY</code></td></tr>
+              <tr><th scope="row">Hugging Face</th><td><code>--provider huggingface --model MODEL_ID:PROVIDER</code>, using an image and tool-capable Inference Providers route</td><td><code>HF_TOKEN</code></td></tr>
+              <tr><th scope="row">Anthropic</th><td>Serve Claude through an OpenAI-compatible gateway, such as LiteLLM, and select its endpoint and capabilities in an operator policy</td><td><code>ANTHROPIC_API_KEY</code> at the gateway and the gateway credential in the benchmark</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/configuration.md#model-connections">provider configuration guide</a> includes commands, endpoint settings, model capabilities and pricing for all three connections.</p>
+      </div>
+    </section>
+
+    <section class="section" id="custom-benchmark">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3">Build a benchmark over your own assets</h2>
+        <p>Supply one OpenUSD asset or a JSON list of SimReady package entry points, with their composed layers and textures. SimReadyBench prepares the reference observations, constructs the Harbor tasks and evaluates each reconstruction against its source.</p>
+        <p>For example, save the following as <code>references.json</code>, with the packages under <code>./references</code>:</p>
+        <pre><code>[
+  "cabinet/cabinet.usd",
+  "drawer/drawer.usda",
+  "hinged_case/hinged_case.usd"
+]</code></pre>
+        <pre tabindex="0" aria-label="Run a custom benchmark"><code>simready-bench benchmark references.json \
+  --assets-root ./references \
+  --model gpt-6.1-sol --harness pi \
+  --skills ./skills/usd --deploy daytona \
+  --runtime-images ../simreadybench-runtime.json \
+  --workers 4 --repetitions 4 --authoring-turns 64 --supervise \
+  --output-dir ../simreadybench-custom-results</code></pre>
+        <p>Models, harnesses and skill sets are independent experimental factors. Evaluate each combination with its own command and output directory, holding references and repetitions constant. Select Pi or OpenCode with <code>--harness</code>, supply authoring skills with <code>--skills</code> or omit it for the empty skill condition.</p>
+        <p>The <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/configuration.md">configuration guide</a> defines asset manifests, model connections and matrix examples. Each report records the selected conditions alongside the measurements.</p>
+      </div>
+    </section>
+
+    <section class="section hero is-light" id="reinforcement-learning">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3">Use reconstruction tasks for reinforcement learning</h2>
+        <p>Use your own assets as reconstruction episodes and serve a trainable policy through an OpenAI-compatible model endpoint. SimReadyBench runs the Harbor environment, provides asset observations and validator feedback, then scores the submitted USD. Your trainer uses the recorded trajectory and terminal measurements to update the policy between episodes.</p>
+        <p>Harbor receives formal fidelity as <code>simready_reward</code> on a 0-100 scale. The final readout also contains independent formal, visual and kinematic composites, so a trainer can define an objective over the properties relevant to its assets.</p>
+        <pre><code>{"simready_reward": 0.0}</code></pre>
+        <p>Each episode records the agent trace, candidate package, validator findings and fidelity measurements. The <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/reinforcement-learning.md">reinforcement-learning guide</a> shows the policy endpoint, episode runner and reward readout for a custom asset.</p>
+      </div>
+    </section>
+
+    <section class="section" id="method">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column">
+            <h2 class="title is-3">How scoring and validation work</h2>
+            <div class="content has-text-left">
+              <p>A reference USD supplies the geometry, dimensions and image for an independent authoring task. The agent uses the selected agent harness in a Harbor environment to create a new USD asset and can request validator feedback during reconstruction. The evaluator compares the final submission with the reference and renders both from matching cameras.</p>
+              <p>The NV25 protocol evaluates each combination of model, harness and skills over four reconstructions of each of its 25 assets, giving 100 attempts.</p>
+            </div>
+            <figure class="methodology-figure">
+              <img src="assets/evaluation-protocol.png" width="2700" height="1680" loading="lazy" alt="Evaluation protocol from reference views, dimensions and an authoring brief through USD reconstruction to profile validation, fidelity scoring and matched captures.">
+              <figcaption>The reference asset defines the observations and eligible measurements for each reconstruction.</figcaption>
+            </figure>
+            <figure class="methodology-figure">
+              <img src="assets/evaluation-factors.png" width="2700" height="1390" loading="lazy" alt="Eyeglasses shown half in wireframe and half textured, with callouts for shape, rigid parts, joints and materials.">
+              <figcaption>Reference correspondence covers geometry, physical structure, joint motion and surface appearance.</figcaption>
+            </figure>
+            <div class="table-container has-text-left" id="measures">
+              <table class="table is-fullwidth measures-table">
+                <thead><tr><th scope="col">Measure</th><th scope="col">Evaluation</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">Formal fidelity</th><td>Assets are evaluated <a href="https://github.com/NVIDIA/simready-foundation/blob/main/nv_core/sr_specs/docs/guides/profiles_validation_workflow.md">according to the NVIDIA SimReady-Foundation Robotics-Prop 4.0.0 profile</a>. The mandatory score is 95 times the fraction of 46 requirements passed, with five further points when all pass. Strict acceptance requires all 46.</td></tr>
+                  <tr><th scope="row">Visual fidelity</th><td>The geometric mean of shape correspondence and appearance material correspondence. Colours, roughness, metallic response, opacity and supported textures are compared at reference surface samples.</td></tr>
+                  <tr><th scope="row">Kinematic fidelity</th><td>Joint recovery and agreement of allowed motion after whole-object alignment. Missing and additional joints reduce the score, while fixed attachments and moving joints are evaluated separately.</td></tr>
+                  <tr><th scope="row">Optional SimReady score</th><td>The 51 optional requirements are scored separately as 100 times the fraction passed. Unmeasured requirements retain score bounds and measurement coverage.</td></tr>
+                  <tr><th scope="row">Shape</th><td>Bidirectional surface agreement after unit and up-axis normalisation and whole-object translation and yaw alignment. Physical scale and relative part transforms are preserved, with no scale fitting or independent part fitting. The same alignment defines the shared reference and reconstruction capture cameras.</td></tr>
+                  <tr><th scope="row">Rigid parts</th><td>Surface agreement for corresponding bodies, combined with body count, joint inventory and enabled/kinematic state checks.</td></tr>
+                  <tr><th scope="row">Joints</th><td>Joint types, connectivity, frames, axes, enabled states and motion limits.</td></tr>
+                  <tr><th scope="row">Materials</th><td>Supported material values and textures at corresponding reference surface samples.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="has-text-left table-note">Each fidelity component records its eligible reference coverage. <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/evaluation.md">Scoring documentation</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="leaderboard">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column">
+            <h2 class="title is-3">Leaderboard</h2>
+            <div class="content has-text-left">
+              <p>The NV25 public reference set contains 25 NVIDIA SimReady assets. Each entry reports formal, visual and kinematic fidelity across 100 reconstructions, with links to the per-asset measurements, generated USDs and captures.</p>
+              <div class="table-container leaderboard-scroll" id="leaderboard-table-region" tabindex="0" role="region" aria-label="Model performance leaderboard" hidden>
+                <table class="table is-fullwidth leaderboard-table">
+                  <caption id="leaderboard-caption">NV25 public reference set, four reconstructions per asset</caption>
+                  <thead><tr><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Harness</th><th scope="col">Skills</th><th scope="col">Formal fidelity</th><th scope="col">Visual fidelity</th><th scope="col">Kinematic fidelity</th><th scope="col">Requests</th><th scope="col">Time</th><th scope="col">Tokens</th><th scope="col">Cost</th><th scope="col">Results</th></tr></thead>
+                  <tbody id="leaderboard-body"></tbody>
+                </table>
+              </div>
+              <p id="leaderboard-status" class="table-note" aria-live="polite" hidden></p>
+              <p><a id="leaderboard-archive" class="button is-normal is-rounded is-dark" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">View leaderboard on Hugging Face</a></p>
+              <p class="table-note">Scores are means on a 0-100 scale. Requests, time, tokens and costs are means per reconstruction across all 100 attempts. A usage mean is shown only when every attempt has a measurement, with partial coverage shown otherwise. Costs are in USD. Counts sum passed requirements or earned fidelity credit over all eligible criteria, so their pooled fraction can differ from the mean score. Fidelity reference coverage is the mean across eligible reconstructions and is reported separately from the number of criteria measured. N/A means that no reference criteria apply, while an unmeasured result retains its missing score and any known bounds. <a href="#measures">Score definitions</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section hero is-light" id="reference-sets">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3">Public reference sets</h2>
+        <p>NV25 and NV100 are distinct public reference sets, separate from the withheld internal benchmark reference set. The packaged <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/src/simready_bench/resources/benchmarks/nvidia-25.json"><code>nvidia-25</code> manifest</a> defines the 25 assets in NV25. Its standard protocol uses four reconstructions per asset for each model, harness and skill configuration.</p>
+      </div>
+    </section>
+
+    <section class="section hero is-light" id="citation">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3 has-text-centered">Citation</h2>
+        <p><a href="https://github.com/hcltech-robotics/simreadybench/blob/main/CITATION.cff">Download the software citation</a></p>
+        <pre><code>@software{voncsefalvay2026simreadybench,
+  title = {SimReadyBench: Evaluating models, harnesses and skills
+           for simulation-ready asset generation},
+  author = {von Csefalvay, Chris and Foldi, Tamas},
+  year = {2026},
+  url = {https://github.com/hcltech-robotics/simreadybench}
+}</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="content has-text-centered">
+            <p>Built with the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template/tree/d38af1ccae1ce82c3404d2820c4c646afd409f81">Academic project page template</a>, adapted from the <a href="https://nerfies.github.io">Nerfies</a> project page. Website template licensed under <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

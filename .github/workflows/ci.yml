@@ -1,0 +1,59 @@
+name: Execution and recovery
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  execution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install execution and publication dependencies
+        run: python -m pip install ".[test,daytona,publish]" build
+      - name: Test execution and recovery
+        run: >-
+          python -m pytest -q -p no:cacheprovider
+          tests/test_acquisition_retry.py
+          tests/test_supervision.py
+          tests/test_agent_skill_commands.py
+          tests/test_authoring_turns.py
+          tests/test_hf_custom_settlement.py
+          tests/test_daytona_policy.py
+          tests/test_benchmark_command.py
+          tests/test_documented_setup.py
+          tests/test_worker_entrypoints.py
+          tests/test_orchestration.py
+          tests/test_daytona_recovery.py
+          tests/test_automatic_recovery.py
+          tests/test_parallel.py
+          tests/test_resume.py
+          tests/test_resume_authority.py
+          tests/test_local_resume_budget.py
+          tests/test_recovery_publication.py
+          tests/test_recovery_wheel.py
+          tests/test_daytona.py
+          tests/test_daytona_reconnect.py
+          tests/test_daytona_reports.py
+          tests/test_final_collection_receipts.py
+          tests/test_retry_owner.py
+          tests/test_runtime_failures.py
+          tests/test_publication_flow.py
+          tests/test_publication_metadata.py
+          tests/test_usage_reporting.py
+          tests/test_fidelity_report.py
+          tests/test_publishing.py
+          tests/test_leaderboard.py
+      - name: Build wheel and source distribution
+        run: python -m build --wheel --sdist

@@ -1,0 +1,11 @@
+name: SimReadyBench NV25
+description: >
+  OpenUSD reconstruction from the pinned public NV25 reference set, with four
+  reconstructions per asset and 64 authoring turns per reconstruction. Formal,
+  visual and kinematic fidelity are reported separately as percentages under the
+  Robotics-Prop 4.0.0 profile and SimReadyBench composite score definitions.
+evaluation_framework: harbor
+tasks:
+- id: nv25_64x4_formal_fidelity
+- id: nv25_64x4_visual_fidelity
+- id: nv25_64x4_kinematic_fidelity

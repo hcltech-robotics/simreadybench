@@ -1,0 +1,29 @@
+%%{init: {"startOnLoad":false,"securityLevel":"strict","theme":"base","look":"classic","fontFamily":"Geist Sans, sans-serif","fontSize":22,"htmlLabels":true,"themeVariables":{"fontFamily":"Geist Sans, sans-serif","fontSize":"22px","background":"#ffffff","primaryColor":"#ffffff","primaryTextColor":"#222222","primaryBorderColor":"#555555","lineColor":"#777777","secondaryColor":"#ffffff","tertiaryColor":"#ffffff","edgeLabelBackground":"#ffffff"},"flowchart":{"htmlLabels":true,"curve":"linear","nodeSpacing":32,"rankSpacing":52,"padding":20,"diagramPadding":20,"useMaxWidth":false,"wrappingWidth":460}}}%%
+%% SimReadyBench formal fidelity. All scores are percentages.
+%% Sources: engine/scoring.py:419-494; composites.py:75-101.
+flowchart LR
+    accTitle: Formal fidelity aggregation
+    accDescr: The passed count across 46 mandatory requirement IDs determines 95 points of base credit. A further five points are awarded only if all 46 pass. Unknown outcomes retain the denominator and leave the scalar score unmeasured.
+
+    roster["Mandatory requirement groups<br/>Rigid body/collision: 10<br/>Asset paths/naming: 8<br/>Geometry/mesh: 8<br/>Materials/textures: 6<br/>Semantics: 6<br/>Hierarchy: 4<br/>Units: 2<br/>Thumbnail metadata: 2"]
+    passed["Passed requirements<br/>$$p = \sum_{i=1}^{46} \mathbf{1}[\text{ID }i\text{ passes}]$$<br/>$$N = 46$$"]
+    base["Base credit<br/>$$B = 95\,\frac{p}{46}$$"]
+    bonus["All-pass bonus<br/>$$C = \begin{cases}5,&p=46\\0,&p<46\end{cases}$$"]
+    score["Formal fidelity (%)<br/>$$F = B + C$$"]
+    state["All 46 mandatory IDs remain in scope.<br/>Any unknown outcome: score unmeasured.<br/>Optional requirements are reported separately."]
+
+    roster --> passed
+    passed --> base
+    passed --> bonus
+    base --> score
+    bonus --> score
+    state -.- score
+
+    classDef input fill:#ffffff,stroke:#9a9a9a,stroke-width:1px,color:#222222;
+    classDef calculation fill:#ffffff,stroke:#555555,stroke-width:1.2px,color:#222222;
+    classDef result fill:#f2f2f2,stroke:#222222,stroke-width:1.6px,color:#111111,font-weight:600;
+    classDef note fill:#ffffff,stroke:none,color:#555555,font-size:18px;
+    class roster input;
+    class passed,base,bonus calculation;
+    class score result;
+    class state note;

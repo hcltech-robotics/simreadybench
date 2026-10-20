@@ -1,0 +1,30 @@
+%%{init: {"startOnLoad":false,"securityLevel":"strict","theme":"base","look":"classic","fontFamily":"Geist Sans, sans-serif","fontSize":22,"htmlLabels":true,"themeVariables":{"fontFamily":"Geist Sans, sans-serif","fontSize":"22px","background":"#ffffff","primaryColor":"#ffffff","primaryTextColor":"#222222","primaryBorderColor":"#555555","lineColor":"#777777","secondaryColor":"#ffffff","tertiaryColor":"#ffffff","edgeLabelBackground":"#ffffff"},"flowchart":{"htmlLabels":true,"curve":"linear","nodeSpacing":32,"rankSpacing":52,"padding":20,"diagramPadding":20,"useMaxWidth":false,"wrappingWidth":460}}}%%
+%% SimReadyBench visual fidelity. S, A and V are percentages.
+%% Sources: fidelity.py:217-233,400-432,688-770,852-907;
+%% composites.py:102-151; usd_geometry.py:292-313.
+flowchart LR
+    accTitle: Visual fidelity aggregation
+    accDescr: Surface precision and recall form the shape F-score. Supported material property matches are averaged first within each area sample and then across reference samples. Visual fidelity is the geometric mean of shape and appearance. Inapplicable factors are omitted and unmeasured active factors keep the scalar score unknown.
+
+    geometry["Surface correspondence<br/>$$P = \text{candidate-to-reference precision}$$<br/>$$R = \text{reference-to-candidate recall}$$<br/>Within the configured distance band"]
+    shape["Shape (%)<br/>$$S = \begin{cases}100\,\frac{2PR}{P+R},&P+R>0\\0,&P+R=0\end{cases}$$"]
+    properties["Supported material appearance<br/>Diffuse colour, roughness<br/>Metallic and opacity<br/>Match requires spatial and property tolerances"]
+    sample["Per-sample appearance<br/>$$a_i = \frac{\text{passed properties at }i}{\text{eligible properties at }i}$$<br/>Equal weight per reference area sample"]
+    appearance["Appearance (%)<br/>$$A = \frac{100}{n}\sum_{i=1}^{n}a_i$$<br/>$$n = \text{eligible reference samples}$$"]
+    visual["Visual fidelity (%)<br/>$$V = \sqrt{SA}$$<br/>Geometric mean of active factors"]
+    state["Assigned samples with no supported properties stay unmeasured.<br/>Any active factor unmeasured: score unmeasured, with bounds.<br/>Omit inapplicable factors. One remains: its score is used.<br/>None remain: not applicable."]
+
+    geometry --> shape
+    properties --> sample --> appearance
+    shape --> visual
+    appearance --> visual
+    state -.- visual
+
+    classDef input fill:#ffffff,stroke:#9a9a9a,stroke-width:1px,color:#222222;
+    classDef calculation fill:#ffffff,stroke:#555555,stroke-width:1.2px,color:#222222;
+    classDef result fill:#f2f2f2,stroke:#222222,stroke-width:1.6px,color:#111111,font-weight:600;
+    classDef note fill:#ffffff,stroke:none,color:#555555,font-size:18px;
+    class geometry,properties input;
+    class shape,sample,appearance calculation;
+    class visual result;
+    class state note;

@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simready-bench"
+version = "1.0.0"
+description = "Evaluate USD asset reconstruction with models, Harbor harnesses and skills"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+authors = [
+  {name = "Chris von Csefalvay"},
+  {name = "Tamas Foldi"},
+]
+dependencies = [
+  "harbor==0.24.0",
+  "PyYAML==6.0.3",
+  "Pillow==13.0.0",
+  "mcp==2.3.0",
+  "aiohttp==3.14.5",
+  "numpy==2.5.4",
+  "usd-core==26.8",
+]
+
+[project.scripts]
+simready-bench = "simready_bench.cli:main"
+
+[project.urls]
+Homepage = "https://hcltech-robotics.github.io/simreadybench/"
+Repository = "https://github.com/hcltech-robotics/simreadybench"
+Results = "https://huggingface.co/datasets/hcltech-robotics/simreadybench"
+
+[project.optional-dependencies]
+validator = [
+  "simready-foundation-tier-core==2026.8.0",
+  "simready-validate==2026.8.0",
+  "usd-validation-nvidia==1.22.0",
+  "usd-profiles-nvidia==1.22.0",
+  "physx-usd-schemas==25.11.2.72696984",
+  "MaterialX==1.39.5",
+]
+daytona = ["daytona==0.225.0"]
+publish = ["huggingface-hub==1.33.0"]
+test = ["pytest==9.1.1"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["simready_bench", "simready_bench.*"]
+
+[tool.setuptools.package-data]
+simready_bench = ["resources/**/*.json", "resources/**/*.yaml", "engine/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

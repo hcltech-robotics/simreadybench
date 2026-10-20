@@ -1,0 +1,12 @@
+include README.md LICENSE CITATION.cff pyproject.toml MANIFEST.in
+recursive-include docs *.md
+recursive-include .agents/skills *.md
+recursive-include locks *.txt *.json *.in *.md
+recursive-include src/simready_bench *.py *.json *.yaml
+recursive-include containers Dockerfile* *.Dockerfile .dockerignore *.json *.txt *.py *.sh
+prune tests
+prune work
+prune results
+global-exclude *.py[cod]
+global-exclude __pycache__
+global-exclude .env

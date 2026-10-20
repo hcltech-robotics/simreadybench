@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "Please cite this software when using SimReadyBench."
+type: software
+title: "SimReadyBench: Evaluating models, harnesses and skills for simulation-ready asset generation"
+version: 1.0.0
+authors:
+  - family-names: "von Csefalvay"
+    given-names: "Chris"
+    url: "https://github.com/chrisvoncsefalvay"
+    affiliation: "HCLTech"
+  - family-names: "Foldi"
+    given-names: "Tamas"
+    affiliation: "HCLTech"
+repository-code: "https://github.com/hcltech-robotics/simreadybench"
+url: "https://hcltech-robotics.github.io/simreadybench/"
+license: MIT

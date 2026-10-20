@@ -1,0 +1,12 @@
+ARG CPU_BASE
+FROM ${CPU_BASE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl bzip2 xvfb xauth mesa-utils libgl1-mesa-dri libegl1 libxkbcommon0 libxcb-cursor0 && rm -rf /var/lib/apt/lists/*
+COPY micromamba-linux-64.tar.bz2 /tmp/micromamba.tar.bz2
+RUN echo 'e7274528ceb9c20d048a428d6c22d7e02e268f8ffb762c4c365422347c8b8ba2  /tmp/micromamba.tar.bz2' | sha256sum -c - && tar -xjf /tmp/micromamba.tar.bz2 -C /usr/local bin/micromamba && rm /tmp/micromamba.tar.bz2
+ENV MAMBA_ROOT_PREFIX=/opt/mamba
+RUN --mount=type=bind,source=packages,target=/packages cd /packages && sha256sum -c SHA256SUMS && micromamba create --offline -y -p /opt/storm --file /packages/explicit.txt && micromamba clean --all --yes
+ENV LIBGL_ALWAYS_SOFTWARE=true GALLIUM_DRIVER=llvmpipe LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri QT_QPA_PLATFORM=xcb LP_NUM_THREADS=2
+RUN /opt/storm/bin/python -c 'from pxr import UsdImagingGL, UsdAppUtils; print(UsdImagingGL.Engine.GetRendererPlugins())'
+LABEL org.opencontainers.image.version="1.0.0" simready.renderer="Storm/Mesa-llvmpipe"
+USER 1000:1000

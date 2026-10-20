@@ -1,0 +1,9 @@
+{
+  "name": "simready-actor-opencode",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "opencode-ai": "1.19.3",
+    "opencode-linux-x64": "1.19.3"
+  }
+}

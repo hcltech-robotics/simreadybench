@@ -1,0 +1,344 @@
+{
+  "mandatory_inventory_sha256": "5a8dccd559cd3625025cedd08f7e2c174df32b8bbe0b17da9c94a588c86da13c",
+  "optional_features": [
+    {
+      "id": "FET_000_MUJOCO",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_000_NEWTON",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_000_PHYSX",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_003_MUJOCO",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_003_NEWTON",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_003_PHYSX",
+      "version": "0.4.0"
+    },
+    {
+      "id": "FET_004_MUJOCO",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_004_NEWTON",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_004_PHYSX",
+      "version": "0.4.0"
+    },
+    {
+      "id": "FET_004_STANDARD",
+      "version": "0.2.0"
+    },
+    {
+      "id": "FET_005_STANDARD",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_006_MDL",
+      "version": "0.2.0"
+    },
+    {
+      "id": "FET_006_OPENPBR",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_007_STANDARD",
+      "version": "0.2.0"
+    },
+    {
+      "id": "FET_010_STANDARD",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_100_ISAAC",
+      "version": "0.4.0"
+    }
+  ],
+  "optional_requirement_count": 51,
+  "optional_requirements": [
+    {
+      "code": "com.nvidia.simready.DISP.001",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.display_color.validation.DisplayColorCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.DISP.002",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.display_color.validation.DisplayColorCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.DISP.003",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.display_color.validation.DisplayColorCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.GSP.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_graspable.validation.GraspableVectorLineChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.ISA.001",
+      "rule": "simready.foundation.tier_core.capabilities.isaac_sim.composition.validation.IsaacCompositionCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.JT.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_joints.validation.PhysicsJointCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.JT.ART.003",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_joints.validation.ArticulationChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.MUJOCO.COL.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.MuJoCoColliderAPIChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.MUJOCO.COL.002",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.MuJoCoMeshCollisionAPIChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NEWTON.COL.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.NewtonColliderAPIChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NEWTON.COL.002",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.NewtonSDFAttributesChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NEWTON.MAS.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.NewtonMassAttributesChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NEWTON.MAT.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_materials.validation.NewtonMaterialAttributesChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NP.006",
+      "rule": "simready.foundation.tier_core.capabilities.core.naming_paths.validation.MetadataLocationChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NVM.001",
+      "rule": "simready.foundation.tier_core.capabilities.nonvisual_sensors.nonvisual_materials.validation.NonVisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NVM.002",
+      "rule": "simready.foundation.tier_core.capabilities.nonvisual_sensors.nonvisual_materials.validation.NonVisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NVM.003",
+      "rule": "simready.foundation.tier_core.capabilities.nonvisual_sensors.nonvisual_materials.validation.NonVisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NVM.004",
+      "rule": "simready.foundation.tier_core.capabilities.nonvisual_sensors.nonvisual_materials.validation.NonVisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NVM.005",
+      "rule": "simready.foundation.tier_core.capabilities.nonvisual_sensors.nonvisual_materials.validation.NonVisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NVM.006",
+      "rule": "simready.foundation.tier_core.capabilities.nonvisual_sensors.nonvisual_materials.validation.NonVisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.PHYSX.COL.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.PhysxRigidBodyColliderCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.PHYSX.COL.002",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.PhysxRigidBodyColliderMeshChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.PMT.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_materials.validation.PhysicsMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.011",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.NestedRigidBodyMassChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.012",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.NoNestedRigidBodyWithoutJointChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.MB.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.MultibodyChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.001",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.PhysXVariantSetChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.002",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.PhysXRuntimePayloadChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.003",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.PhysXVariantMetadataChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.004",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.NewtonVariantSetChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.005",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.NewtonRuntimePayloadChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.006",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.NewtonVariantMetadataChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.007",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.MuJoCoVariantSetChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.008",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.MuJoCoRuntimePayloadChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.009",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.MuJoCoVariantMetadataChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.010",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.RuntimeVariantSectionPurityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RV.011",
+      "rule": "simready.foundation.tier_core.capabilities.core.runtime_variants.validation.RuntimePhysicsIsolationChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SR.001",
+      "rule": "simready.foundation.tier_core.capabilities.core.sim_ready.validation.SimReadyCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.BIND.002",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.MDL.001",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.MDL.003",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.PBR.001",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.PBR.002",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.PBR.003",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.TEX.004",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.TEX.005",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.usd.JT.002",
+      "rule": "usd_validation_nvidia.rules._physics.PhysicsJointChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.JT.003",
+      "rule": "usd_validation_nvidia.rules._physics.PhysicsJointChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.JT.ART.002",
+      "rule": "usd_validation_nvidia.rules._physics.ArticulationChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.JT.ART.004",
+      "rule": "usd_validation_nvidia.rules._physics.ArticulationChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VM.MDL.002",
+      "rule": "usd_validation_nvidia.rules._materials.MaterialOldMdlSchemaChecker",
+      "version": "1.0.0"
+    }
+  ],
+  "profile_id": "Robotics-Prop",
+  "profile_version": "4.0.0",
+  "rule_module_sha256": {
+    "simready.foundation.tier_core.capabilities.core.naming_paths.validation": "6dab64137fab32ee81171851837bdf3ff76485f69b62364d610778b559b7d6b1",
+    "simready.foundation.tier_core.capabilities.core.runtime_variants.validation": "e67de1269a6862afa458b0779e092423103527ae0398a55fbc3ce7162a51e91c",
+    "simready.foundation.tier_core.capabilities.core.sim_ready.validation": "a93166f500a194f7aaa1632c9a54a8f7dfa00150c064626e2837981ea13176c0",
+    "simready.foundation.tier_core.capabilities.isaac_sim.composition.validation": "7453a73dd7da6cd6e9a44b54f756270086e5c12dbd1128881185e160ce4c7a0b",
+    "simready.foundation.tier_core.capabilities.nonvisual_sensors.nonvisual_materials.validation": "efc849cc7c17a970d7a842e997cc9d97bd388abbd911cb94280aa6bdaf78370c",
+    "simready.foundation.tier_core.capabilities.physics_bodies.physics_graspable.validation": "9af17970df71f71bf67dcf500304a8b171114a46a5d005d10215d2f10fe92d68",
+    "simready.foundation.tier_core.capabilities.physics_bodies.physics_joints.validation": "cac8c43c9495dba7a3304bb7a15dbabe4c8e34fdd7bb0f151c8add66cff698b0",
+    "simready.foundation.tier_core.capabilities.physics_bodies.physics_materials.validation": "3fe4bfee83840a5d66a3ca1d87ae2950ad3a79f4f72dca6b754f0e1278859d01",
+    "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation": "6b26a67ec400b31c5ad851777468d24b5f160c0bc2068502e3c322ca431b5828",
+    "simready.foundation.tier_core.capabilities.visualization.display_color.validation": "478ad19b7240bc0c032143fdc5f231b7f49018f777f345ff64f73958492c0463",
+    "simready.foundation.tier_core.capabilities.visualization.materials.validation": "9715c4e0d70b09110d1c5efe788065befc8ecce4eb3802f4cbd854fd7762c25b",
+    "usd_validation_nvidia.rules._materials": "5282c326d392685addc53324bdbc2a50130f0e7790d667f82b573114b9eff629",
+    "usd_validation_nvidia.rules._physics": "204349b532ddf5837933b007c56f7e34c8482e32cb1be3e1053d8d5c7440fc93"
+  }
+}
