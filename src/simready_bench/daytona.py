@@ -62,6 +62,8 @@ def _executor_relay_state(sandbox):
     return counts, failure
 
 
+# Transient request recovery belongs to the native harness and its gateway budget.
+# A permanent rejection cannot acquire the final evidence required for recovery.
 _GATEWAY_FAILURE_PROBE = '''import json,pathlib,sqlite3
 count=0
 failure=None
@@ -71,11 +73,9 @@ for path in pathlib.Path('/dev/shm/bench').rglob('inference-gateway.sqlite3'):
         raise ValueError('Too many gateway databases')
     with sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=1) as db:
         row=db.execute("""SELECT substr(record,1,65537) FROM requests
-            WHERE (json_extract(record,'$.status')='transport_failed'
-                AND json_extract(record,'$.error_code') IN
-                    ('upstream_stream_incomplete','upstream_transport_error'))
-                OR (json_extract(record,'$.status')='completed'
-                    AND json_extract(record,'$.upstream_status')>=400)
+            WHERE json_extract(record,'$.status')='completed'
+                AND json_extract(record,'$.upstream_status')>=400
+                AND json_extract(record,'$.upstream_status') NOT IN (408,429,500,502,503,504)
             ORDER BY rowid LIMIT 1""").fetchone()
     if row:
         if len(row[0])>65536:
@@ -92,7 +92,7 @@ print(json.dumps({'databases':count,'failure':failure},ensure_ascii=True))
 
 
 def _executor_gateway_failure(sandbox, *, generation_requests):
-    """Read final transport outcomes from controller-owned gateway databases."""
+    """Stop permanent rejections while the native harness owns transient retries."""
     raw = _executor_command(
         sandbox,
         "docker exec -i simready-benchmark-controller python - <<'PY'\n"
