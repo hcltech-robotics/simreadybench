@@ -926,7 +926,7 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
                         controller_exit=command.exit_code, terminal_confirmed=True
                     )
                     save()
-                    forward_telemetry(sandbox, output)
+                    forward_telemetry(sandbox, output, record=record)
                     return
             except Exception:
                 pass
@@ -946,7 +946,7 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
                 controller_status=controller["status"], terminal_confirmed=True
             )
             save()
-            forward_telemetry(sandbox, output)
+            forward_telemetry(sandbox, output, record=record)
             return
         if not observed:
             failures += 1
@@ -965,7 +965,7 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
                 "The saved Daytona executor is not confirmed terminal. Resume monitoring with --resume."
             )
         if time.monotonic() >= next_progress:
-            forward_telemetry(sandbox, output)
+            forward_telemetry(sandbox, output, record=record)
             if guarded:
                 try:
                     activity = _executor_activity(sandbox)

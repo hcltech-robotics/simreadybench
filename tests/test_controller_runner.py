@@ -159,9 +159,11 @@ def test_real_otlp_exporters_send_reconstruction_logs_spans_and_scores(tmp_path)
     )
 
     received = {}
+    routing_headers = []
 
     class Collector(BaseHTTPRequestHandler):
         def do_POST(self):
+            routing_headers.append(self.headers.get("organization-id"))
             received.setdefault(self.path, []).append(
                 self.rfile.read(int(self.headers["Content-Length"]))
             )
@@ -210,6 +212,7 @@ def test_real_otlp_exporters_send_reconstruction_logs_spans_and_scores(tmp_path)
         )
         telemetry.close()
         assert {"/v1/logs", "/v1/traces", "/v1/metrics"} <= received.keys()
+        assert routing_headers and set(routing_headers) == {"organisation"}
         traces = ExportTraceServiceRequest.FromString(received["/v1/traces"][0])
         resources = traces.resource_spans[0]
         attributes = {

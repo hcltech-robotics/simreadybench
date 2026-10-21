@@ -264,7 +264,26 @@ class _DurableExporter:
         return getattr(self.exporter, name)
 
 
-def forward_telemetry(sandbox, output_dir, *, maximum_batches=8):
+def forward_telemetry(sandbox, output_dir, *, maximum_batches=8, record=None):
+    """Forward controller telemetry and the latest trusted provider activity."""
+    forwarded = _forward_controller_telemetry(
+        sandbox, output_dir, maximum_batches=maximum_batches
+    )
+    if record is not None:
+        try:
+            from simready_bench.daytona_telemetry import forward_relay_telemetry
+
+            forward_relay_telemetry(sandbox, record, output_dir)
+        except Exception as error:
+            _write_json(
+                Path(output_dir) / "daytona-telemetry-observation.json",
+                {"status": "retrying", "error_type": type(error).__name__,
+                 "checked_at": time.time()},
+            )
+    return forwarded
+
+
+def _forward_controller_telemetry(sandbox, output_dir, *, maximum_batches=8):
     """Forward queued application telemetry from the host when sandbox delivery fails."""
     output = Path(output_dir)
     try:
@@ -316,7 +335,11 @@ def forward_telemetry(sandbox, output_dir, *, maximum_batches=8):
             request = http_request.Request(
                 endpoint + "/v1/" + signal,
                 data=payload,
-                headers={"Content-Type": "application/x-protobuf"},
+                headers={
+                    "Content-Type": "application/x-protobuf",
+                    **({"organization-id": sandbox.organization_id}
+                       if getattr(sandbox, "organization_id", None) else {}),
+                },
                 method="POST",
             )
             with http_request.urlopen(request, timeout=5) as response:
@@ -378,7 +401,12 @@ class Telemetry:
         )
 
         def exporter(kind, cls, encode):
-            instance = cls(endpoint=endpoint + "/v1/" + kind, timeout=3)
+            instance = cls(
+                endpoint=endpoint + "/v1/" + kind,
+                timeout=3,
+                headers=({"organization-id": env["DAYTONA_ORGANIZATION_ID"]}
+                         if env.get("DAYTONA_ORGANIZATION_ID") else {}),
+            )
             return (
                 _DurableExporter(instance, outbox, kind, encode)
                 if outbox is not None

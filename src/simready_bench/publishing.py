@@ -947,6 +947,16 @@ class HuggingFacePublisher:
 
     def check_access(self):
         """Check Hub authentication and prepare the destination before inference."""
+        import importlib
+
+        for dependency in ("huggingface_hub", "matplotlib", "pyarrow.parquet"):
+            try:
+                importlib.import_module(dependency)
+            except (ImportError, OSError) as error:
+                raise PublicationError(
+                    "Publication dependencies are unavailable. Install simready-bench[publish] before starting a run",
+                    retryable=False,
+                ) from error
         from huggingface_hub.errors import RepositoryNotFoundError
 
         identity = self.api.whoami()

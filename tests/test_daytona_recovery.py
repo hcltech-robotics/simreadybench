@@ -259,7 +259,7 @@ def test_running_status_without_command_id_remains_observable(tmp_path, monkeypa
     monkeypatch.setattr(daytona, "_collect_live_reports", lambda *args, **kwargs: None)
     from simready_bench import controller_runner
 
-    monkeypatch.setattr(controller_runner, "forward_telemetry", lambda *args: None)
+    monkeypatch.setattr(controller_runner, "forward_telemetry", lambda *args, **kwargs: None)
 
     class Files:
         def download_file(self, *args):
