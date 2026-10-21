@@ -512,7 +512,15 @@ def _retire(batch, reports, *, policy, manifest, client):
         ):
             raise ValueError("A saved retirement differs from its immutable authority")
         return proof
-    if lost:
+    ledger_path = batch / "daytona-executor/authority/parent-allowances.sqlite3"
+    missing_ledger = (
+        external_terminal is not None
+        and delivery.get("cleanup_confirmed") is True
+        and ledger_path.resolve() == ledger_path
+        and not ledger_path.exists()
+        and not ledger_path.is_symlink()
+    )
+    if lost or missing_ledger:
         admitted = sorted(condition_plan(_read(batch / "experiment.json")))
         proof = {
             "sandbox_id": delivery["sandbox_id"],
@@ -530,9 +538,16 @@ def _retire(batch, reports, *, policy, manifest, client):
             "maximum_spend_usd": held[2],
             "admitted_conditions": admitted,
             "unreported_admitted_conditions": admitted,
-            "missing_executor_proof": missing,
             "usage_status": "unavailable_full_original_ceiling_charged",
         }
+        if lost:
+            proof["missing_executor_proof"] = missing
+        else:
+            proof["authority_collection_status"] = "missing_after_terminal_collection"
+            proof["executor_terminal_proof"] = external_terminal
+            proof["executor_terminal_proof_sha256"] = delivery[
+                "executor_terminal_proof_sha256"
+            ]
         authority.retire(
             allocation_id=allocation,
             requests=held[1],
@@ -541,7 +556,6 @@ def _retire(batch, reports, *, policy, manifest, client):
         )
         _write(proof_path, proof)
         return proof
-    ledger_path = batch / "daytona-executor/authority/parent-allowances.sqlite3"
     if (
         ledger_path.resolve() != ledger_path
         or not ledger_path.is_file()
@@ -658,7 +672,10 @@ def _retire(batch, reports, *, policy, manifest, client):
         "sandbox_id": delivery["sandbox_id"],
         "executor_deleted": True,
         "delivery_sha256": hashlib.sha256(delivery_path.read_bytes()).hexdigest(),
-        "terminal_sha256": hashlib.sha256(terminal_path.read_bytes()).hexdigest(),
+        "terminal_sha256": (
+            hashlib.sha256(terminal_path.read_bytes()).hexdigest()
+            if terminal_path.is_file() else None
+        ),
         "authority_sha256": hashlib.sha256(ledger_path.read_bytes()).hexdigest(),
         "reports": {
             str(Path(report["results"]).relative_to(batch)): hashlib.sha256(
