@@ -96,6 +96,27 @@ def test_created_controller_is_not_mistaken_for_a_dead_controller(monkeypatch, t
     assert not (tmp_path / "executor-terminal-proof.json").exists()
 
 
+def test_quiet_observed_executor_keeps_supervisor_heartbeat_current(monkeypatch, tmp_path):
+    sandbox, record, commands, clock = monitor_fixture(monkeypatch, tmp_path, stale=False)
+    snapshots = []
+
+    def observe(*args, **kwargs):
+        return SimpleNamespace(exit_code=0 if clock[0] >= 10700 else None)
+
+    sandbox.process.get_session_command = observe
+    daytona._monitor_executor(
+        sandbox, record, tmp_path,
+        save=lambda: snapshots.append((clock[0], record.get("last_observed_at"))),
+    )
+    assert record["controller_exit"] == 0
+    assert record["activity_counters"] == [1, 0]
+    assert record["last_activity_at"] == 10000
+    observed = [(at, heartbeat) for at, heartbeat in snapshots if heartbeat is not None]
+    assert observed[-1][1] >= 10690
+    assert all(at - heartbeat <= 10 for at, heartbeat in observed)
+    assert not any("docker kill" in command for command in commands)
+
+
 def test_guarded_executor_is_stopped_at_its_absolute_deadline(monkeypatch, tmp_path):
     sandbox, record, commands, _ = monitor_fixture(monkeypatch, tmp_path, stale=False)
     record["deadline_at"] = 9999

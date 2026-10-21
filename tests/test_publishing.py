@@ -649,7 +649,7 @@ def test_viewer_images_select_a_shared_camera_and_keep_missing_captures_null():
     index, shards = build_viewer_dataset({"paired": (readout, raw)}, repo_id="team/results")
     records = list(csv.DictReader(io.StringIO(shards["viewer/paired/scores.csv"].decode())))
     assert records[0]["capture_view"] == "front"
-    base = "https://huggingface.co/datasets/team/results/resolve/main/runs/paired/evidence/"
+    base = "hf://datasets/team/results@main/runs/paired/evidence/"
     assert records[0]["reference_image"] == base + "asset-a/reconstruction-1/reference-front.png"
     assert records[0]["candidate_image"] == base + "asset-a/reconstruction-1/candidate-front.png"
     assert all(record["reference_image"] == record["candidate_image"] == record["capture_view"] == "" for record in records[1:])
@@ -661,6 +661,11 @@ def test_viewer_images_select_a_shared_camera_and_keep_missing_captures_null():
         {"name": "capture_view", "dtype": "string"},
     ]
     assert all(next(csv.reader(io.StringIO(content.decode())))[:3] == ["reference_image", "candidate_image", "capture_view"] for content in shards.values())
+    for content in shards.values():
+        for record in csv.DictReader(io.StringIO(content.decode())):
+            for role in ("reference", "candidate"):
+                image = record[role + "_image"]
+                assert not image or image.startswith("hf://datasets/team/results@main/")
     with pytest.raises(ValueError, match="repository identifier"):
         build_viewer_update("paired", readout, raw)
     first["images"][1]["path"] = "../outside.png"

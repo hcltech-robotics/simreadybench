@@ -946,6 +946,9 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
             return
         if not observed:
             failures += 1
+        else:
+            record["last_observed_at"] = time.time()
+            save()
         deadline = record.get("deadline_at")
         if guarded and deadline is not None and time.time() >= deadline:
             _stop_stalled_executor(sandbox, record, output, reason="executor_deadline_exceeded", save=save)

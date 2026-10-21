@@ -646,7 +646,7 @@ def _viewer_captures(row, run_id, repo_id):
             if path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
                 raise ValueError("Unsupported viewer capture format")
             result[role + "_image"] = (
-                "https://huggingface.co/datasets/" + repo_id + "/resolve/main/"
+                "hf://datasets/" + repo_id + "@main/"
                 + quote("runs/" + run_id + "/evidence/" + path.as_posix(), safe="/")
             )
     return result
