@@ -32,12 +32,35 @@ from .reporting import (
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}\Z")
 _PROFILE = {"id": "Robotics-Prop", "version": "4.0.0"}
 _MAX_JSON = 128 * 1024**2
-_VIEWER_SCHEMA = "simreadybench-viewer-index/v1"
+_VIEWER_SCHEMA = "simreadybench-viewer-index/v2"
+_LEGACY_VIEWER_SCHEMA = "simreadybench-viewer-index/v1"
 _VIEWER_AXES = (
     "by_model", "by_harness", "by_skills", "by_reference_set",
     "by_protocol", "by_reasoning", "by_asset",
 )
 _SPLIT = re.compile(r"[a-z0-9][a-z0-9_]{0,95}\Z")
+
+
+class ViewerRebuildRequired(ValueError):
+    """Retained source tables are needed to update the shared viewer schema."""
+
+
+def _viewer_columns(columns):
+    names = set(columns) | set(USAGE_FIELDS)
+    return [name for name in SCORE_FIELDS if name in names] + sorted(names - set(SCORE_FIELDS))
+
+
+def _viewer_features(columns):
+    labels = {"condition_id", "asset_id", "requested_model", "harness_id", "skill_set_id", "status"}
+    return [{"name": name, "dtype": (
+        "int64" if name == "repetition" else
+        "float64" if name in SCORE_FIELDS and name not in labels and not name.endswith("_status") else
+        "string"
+    )} for name in columns]
+
+
+def _viewer_schema_digest(columns):
+    return hashlib.sha256(json.dumps(_viewer_features(columns), sort_keys=True).encode()).hexdigest()
 
 
 class PublicationError(RuntimeError):
@@ -475,16 +498,28 @@ def _stage_row(row, source, stage):
 
 def _viewer_index(value):
     index = deepcopy(value) if value is not None else {
-        "schema": _VIEWER_SCHEMA, "runs": {}, "splits": {axis: {} for axis in _VIEWER_AXES}
+        "schema": _VIEWER_SCHEMA, "runs": {}, "splits": {axis: {} for axis in _VIEWER_AXES},
+        "columns": _viewer_columns([]), "schema_sha256": _viewer_schema_digest(_viewer_columns([])),
     }
+    legacy = isinstance(index, dict) and index.get("schema") == _LEGACY_VIEWER_SCHEMA
+    keys = {"schema", "runs", "splits"} | (set() if legacy else {"columns", "schema_sha256"})
     if (
-        not isinstance(index, dict) or index.get("schema") != _VIEWER_SCHEMA
-        or set(index) != {"schema", "runs", "splits"}
+        not isinstance(index, dict) or index.get("schema") not in (_VIEWER_SCHEMA, _LEGACY_VIEWER_SCHEMA)
+        or set(index) != keys
         or not isinstance(index.get("runs"), dict)
         or not isinstance(index.get("splits"), dict)
         or set(index["splits"]) != set(_VIEWER_AXES)
     ):
         raise ValueError("The dataset viewer index has an unexpected schema")
+    if not legacy:
+        columns = index["columns"]
+        if (
+            not isinstance(columns, list) or not all(isinstance(name, str) and name for name in columns)
+            or len(columns) != len(set(columns)) or columns != _viewer_columns(columns)
+            or index["schema_sha256"] != _viewer_schema_digest(columns)
+            or index["runs"] and "condition_id" not in columns
+        ):
+            raise ValueError("The dataset viewer columns or schema fingerprint changed")
     for registry in index["splits"].values():
         if not isinstance(registry, dict):
             raise ValueError("Viewer split names must be distinct and immutable")
@@ -499,8 +534,9 @@ def _viewer_index(value):
         if not isinstance(run_id, str) or not _NAME.fullmatch(run_id) or not isinstance(run, dict):
             raise ValueError("Invalid dataset viewer run identity")
         if (
-            set(run) != {"scores", "groups"}
+            set(run) != ({"scores", "groups"} if legacy else {"scores", "viewer_scores", "groups"})
             or run.get("scores") != "runs/" + run_id + "/scores.csv"
+            or not legacy and run.get("viewer_scores") != "viewer/" + run_id + "/scores.csv"
             or not isinstance(run.get("groups"), dict)
             or set(run["groups"]) != set(_VIEWER_AXES)
         ):
@@ -514,7 +550,7 @@ def _viewer_index(value):
                     or set(group) != {"split", "path"}
                     or group.get("split") not in index["splits"][axis].values()
                     or group.get("path") not in (
-                        run["scores"],
+                        run["scores"] if legacy else run["viewer_scores"],
                         "viewer/" + run_id + "/" + axis + "/" + str(group.get("split")) + ".csv",
                     )
                 ):
@@ -581,11 +617,10 @@ def _manifest_reasoning(row, manifest):
 
 
 def build_viewer_update(run_id, readout, score_csv, *, index=None):
-    """Return an updated public viewer index and filtered CSV files for one run.
+    """Normalise one run to the shared viewer schema without changing its source.
 
-    Existing score files are reused for homogeneous groups. Mixed groups retain
-    the original CSV columns and values in confined viewer shards. This helper
-    performs no Hub operations and never changes its input objects.
+    Schema expansion with retained runs requires ``build_viewer_dataset`` so
+    every affected viewer file can be replaced in the same Hub commit.
     """
     if not isinstance(run_id, str) or not _NAME.fullmatch(run_id):
         raise ValueError("Use a simple viewer run identifier")
@@ -600,6 +635,13 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None):
     columns = reader.fieldnames
     if not columns or len(columns) != len(set(columns)) or "condition_id" not in columns:
         raise ValueError("A score table requires distinct columns and condition identities")
+    canonical = _viewer_columns([*index.get("columns", []), *columns])
+    if set(index["runs"]) - {run_id} and (
+        index["schema"] != _VIEWER_SCHEMA or canonical != index["columns"]
+    ):
+        raise ViewerRebuildRequired("A shared viewer schema update requires all retained source tables")
+    index.update(schema=_VIEWER_SCHEMA, columns=canonical,
+                 schema_sha256=_viewer_schema_digest(canonical))
     records = list(reader)
     source_rows = readout.get("results", [])
     if (
@@ -635,22 +677,60 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None):
             identity = json.dumps(value, ensure_ascii=True, sort_keys=True)
             grouped[axis].setdefault(identity, []).append(record)
     score_path = "runs/" + run_id + "/scores.csv"
+    viewer_path = "viewer/" + run_id + "/scores.csv"
     groups, shards = {}, {}
+
+    def encoded(selected):
+        stream = io.StringIO(newline="")
+        writer = csv.DictWriter(stream, fieldnames=canonical, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(selected)
+        return stream.getvalue().encode("utf-8")
+
+    shards[viewer_path] = encoded(records)
     for axis, values in grouped.items():
         groups[axis] = []
         for identity, records in sorted(values.items()):
             split = _viewer_split(index, axis, json.loads(identity))
-            path = score_path
+            path = viewer_path
             if len(values) > 1:
                 path = "viewer/" + run_id + "/" + axis + "/" + split + ".csv"
-                stream = io.StringIO(newline="")
-                writer = csv.DictWriter(stream, fieldnames=columns, lineterminator="\n")
-                writer.writeheader()
-                writer.writerows(records)
-                shards[path] = stream.getvalue().encode("utf-8")
+                shards[path] = encoded(records)
             groups[axis].append({"split": split, "path": path})
-    index["runs"][run_id] = {"scores": score_path, "groups": groups}
+    index["runs"][run_id] = {"scores": score_path, "viewer_scores": viewer_path, "groups": groups}
     return index, shards
+
+
+def build_viewer_dataset(sources, *, index=None):
+    """Build schema-compatible viewer files from all retained raw run sources.
+
+    ``sources`` maps run identifiers to ``(public_readout, score_csv)`` pairs.
+    The returned files are confined to ``viewer/``. Original run artefacts and
+    measurements are read only, including during v1 index migration.
+    """
+    previous = _viewer_index(index)
+    if not isinstance(sources, dict) or not set(previous["runs"]) <= sources.keys():
+        raise ViewerRebuildRequired("All retained viewer runs require their original source tables")
+    columns = list(previous.get("columns", []))
+    for _, raw in sources.values():
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8-sig")
+        if not isinstance(raw, str) or len(raw.encode("utf-8")) > _MAX_JSON:
+            raise ValueError("A bounded UTF-8 score table is required")
+        fields = csv.DictReader(io.StringIO(raw, newline="")).fieldnames
+        if not fields or len(fields) != len(set(fields)) or "condition_id" not in fields:
+            raise ValueError("A score table requires distinct columns and condition identities")
+        columns.extend(fields)
+    columns = _viewer_columns(columns)
+    updated = {
+        "schema": _VIEWER_SCHEMA, "runs": {}, "splits": deepcopy(previous["splits"]),
+        "columns": columns, "schema_sha256": _viewer_schema_digest(columns),
+    }
+    shards = {}
+    for run_id, (readout, raw) in sorted(sources.items()):
+        updated, current = build_viewer_update(run_id, readout, raw, index=updated)
+        shards.update(current)
+    return updated, shards
 
 
 def _data_paths(value):
@@ -666,6 +746,8 @@ def _data_paths(value):
 def render_viewer_card(existing, index):
     """Keep the card body and manual configs while updating native HF subsets."""
     index = _viewer_index(index)
+    if index["schema"] != _VIEWER_SCHEMA:
+        raise ViewerRebuildRequired("Legacy viewer sources require schema-normalised files")
     if existing.startswith("---\n"):
         end = existing.index("\n---\n", 4)
         metadata, body = yaml.safe_load(existing[4:end]) or {}, existing[end + 5:]
@@ -682,7 +764,7 @@ def render_viewer_card(existing, index):
         if name in index["runs"] and _data_paths(original.get("data_files")) == [index["runs"][name]["scores"]]:
             continue
         if name in managed:
-            if metadata.get("simreadybench_viewer") != 1:
+            if metadata.get("simreadybench_viewer") not in (1, 2):
                 raise ValueError("A managed viewer name conflicts with an existing manual configuration")
             continue
         config = deepcopy(original)
@@ -690,7 +772,8 @@ def render_viewer_card(existing, index):
         configs.append(config)
     generated = [{
         "config_name": "all", "default": True,
-        "data_files": [{"split": "test", "path": sorted(run["scores"] for run in index["runs"].values())}],
+        "data_files": [{"split": "test", "path": sorted(run["viewer_scores"] for run in index["runs"].values())}],
+        "features": _viewer_features(index["columns"]),
     }]
     for axis in _VIEWER_AXES:
         groups = {}
@@ -698,10 +781,10 @@ def render_viewer_card(existing, index):
             for group in run["groups"][axis]:
                 groups.setdefault(group["split"], set()).add(group["path"])
         if groups:
-            generated.append({"config_name": axis, "data_files": [
+            generated.append({"config_name": axis, "features": _viewer_features(index["columns"]), "data_files": [
                 {"split": split, "path": sorted(paths)} for split, paths in sorted(groups.items())
             ]})
-    metadata.update(configs=generated + configs, simreadybench_viewer=1)
+    metadata.update(configs=generated + configs, simreadybench_viewer=2)
     return "---\n" + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False) + "---\n" + body
 
 
@@ -872,7 +955,9 @@ class HuggingFacePublisher:
 
     def _viewer_update(self, existing, public, score_csv, revision):
         retained = self._download("viewer-index.json", revision)
-        index, shards = _viewer_index(_json(retained) if retained else None), {}
+        index = _viewer_index(_json(retained) if retained else None)
+        retained_ids = set(index["runs"])
+        legacy_ids = set()
         if existing.startswith("---\n"):
             end = existing.index("\n---\n", 4)
             metadata = yaml.safe_load(existing[4:end]) or {}
@@ -883,15 +968,20 @@ class HuggingFacePublisher:
                     and run_id not in index["runs"] and run_id != self.run_id
                     and _data_paths(config.get("data_files")) == ["runs/" + run_id + "/scores.csv"]
                 ):
-                    readout = self._download("runs/" + run_id + "/results.json", revision)
-                    scores = self._download("runs/" + run_id + "/scores.csv", revision)
-                    if readout is None or scores is None:
-                        raise ValueError("A legacy viewer run requires its retained score table and readout")
-                    index, files_for_run = build_viewer_update(run_id, _json(readout), scores.read_bytes(), index=index)
-                    shards.update(files_for_run)
-        index, current = build_viewer_update(self.run_id, public, score_csv, index=index)
-        shards.update(current)
-        return index, shards
+                    legacy_ids.add(run_id)
+        if index["schema"] == _VIEWER_SCHEMA and not legacy_ids:
+            try:
+                return build_viewer_update(self.run_id, public, score_csv, index=index)
+            except ViewerRebuildRequired:
+                pass
+        sources = {self.run_id: (public, score_csv)}
+        for run_id in sorted((retained_ids | legacy_ids) - {self.run_id}):
+            readout = self._download("runs/" + run_id + "/results.json", revision)
+            scores = self._download("runs/" + run_id + "/scores.csv", revision)
+            if readout is None or scores is None:
+                raise ValueError("A retained viewer run requires its original score table and readout")
+            sources[run_id] = (_json(readout), scores.read_bytes())
+        return build_viewer_dataset(sources, index=index)
 
     def __call__(self, report, *, final=False):
         source = Path(

@@ -12,7 +12,8 @@ import yaml
 
 from simready_bench.config import condition_identity
 from simready_bench.publishing import (
-    HuggingFacePublisher, PublicationError, build_viewer_update, render_viewer_card,
+    HuggingFacePublisher, PublicationError, ViewerRebuildRequired,
+    build_viewer_dataset, build_viewer_update, render_viewer_card,
 )
 from simready_bench.reporting import USAGE_FIELDS
 
@@ -337,12 +338,11 @@ def test_root_card_retains_methodology_metadata_and_other_viewer_configs(publica
         "config_name": "other",
         "data_files": "other.csv",
     }
-    assert data["configs"][0] == {
-        "config_name": "all", "default": True,
-        "data_files": [{"split": "test", "path": ["runs/new-model/scores.csv"]}],
-    }
+    assert data["configs"][0]["config_name"] == "all" and data["configs"][0]["default"]
+    assert data["configs"][0]["data_files"] == [{"split": "test", "path": ["viewer/new-model/scores.csv"]}]
+    assert {item["name"]: item["dtype"] for item in data["configs"][0]["features"]}["input_tokens"] == "float64"
     assert data["configs"][1]["data_files"] == [
-        {"split": "another_model", "path": ["runs/new-model/scores.csv"]}
+        {"split": "another_model", "path": ["viewer/new-model/scores.csv"]}
     ]
     assert "another-model" not in body and "completed" not in body
     publisher(save([row(), row(repetition=1)]))
@@ -604,12 +604,13 @@ def test_mixed_viewer_factors_route_each_row_without_changing_csv_values():
         for group in groups:
             selected = list(csv.DictReader(io.StringIO(shards[group["path"]].decode())))
             assert len({row[column] for row in selected}) == 1
-            assert all(row in rows for row in selected)
+            selected_source = [{key: row[key] for key in rows[0]} for row in selected]
+            assert all(row in rows for row in selected_source)
             assert all(row["formal_fidelity_percent"] == "0" and row["visual_fidelity_percent"] == "" for row in selected)
-            collected.extend(selected)
+            collected.extend(selected_source)
         assert sorted(collected, key=lambda row: row["condition_id"]) == rows
     for axis in ("by_reference_set", "by_protocol"):
-        assert index["runs"]["matrix"]["groups"][axis][0]["path"] == "runs/matrix/scores.csv"
+        assert index["runs"]["matrix"]["groups"][axis][0]["path"] == "viewer/matrix/scores.csv"
 
 
 def test_viewer_split_collisions_never_rename_existing_groups():
@@ -644,7 +645,7 @@ def test_reference_and_unknown_reasoning_do_not_guess_scientific_identity():
             del row["reasoning_effort"]
     index, _ = build_viewer_update("partial-nv25", readout, raw)
     assert index["runs"]["partial-nv25"]["groups"]["by_reference_set"] == [
-        {"split": "nv25", "path": "runs/partial-nv25/scores.csv"},
+        {"split": "nv25", "path": "viewer/partial-nv25/scores.csv"},
     ]
     assert json.dumps(None) in index["splits"]["by_reasoning"]
     assert json.dumps("none") in index["splits"]["by_reasoning"]
@@ -685,11 +686,156 @@ def test_legacy_run_configs_migrate_without_rewriting_prior_results(publication)
     card = hub.files["README.md"].decode()
     configs = yaml.safe_load(card.split("---\n", 2)[1])["configs"]
     assert "---\n# Retained scientific card\n\n<!-- simreadybench-leaderboard:start -->" in card
-    assert configs[0]["data_files"][0]["path"] == ["runs/legacy/scores.csv", "runs/next/scores.csv"]
+    assert configs[0]["data_files"][0]["path"] == ["viewer/legacy/scores.csv", "viewer/next/scores.csv"]
     assert configs[-1] == {"config_name": "manual", "data_files": "manual.csv"}
     assert "legacy" not in {config["config_name"] for config in configs}
     assert all(hub.files[path] == raw for path, raw in retained.items())
     assert not any(operation.path_in_repo.startswith("runs/legacy/") for operation in hub.commits[-1]["operations"])
+
+
+def _score_csv(rows, fields=None):
+    stream = io.StringIO(newline="")
+    writer = csv.DictWriter(stream, fieldnames=fields or list(rows[0]), lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return stream.getvalue().encode()
+
+
+def test_viewer_unifies_legacy_and_current_headers_with_explicit_nullable_features():
+    readout, old_csv, old_rows = viewer_fixture()
+    new_rows = [{**row, "input_tokens": "123", "total_cost_usd": "", "extra": "0017"} for row in old_rows]
+    new_csv = _score_csv(new_rows)
+    before = old_csv.encode(), new_csv
+    index, shards = build_viewer_dataset({"old": (readout, old_csv), "new": (readout, new_csv)})
+    assert index["schema"] == "simreadybench-viewer-index/v2"
+    assert (old_csv.encode(), new_csv) == before
+    assert all(path.startswith("viewer/") for path in shards)
+    assert all(next(csv.reader(io.StringIO(raw.decode()))) == index["columns"] for raw in shards.values())
+    legacy = list(csv.DictReader(io.StringIO(shards["viewer/old/scores.csv"].decode())))
+    current = list(csv.DictReader(io.StringIO(shards["viewer/new/scores.csv"].decode())))
+    assert all(row["input_tokens"] == row["total_cost_usd"] == row["extra"] == "" for row in legacy)
+    assert all(row["input_tokens"] == "123" and row["extra"] == "0017" for row in current)
+    configs = yaml.safe_load(render_viewer_card("# Retained\n", index).split("---\n", 2)[1])["configs"]
+    for config in configs:
+        features = {item["name"]: item["dtype"] for item in config["features"]}
+        assert all(features[field] == "float64" for field in USAGE_FIELDS)
+        assert features["extra"] == "string"
+        for split in config["data_files"]:
+            assert all(path in shards and path.startswith("viewer/") for path in split["path"])
+
+
+def test_viewer_schema_expansion_rebuilds_retained_shards_and_keeps_split_names():
+    readout, raw, rows = viewer_fixture()
+    first, original = build_viewer_dataset({"old": (readout, raw)})
+    changed = _score_csv([{**row, "future_measurement": "1.2500"} for row in rows])
+    with pytest.raises(ViewerRebuildRequired, match="all retained source tables"):
+        build_viewer_update("new", readout, changed, index=first)
+    with pytest.raises(ViewerRebuildRequired, match="All retained viewer runs"):
+        build_viewer_dataset({"new": (readout, changed)}, index=first)
+    updated, shards = build_viewer_dataset({"old": (readout, raw), "new": (readout, changed)}, index=first)
+    assert updated["splits"] == first["splits"]
+    assert updated["schema_sha256"] != first["schema_sha256"]
+    assert {path for path in original} <= shards.keys()
+    assert all(row["future_measurement"] == "" for row in csv.DictReader(io.StringIO(shards["viewer/old/scores.csv"].decode())))
+    assert all(row["future_measurement"] == "1.2500" for row in csv.DictReader(io.StringIO(shards["viewer/new/scores.csv"].decode())))
+    repeated, files_again = build_viewer_update("new", readout, changed, index=updated)
+    assert repeated == updated
+    assert files_again == {path: content for path, content in shards.items() if path.startswith("viewer/new/")}
+
+
+def test_v1_viewer_migration_preserves_registry_and_card_body():
+    readout, raw, _ = viewer_fixture()
+    existing, _ = build_viewer_update("old", readout, raw)
+    legacy = {key: deepcopy(existing[key]) for key in ("schema", "runs", "splits")}
+    legacy["schema"] = "simreadybench-viewer-index/v1"
+    for run in legacy["runs"].values():
+        for groups in run["groups"].values():
+            for group in groups:
+                if group["path"] == run["viewer_scores"]:
+                    group["path"] = run["scores"]
+        del run["viewer_scores"]
+    updated, _ = build_viewer_dataset({"old": (readout, raw)}, index=legacy)
+    assert updated == existing
+    body = '<div align="center">Academic header and social image</div>\n\n# Methodology\n'
+    card = "---\nlicense: mit\nsimreadybench_viewer: 1\nconfigs:\n- config_name: all\n  data_files: runs/old/scores.csv\n- config_name: manual\n  data_files: manual.csv\n---\n" + body
+    rendered = render_viewer_card(card, updated)
+    assert rendered.split("---\n", 2)[2] == body
+    metadata = yaml.safe_load(rendered.split("---\n", 2)[1])
+    assert metadata["license"] == "mit" and metadata["simreadybench_viewer"] == 2
+    assert metadata["configs"][-1] == {"config_name": "manual", "data_files": "manual.csv"}
+    for invalid in ("viewer/other/scores.csv", "../private.csv"):
+        tampered = deepcopy(updated)
+        tampered["runs"]["old"]["viewer_scores"] = invalid
+        with pytest.raises(ValueError, match="original run paths"):
+            render_viewer_card(card, tampered)
+    tampered = deepcopy(updated)
+    tampered["schema_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="schema fingerprint"):
+        render_viewer_card(card, tampered)
+
+
+def test_publication_migrates_v1_mixed_headers_without_changing_raw_legacy_files(publication):
+    manifest, _, hub, row, save = publication
+    HuggingFacePublisher("team/results", "legacy", manifest, api=hub)(save([row()]))
+    old_rows = list(csv.DictReader(io.StringIO(hub.files["runs/legacy/scores.csv"].decode())))
+    stripped = [{key: value for key, value in item.items() if key not in USAGE_FIELDS} for item in old_rows]
+    hub.files["runs/legacy/scores.csv"] = _score_csv(stripped)
+    index = json.loads(hub.files["viewer-index.json"])
+    legacy = {key: index[key] for key in ("schema", "runs", "splits")}
+    legacy["schema"] = "simreadybench-viewer-index/v1"
+    for item in legacy["runs"].values():
+        for groups in item["groups"].values():
+            for group in groups:
+                if group["path"] == item["viewer_scores"]:
+                    group["path"] = item["scores"]
+        del item["viewer_scores"]
+    hub.files["viewer-index.json"] = json.dumps(legacy).encode()
+    retained = {path: raw for path, raw in hub.files.items() if path.startswith("runs/legacy/")}
+    current = row()
+    current["inference_calls_used"] = 4
+    HuggingFacePublisher("team/results", "current", manifest, api=hub)(save([current]))
+    assert all(hub.files[path] == raw for path, raw in retained.items())
+    assert not any(item.path_in_repo.startswith("runs/legacy/") for item in hub.commits[-1]["operations"])
+    assert next(csv.reader(io.StringIO(hub.files["viewer/legacy/scores.csv"].decode()))) == next(csv.reader(io.StringIO(hub.files["viewer/current/scores.csv"].decode())))
+    legacy_view = next(csv.DictReader(io.StringIO(hub.files["viewer/legacy/scores.csv"].decode())))
+    assert all(legacy_view[field] == "" for field in USAGE_FIELDS)
+    paths = []
+    original_download = hub.hf_hub_download
+
+    def downloaded(repo, filename, **options):
+        paths.append(filename)
+        return original_download(repo, filename, **options)
+
+    hub.hf_hub_download = downloaded
+    HuggingFacePublisher("team/results", "current", manifest, api=hub)(save([current]))
+    assert not any(path.startswith("runs/legacy/") for path in paths)
+
+
+def test_publication_schema_growth_rebuilds_old_viewer_files_in_one_commit(publication, monkeypatch):
+    from simready_bench import publishing
+
+    manifest, _, hub, row, save = publication
+    HuggingFacePublisher("team/results", "legacy", manifest, api=hub)(save([row()]))
+    retained = {path: raw for path, raw in hub.files.items() if path.startswith("runs/legacy/")}
+    previous = json.loads(hub.files["viewer-index.json"])
+    original_write = publishing.write_scores
+
+    def expanded(path, rows):
+        original_write(path, rows)
+        records = list(csv.DictReader(io.StringIO(Path(path).read_text())))
+        Path(path).write_bytes(_score_csv([{**item, "future_measurement": "007"} for item in records]))
+
+    monkeypatch.setattr(publishing, "write_scores", expanded)
+    HuggingFacePublisher("team/results", "next", manifest, api=hub)(save([row()]))
+    assert all(hub.files[path] == raw for path, raw in retained.items())
+    paths = {operation.path_in_repo for operation in hub.commits[-1]["operations"]}
+    assert {"viewer/legacy/scores.csv", "viewer/next/scores.csv", "viewer-index.json", "README.md"} <= paths
+    assert not any(path.startswith("runs/legacy/") for path in paths)
+    current = json.loads(hub.files["viewer-index.json"])
+    assert current["schema_sha256"] != previous["schema_sha256"]
+    assert current["splits"] == previous["splits"]
+    assert next(csv.DictReader(io.StringIO(hub.files["viewer/legacy/scores.csv"].decode())))["future_measurement"] == ""
+    assert next(csv.DictReader(io.StringIO(hub.files["viewer/next/scores.csv"].decode())))["future_measurement"] == "007"
 
 
 def test_privacy_change_prevents_any_atomic_publication(publication, monkeypatch):
