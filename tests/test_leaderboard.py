@@ -92,6 +92,13 @@ def test_complete_set_aggregates_performance_and_preserves_inapplicable_componen
     assert entry["optional"]["passed"] == 3300
     assert entry["optional"]["eligible"] == 5100
     assert entry["optional"]["coverage"] == 100
+    assert entry["optional"]["confidence_interval"]["lower"] == pytest.approx(
+        100 * 33 / 51
+    )
+    assert entry["optional"]["confidence_interval"]["upper"] == pytest.approx(
+        100 * 33 / 51
+    )
+    assert entry["optional"]["confidence_interval"]["asset_count"] == 25
     assert entry["fidelity"]["shape"]["score"] == 50
     assert entry["fidelity"]["shape"]["coverage"] == 100
     assert entry["fidelity"]["joints"]["score"] is None
@@ -278,6 +285,7 @@ def test_unknown_optional_attempt_preserves_bounds_without_averaging_it_away():
     assert entry["optional"]["lower_bound"] == pytest.approx(100 * 3270 / 5100)
     assert entry["optional"]["upper_bound"] == pytest.approx(100 * 3311 / 5100)
     assert entry["optional"]["unknown_attempts"] == 1
+    assert entry["optional"]["confidence_interval"] is None
 
 
 def test_missing_fidelity_eligibility_is_unknown_rather_than_inapplicable():
@@ -342,18 +350,19 @@ assert.equal(inputEntry.reference_set, 'NV25');
 vm.runInContext('leaderboardEntries = [inputEntry]; renderLeaderboard();', context);
 const cells = nodes.get('leaderboard-body').children[0].children;
 const text = (node) => [node.textContent, ...node.children.map(text)].join(' ');
-assert.equal(cells.length, 12);
+assert.equal(cells.length, 13);
 assert.match(text(cells[4]), /4,000\/4,600 credit/);
-assert.match(text(cells[5]), /^0\.00.*0\/100 credit.*100\/100 measured/);
-assert.match(text(cells[6]), /^Not measured.*Reference coverage not measured.*100 with eligibility not measured/);
+assert.match(text(cells[5]), /64\.71.*95% CI \[64\.71, 64\.71\]/);
+assert.match(text(cells[6]), /^0\.00.*0\/100 credit.*100\/100 measured/);
+assert.match(text(cells[7]), /^Not measured.*Reference coverage not measured.*100 with eligibility not measured/);
 assert.match(text(vm.runInContext('metricCell(inputEntry.fidelity.joints)', context)), /^N\/A.*No eligible reference criteria/);
 assert.match(text(vm.runInContext('metricCell({score:50,confidence_interval:{level:0.95,lower:40,upper:60}})', context)), /95% CI \[40\.00, 60\.00\]/);
-for (const index of [7, 8, 9, 10]) assert.match(text(cells[index]), /^Not measured/);
+for (const index of [8, 9, 10, 11]) assert.match(text(cells[index]), /^Not measured/);
 delete inputEntry.usage;
 assert.equal(vm.runInContext('isCompleteEntry(inputEntry)', context), true);
 vm.runInContext('renderLeaderboard();', context);
 const legacyCells = nodes.get('leaderboard-body').children[0].children;
-for (const index of [7, 8, 9, 10]) assert.match(text(legacyCells[index]), /^Not measured/);
+for (const index of [8, 9, 10, 11]) assert.match(text(legacyCells[index]), /^Not measured/);
 inputEntry.completed_attempts = 99;
 assert.equal(vm.runInContext('isCompleteEntry(inputEntry)', context), false);
 """
@@ -407,15 +416,15 @@ vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);
 vm.runInContext('leaderboardEntries = [inputEntry]; renderLeaderboard();', context);
 const cells = nodes.get('leaderboard-body').children[0].children;
 const text = (node) => [node.textContent, ...node.children.map(text)].join(' ');
-assert.equal(cells.length, 12);
-assert.match(text(cells[7]), /^0 model requests.*Validation calls: 1.*Model request errors: 0/);
-assert.match(text(cells[8]), /^2 min elapsed time.*Model request time: 30 s/);
-assert.match(text(cells[9]), /^1,200 tokens.*Input tokens: 1,000.*Output tokens: 200/);
-assert.match(text(cells[10]), /^Not measured.*total cost: 99\/100 reconstructions measured.*Inference: USD 0\.025.*Compute: Not measured.*Compute: 99\/100 reconstructions measured/);
-assert.match(text(cells[11]), /View/);
+assert.equal(cells.length, 13);
+assert.match(text(cells[8]), /^0 model requests.*Validation calls: 1.*Model request errors: 0/);
+assert.match(text(cells[9]), /^2 min elapsed time.*Model request time: 30 s/);
+assert.match(text(cells[10]), /^1,200 tokens.*Input tokens: 1,000.*Output tokens: 200/);
+assert.match(text(cells[11]), /^Not measured.*total cost: 99\/100 reconstructions measured.*Inference: USD 0\.025.*Compute: Not measured.*Compute: 99\/100 reconstructions measured/);
+assert.match(text(cells[12]), /View/);
 inputEntry.usage.inference_calls_used = { mean: 12, measured_attempts: 99, total_attempts: 100 };
 vm.runInContext('renderLeaderboard();', context);
-assert.match(text(nodes.get('leaderboard-body').children[0].children[7]), /^Not measured.*99\/100 reconstructions measured/);
+assert.match(text(nodes.get('leaderboard-body').children[0].children[8]), /^Not measured.*99\/100 reconstructions measured/);
 assert.equal(vm.runInContext('usageCost(0)', context), 'USD 0.00');
 assert.equal(vm.runInContext('usageCost(0.00001)', context), '<USD 0.0001');
 """

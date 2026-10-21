@@ -107,7 +107,9 @@ def test_table_preserves_zero_unknown_inapplicability_and_full_factor_identity()
     authoritative = board(item)
     before = deepcopy(authoritative)
     rendered = render_benchmark_card("# Results\n", authoritative)
-    assert "| model/a | medium | pi | none | 0.00 | unknown | N/A |" in rendered
+    assert (
+        "| model/a | medium | pi | none | 0.00 | unknown | unknown | N/A |" in rendered
+    )
     assert '<a href="' + item["results_url"] + '">Readout</a>' in rendered
     assert "[leaderboard.json](leaderboard.json)" in rendered
     assert "combined ranking" in rendered
@@ -149,7 +151,7 @@ def test_display_values_are_inert_markdown_and_html():
     assert "<script>" not in rendered
     assert "&#124;" in rendered and "&lt;script&gt; next" in rendered
     row = next(line for line in rendered.splitlines() if "&lt;script&gt;" in line)
-    assert row.count("|") == 9
+    assert row.count("|") == 10
 
 
 @pytest.mark.parametrize("score", [True, -1, 101, float("nan"), float("inf"), "0"])
@@ -348,3 +350,20 @@ def test_strict_success_rates_keep_zero_and_partial_measurement_coverage():
     rendered = render_benchmark_card("# Results\n", board(item))
     assert "| 0.00% (0/100) | unknown (24/25 measured) |" in rendered
     assert "all 46 mandatory SimReady requirements" in rendered
+
+
+def test_optional_scores_have_their_own_interval_beside_formal_fidelity():
+    item = entry(
+        optional={
+            "score": 72.345,
+            "confidence_interval": {"level": 0.95, "lower": 68.123, "upper": 77.456},
+        }
+    )
+    original = deepcopy(item)
+    rendered = render_benchmark_card("# Results\n", board(item))
+    assert "| Formal (%) | Optional (%) | Visual (%) |" in rendered
+    assert "| 0.00 | 72.34 [68.12, 77.46] | unknown | N/A |" in rendered
+    assert (
+        "51 optional SimReady requirements separately from the 46 mandatory" in rendered
+    )
+    assert item == original

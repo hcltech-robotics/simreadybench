@@ -7,6 +7,10 @@ The leaderboard mean is the arithmetic mean of eligible reconstruction scores.
 Reference-inapplicable results are excluded. A missing eligible score leaves
 the mean unknown.
 
+The formal results also show the separate 51-requirement optional score with
+the same asset-cluster confidence interval method. Optional results retain
+their own mean, counts and coverage and do not change formal fidelity.
+
 ## Confidence intervals
 
 The displayed 95% confidence interval is a percentile asset-cluster bootstrap

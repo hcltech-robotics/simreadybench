@@ -34,7 +34,9 @@ def _score(entry, name):
     composites = entry.get("composite_scores") or {}
     if not isinstance(composites, dict):
         raise ValueError("Leaderboard composite summaries must be objects")
-    summary = composites.get(name) or {}
+    summary = (
+        entry.get("optional") if name == "optional" else composites.get(name)
+    ) or {}
     if not isinstance(summary, dict):
         raise ValueError("A leaderboard composite summary must be an object")
     score = summary.get("score")
@@ -218,7 +220,7 @@ def _section(board):
     else:
         lines.extend(
             [
-                "Each entry contains 100 reconstructions: four attempts for each of the 25 NV25 assets. Formal, visual and kinematic fidelity are independent scores on a 0-100 scale, with no combined ranking. Values are means [95% confidence interval].",
+                "Each entry contains 100 reconstructions: four attempts for each of the 25 NV25 assets. Formal, visual and kinematic fidelity are independent scores on a 0-100 scale, with no combined ranking. Optional results score the 51 optional SimReady requirements separately from the 46 mandatory requirements in formal fidelity. Values are means [95% confidence interval].",
                 "",
             ]
         )
@@ -250,8 +252,8 @@ def _section(board):
                         + _cell(entry.get("reference_revision"))
                         + "`.",
                         "",
-                        "| Model | Reasoning | Harness | Skills | Formal (%) | Visual (%) | Kinematic (%) | Results |",
-                        "| --- | --- | --- | --- | ---: | ---: | ---: | --- |",
+                        "| Model | Reasoning | Harness | Skills | Formal (%) | Optional (%) | Visual (%) | Kinematic (%) | Results |",
+                        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
                     ]
                 )
             cells = [
@@ -259,7 +261,10 @@ def _section(board):
                 _cell(entry.get("reasoning_effort")),
                 _cell(entry.get("harness")),
                 _skills(entry),
-                *(_score(entry, name) for name in ("formal", "visual", "kinematic")),
+                *(
+                    _score(entry, name)
+                    for name in ("formal", "optional", "visual", "kinematic")
+                ),
                 _source(entry),
             ]
             lines.append("| " + " | ".join(cells) + " |")

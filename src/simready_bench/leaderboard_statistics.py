@@ -144,6 +144,38 @@ def statistical_summaries(rows, *, parts, summaries, usage_rows):
     return enriched, efficiency
 
 
+def optional_summary_with_ci(rows, summary):
+    """Retain the separate 51-requirement optional mean with an asset-cluster CI."""
+    enriched = dict(summary)
+    clusters = defaultdict(list)
+    known = _number(summary.get("score")) and 0 <= summary["score"] <= 100
+    for row in rows:
+        primary = (
+            row.get("simready") or (row.get("evaluation") or {}).get("simready") or {}
+        )
+        optional = (
+            row.get("optional_score")
+            or primary.get("optional_score")
+            or (row.get("evaluation") or {}).get("optional_score")
+            or {}
+        )
+        score = optional.get("score_percent")
+        known = known and _number(score) and 0 <= score <= 100
+        clusters[row["asset_id"]].append(score)
+    enriched["confidence_interval"] = None
+    enriched["eligible_assets"] = len(clusters)
+    if known and clusters:
+        groups = [clusters[asset] for asset in sorted(clusters)]
+        totals = np.array([sum(group) for group in groups], dtype=float)
+        counts = np.array([len(group) for group in groups], dtype=float)
+        draws = np.random.default_rng(SEED).integers(
+            len(groups), size=(RESAMPLES, len(groups))
+        )
+        samples = totals[draws].sum(axis=1) / counts[draws].sum(axis=1)
+        enriched["confidence_interval"] = _interval(samples, assets=len(groups))
+    return enriched
+
+
 def success_summary(rows):
     """Report strict mandatory pass rates across attempts and four-try assets."""
     groups = defaultdict(list)

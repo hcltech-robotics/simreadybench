@@ -2,7 +2,11 @@ import copy
 
 import pytest
 
-from simready_bench.leaderboard_statistics import statistical_summaries, success_summary
+from simready_bench.leaderboard_statistics import (
+    optional_summary_with_ci,
+    statistical_summaries,
+    success_summary,
+)
 
 
 def measurements(values=(10, 20, 30)):
@@ -130,6 +134,35 @@ def test_no_eligible_attempts_remain_not_applicable():
     assert composites["formal"]["eligible_assets"] == 0
     assert composites["formal"]["confidence_interval"] is None
     assert efficiency["formal"]["per_million_tokens"]["eligible_attempts"] == 0
+
+
+def test_optional_backfill_retains_separate_score_and_counts_with_cluster_ci():
+    rows, _, _, _ = measurements((0, 100))
+    for row in rows:
+        row["optional_score"] = {"score_percent": 0 if row["asset_id"] == "0" else 100}
+    original = {"score": 50, "passed": 204, "eligible": 408, "coverage": 100}
+    enriched = optional_summary_with_ci(rows, original)
+    assert {key: enriched[key] for key in original} == original
+    assert original == {"score": 50, "passed": 204, "eligible": 408, "coverage": 100}
+    assert enriched["confidence_interval"]["lower"] == 0
+    assert enriched["confidence_interval"]["upper"] == 100
+    assert enriched["confidence_interval"]["asset_count"] == 2
+    rows.reverse()
+    assert optional_summary_with_ci(rows, original) == enriched
+
+
+def test_optional_missing_measurements_never_produce_a_ci():
+    rows, _, _, _ = measurements((10, 20))
+    for row in rows:
+        row["evaluation"] = {"optional_score": {"score_percent": 50}}
+    assert (
+        optional_summary_with_ci(rows, {"score": 50})["confidence_interval"] is not None
+    )
+    rows[0]["evaluation"]["optional_score"]["score_percent"] = None
+    assert (
+        optional_summary_with_ci(rows, {"score": None})["confidence_interval"] is None
+    )
+    assert optional_summary_with_ci(rows, {"score": 50})["confidence_interval"] is None
 
 
 def test_mandatory_pass_rates_distinguish_attempts_from_four_try_assets():

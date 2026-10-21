@@ -112,6 +112,7 @@ function renderLeaderboard() {
     row.append(textCell(entry.model), textCell(entry.reasoning_effort || "Default"), textCell(entry.harness), textCell(entry.skills.length ? entry.skills.join(", ") : "None"));
     compositeNames.forEach((name) => {
       row.append(metricCell(entry.composite_scores?.[name]));
+      if (name === "formal") row.append(metricCell(entry.optional));
     });
     row.append(
       usageCell(entry.usage, ["inference_calls_used", "model requests"], [

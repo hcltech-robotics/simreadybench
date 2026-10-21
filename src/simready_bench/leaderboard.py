@@ -10,7 +10,11 @@ from simready_bench.composites import (
     scores as composite_scores,
 )
 from simready_bench.reporting import USAGE_FIELDS, usage_columns
-from simready_bench.leaderboard_statistics import statistical_summaries, success_summary
+from simready_bench.leaderboard_statistics import (
+    optional_summary_with_ci,
+    statistical_summaries,
+    success_summary,
+)
 
 
 COMPONENTS = ("shape", "rigid_parts", "joints", "materials")
@@ -462,11 +466,14 @@ def leaderboard_entry(result, *, manifest, results_url):
         "compliance": mean(scores),
         "usage": usage,
         "mandatory": _profile_summary(primary_parts, scores, count=46),
-        "optional": _profile_summary(
-            optional_parts,
-            [part.get("score_percent") for part in optional_parts],
-            count=51,
-            optional=True,
+        "optional": optional_summary_with_ci(
+            rows,
+            _profile_summary(
+                optional_parts,
+                [part.get("score_percent") for part in optional_parts],
+                count=51,
+                optional=True,
+            ),
         ),
         "fidelity": fidelity,
         "composite_scores": composites,
