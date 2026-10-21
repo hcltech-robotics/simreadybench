@@ -29,6 +29,27 @@ simready-bench benchmark nvidia-25 \
 
 The benchmark installs its package in each executor, executes the reconstruction tasks and collects their reports before deleting the executor.
 
+### Live worker logs
+
+From the repository checkout on the coordinator, attach a live log view to current and subsequent workers:
+
+```sh
+python scripts/daytona_live_logs.py /path/to/run \
+  --state /path/to/live-logs.json --watch
+```
+
+The command uses `DAYTONA_API_KEY`. It follows the run's worker ownership records and attaches a separate read-only Daytona session to each executor. Multiple run directories can be supplied for a model sequence.
+
+Open a running sandbox in Daytona, select Terminal, then Open in new tab and run:
+
+```sh
+simready-logs
+```
+
+The view shows Pi tool calls, tool results and visible assistant messages, with model request counts and a waiting message every 15 seconds. Output is also available through the `simready-live-logs` Daytona process session and `/work/simready-live.log`. Closing the terminal leaves the benchmark running. The observer exits after all supplied runs finish and their workers are closed.
+
+Controller progress and evaluation events are available with `tail -n 30 -F /work/controller.stdout.log /work/controller.stderr.log`. The standalone reader at `src/simready_bench/worker_logs.py` also supports `--once` for a snapshot inside the controller.
+
 ## Local
 
 Local execution uses Linux amd64 with Docker. On Windows, use an Ubuntu WSL shell. Install the validator and configure the actor, verifier and CPU rendering images:
