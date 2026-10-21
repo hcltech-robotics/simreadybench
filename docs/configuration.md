@@ -231,4 +231,4 @@ The agent receives only the selected skills. Each run records its model, harness
 
 `--runtime-images PATH` selects a JSON configuration containing the actor, verifier and CPU image identities and, for an imported runtime, its Daytona snapshot name. See [deployment](deployment.md) for published runtime imports and source builds.
 
-The NV25 protocol runs four reconstructions of each asset, with up to 64 model calls and five validator calls for each reconstruction. Pi and the inference gateway receive the same turn limit. Individual model requests retain their 1800-second deadline within the complete authoring interval.
+The NV25 protocol runs four reconstructions of each asset, with up to 64 model calls and five validator calls for each reconstruction. Pi and the inference gateway receive the same turn limit. Before each model call, Pi supplies the current round and the number of rounds remaining after it. The final round includes a reminder to save and submit the candidate. Individual model requests retain their 1800-second deadline within the complete authoring interval.

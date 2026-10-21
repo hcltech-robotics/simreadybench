@@ -274,6 +274,44 @@ class PiAgent(Pi):
             # the real, interrupted-at-submit session using its ordinary finally path.
             return None
 
+    @staticmethod
+    def _build_max_turns_extension(max_turns: int) -> str:
+        """Show each round's remaining calls using the same counter as Pi's stop."""
+        return f"""export default function (pi) {{
+  const maxTurns = {max_turns};
+  let completedTurns = 0;
+  const noticeType = "simready-authoring-round";
+
+  pi.on("before_agent_start", (event) => ({{
+    systemPrompt: `${{event.systemPrompt}}\n\nYou have a hard budget of ${{maxTurns}} model turns. Complete the task and provide your final answer within that budget.`,
+  }}));
+
+  // Pi 0.85.1 supplies a transient context copy before every model call.
+  pi.on("context", (event) => {{
+    const round = Math.min(completedTurns + 1, maxTurns);
+    const remaining = maxTurns - round;
+    let content = `Authoring round ${{round}} of ${{maxTurns}}. ${{remaining}} model round${{remaining === 1 ? "" : "s"}} remain${{remaining === 1 ? "s" : ""}} after this round.`;
+    if (remaining === 0) {{
+      content += " This is your final model round. Save the USD asset and required files, then submit now. No further model calls will be available.";
+    }}
+    const messages = event.messages.filter(
+      (message) => message.role !== "custom" || message.customType !== noticeType,
+    );
+    return {{ messages: [...messages, {{
+      role: "custom", customType: noticeType, content,
+      display: false, timestamp: Date.now(),
+    }}] }};
+  }});
+
+  pi.on("turn_end", (_event, ctx) => {{
+    completedTurns += 1;
+    if (completedTurns >= maxTurns) {{
+      ctx.abort();
+    }}
+  }});
+}}
+"""
+
     async def install(self, environment) -> None:
         """Verify the prebuilt closure, without the stock network installer."""
         import simready_bench.engine.pi_runtime as frozen_pi
