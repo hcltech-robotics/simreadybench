@@ -429,7 +429,11 @@ class Telemetry:
             if type(value) in (str, int, float, bool)
         }
         end = int(event["timestamp"] * 1e9)
-        elapsed = max(0, _number(event.get("elapsed_seconds")) or 0)
+        elapsed = (
+            0
+            if event["event"] == "run_heartbeat"
+            else max(0, _number(event.get("elapsed_seconds")) or 0)
+        )
         span = self.tracer.start_span(
             event["event"],
             attributes=attributes,
@@ -486,16 +490,92 @@ class ControllerReporter:
         self.reports = []
         self.seen = set()
         self.completed = 0
+        self.started_at = time.time()
+        self.last_activity_at = self.started_at
+        self.active_asset_id = None
+        self.active_asset_index = None
+        self.active_asset_count = None
+        self.active_asset_started_at = None
+        self._emit_lock = threading.Lock()
+        self._heartbeat_stop = threading.Event()
+        self._heartbeat_thread = None
 
     def emit(self, name, **values):
-        event = {"event": name, "timestamp": time.time(), **values}
-        print(
-            json.dumps(event, sort_keys=True, allow_nan=False),
-            file=self.stream,
-            flush=True,
+        event = {
+            "event": name,
+            "timestamp": time.time(),
+            "sandbox_id": os.environ.get("DAYTONA_SANDBOX_ID"),
+            **values,
+        }
+        with self._emit_lock:
+            print(
+                json.dumps(event, sort_keys=True, allow_nan=False),
+                file=self.stream,
+                flush=True,
+            )
+            if self.telemetry is not None:
+                self.telemetry.emit(event)
+
+    def asset_started(self, asset, asset_index, asset_count):
+        self.active_asset_id = asset["id"]
+        self.active_asset_index = asset_index
+        self.active_asset_count = asset_count
+        self.active_asset_started_at = time.time()
+        self.last_activity_at = self.active_asset_started_at
+        self.emit(
+            "asset_started",
+            phase="asset",
+            status="running",
+            asset_id=self.active_asset_id,
+            asset_index=asset_index,
+            asset_count=asset_count,
+            completed_conditions=self.completed,
+            planned_conditions=self.planned,
         )
-        if self.telemetry is not None:
-            self.telemetry.emit(event)
+
+    def heartbeat(self):
+        now = time.time()
+        self.emit(
+            "run_heartbeat",
+            phase="run",
+            status="running",
+            elapsed_seconds=max(0, now - self.started_at),
+            completed_conditions=self.completed,
+            planned_conditions=self.planned,
+            active_asset_id=self.active_asset_id,
+            active_asset_index=self.active_asset_index,
+            active_asset_count=self.active_asset_count,
+            active_asset_elapsed_seconds=(
+                max(0, now - self.active_asset_started_at)
+                if self.active_asset_started_at is not None
+                else None
+            ),
+            last_activity_seconds=max(0, now - self.last_activity_at),
+        )
+
+    def start_heartbeat(self, *, interval_seconds=30):
+        if (
+            type(interval_seconds) not in (int, float)
+            or not math.isfinite(interval_seconds)
+            or interval_seconds <= 0
+        ):
+            raise ValueError("A positive heartbeat interval is required")
+        if self._heartbeat_thread is not None:
+            raise RuntimeError("Controller heartbeat has already started")
+
+        def run():
+            while not self._heartbeat_stop.wait(interval_seconds):
+                self.heartbeat()
+
+        self._heartbeat_thread = threading.Thread(
+            target=run, name="simready-controller-heartbeat", daemon=True
+        )
+        self._heartbeat_thread.start()
+
+    def close(self):
+        self._heartbeat_stop.set()
+        if self._heartbeat_thread is not None:
+            self._heartbeat_thread.join(timeout=2)
 
     def __call__(self, work_dir, progress):
         from simready_bench.benchmark import _aggregate_reports
@@ -536,6 +616,7 @@ class ControllerReporter:
             )
             self.seen.add(identity)
             self.completed += row.get("status") == "completed"
+            self.last_activity_at = time.time()
             self.emit(
                 "reconstruction_completed"
                 if row.get("status") == "completed"

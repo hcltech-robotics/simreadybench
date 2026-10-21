@@ -59,6 +59,10 @@ The standard NV25 command runs four reconstructions per asset, giving 100 attemp
 
 `--max-retries` allows two further attempts per failed reconstruction by default, with backoff and a fixed aggregate allowance. Completed measurements, including zero scores, are retained. An exhausted reconstruction is reported while the remaining conditions continue. Each new Daytona worker stops after ten minutes without coordinator contact, and a worker making no provider or reconstruction progress for 65 minutes is stopped, collected and replaced within its retry limit. Set `runtime.executor_stall_seconds` in an operator policy to change the latter interval. Reference comparisons run for valid USD even when formal SimReady validation fails.
 
+## Monitor a Daytona run
+
+Follow the `simready-benchmark` and `simready-model-relay` session logs in each Daytona sandbox. The controller reports its active asset and completed/planned counts every 30 seconds. The relay reports each model request's route, attempt, request allowance, HTTP status and duration, plus retry and failure events. Logs contain no prompt content or credentials.
+
 For built-in providers, the default accounting allowance covers every permitted request at the provider's full native capacity. `allowance.json` records its derivation. Add `--max-spend-usd AMOUNT` to impose a separate monetary ceiling, or supply an operator policy with an existing allowance.
 
 ![Reference assets become controlled observations and Harbor reconstruction tasks, followed by profile validation, fidelity measurement and aligned captures.](site/assets/evaluation-protocol.png)

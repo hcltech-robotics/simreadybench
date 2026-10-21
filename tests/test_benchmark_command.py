@@ -487,12 +487,20 @@ def test_sequential_execution_keeps_repetitions_budget_identities_and_exported_c
         return {"schema": "simready-bench-matrix-result-v1", "results": rows}
 
     monkeypatch.setattr(runner, "run", run)
+    started_assets = []
     result = workflow.execute_local_sequential(
-        manifest, policy=policy, output_dir=output, work_dir=tmp_path / "work"
+        manifest,
+        policy=policy,
+        output_dir=output,
+        work_dir=tmp_path / "work",
+        on_asset_start=lambda asset, index, count: started_assets.append(
+            (asset["id"], index, count)
+        ),
     )
     assert result["planned_conditions"] == result["completed_conditions"] == 8
     assert {row["condition_id"] for row in result["results"]} == expected
     assert acquired == ["asset-a", "asset-b"]
+    assert started_assets == [("asset-a", 1, 2), ("asset-b", 2, 2)]
     assert not list(references.iterdir()) and not list(
         (output / "assets/imported").iterdir()
     )

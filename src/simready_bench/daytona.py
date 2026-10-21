@@ -613,12 +613,14 @@ def execute_remote(path):
             status="running",
             planned_conditions=reporter.planned,
         )
+        reporter.start_heartbeat(interval_seconds=30)
         result = execute_local_sequential(
             envelope["manifest"],
             policy=policy,
             output_dir=output,
             work_dir=work,
             on_progress=reporter,
+            on_asset_start=reporter.asset_started,
         )
         _json(root / "run-result.json", result)
         completed = _matrix_complete(result, envelope["manifest"])
@@ -661,6 +663,8 @@ def execute_remote(path):
             )
         raise
     finally:
+        if reporter is not None:
+            reporter.close()
         if telemetry is not None:
             telemetry.close()
         _json(root / "controller-status.json", status)
@@ -1744,6 +1748,7 @@ def run_daytona(
         )
         relay_config = {
             "model": parent.model,
+            "sandbox_id": sandbox.id,
             "marker": marker,
             "api_key": provider_key,
             "base_url": provider["base_url"],

@@ -338,7 +338,9 @@ class RecordingOpener:
         return response
 
 
-def test_relay_forwards_count_and_generation_exactly_without_exposing_key(tmp_path):
+def test_relay_forwards_count_and_generation_exactly_without_exposing_key(
+    tmp_path, capsys
+):
     import http.server
 
     upstream = RecordingOpener()
@@ -357,14 +359,18 @@ def test_relay_forwards_count_and_generation_exactly_without_exposing_key(tmp_pa
     thread.start()
     client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
-    def post(route, body, token="test-marker"):
+    def post(route, body, token="test-marker", condition=None):
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
+        if condition is not None:
+            headers["X-SimReady-Condition"] = condition
+            headers["X-SimReady-Request-Limit"] = "1"
         request = urllib.request.Request(
             "http://127.0.0.1:" + str(server.server_port) + route,
             data=body,
-            headers={
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json",
-            },
+            headers=headers,
         )
         return client.open(request, timeout=5)
 
@@ -372,7 +378,7 @@ def test_relay_forwards_count_and_generation_exactly_without_exposing_key(tmp_pa
     try:
         with post("/v1/responses/input_tokens", raw) as response:
             assert json.load(response)["input_tokens"] == 25
-        with post("/v1/responses", raw) as response:
+        with post("/v1/responses", raw, condition="private-condition") as response:
             assert response.status == 200
         assert state.counters == 1 and state.requests == 1
         assert [request.full_url for request in upstream.requests] == [
@@ -393,6 +399,24 @@ def test_relay_forwards_count_and_generation_exactly_without_exposing_key(tmp_pa
         assert "private-upstream-key" not in (tmp_path / "ledger.json").read_text()
         assert "test-marker" not in (tmp_path / "ledger.json").read_text()
         assert all(event["status"] == "completed" for event in state.events)
+        logged = capsys.readouterr().out
+        events = [json.loads(line) for line in logged.splitlines() if line.startswith("{")]
+        assert [event["event"] for event in events] == [
+            "model_request_started",
+            "model_request_finished",
+            "model_request_started",
+            "model_request_finished",
+        ]
+        assert events[-1]["request_ordinal"] == 1
+        assert events[-1]["request_limit"] == 1
+        assert events[-1]["condition_request_ordinal"] == 1
+        assert events[-1]["condition_request_limit"] == 1
+        assert len(events[-1]["condition_scope_hash"]) == 16
+        assert events[-1]["http_status"] == 200
+        assert "Reconstruct the asset" not in logged
+        assert "private-upstream-key" not in logged
+        assert "test-marker" not in logged
+        assert "private-condition" not in logged
     finally:
         server.shutdown()
         server.server_close()

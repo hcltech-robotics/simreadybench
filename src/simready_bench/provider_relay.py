@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import http.server
 import json
@@ -160,6 +161,7 @@ class RelayState:
         self.maximum_retry_seconds = config.get("maximum_retry_seconds", 120)
         self.native_output_only = config.get("native_output_only", True)
         self.maximum_request_bytes = config.get("maximum_request_bytes", 32 * 1024**2)
+        self.sandbox_id = config.get("sandbox_id")
         if (
             type(self.maximum_requests) is not int
             or self.maximum_requests < 1
@@ -175,6 +177,11 @@ class RelayState:
             or type(self.maximum_retry_seconds) not in (int, float)
             or not math.isfinite(self.maximum_retry_seconds)
             or not 0 < self.maximum_retry_seconds <= 300
+            or self.sandbox_id is not None
+            and (
+                not isinstance(self.sandbox_id, str)
+                or not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", self.sandbox_id)
+            )
         ):
             raise ValueError("Bounded provider retry settings required")
         self.project_id = config.get("project_id")
@@ -319,9 +326,20 @@ class RelayState:
                 self.counters += 1
             else:
                 self.requests += 1
-            event = {"path": route, "started_at": self.now(), "status": "admitted"}
+            ordinal = self.counters if counter else self.requests
+            request_limit = 4 * self.maximum_requests if counter else self.maximum_requests
+            event = {
+                "path": route,
+                "started_at": self.now(),
+                "status": "admitted",
+                "request_kind": "input_token_count" if counter else "generation",
+                "request_ordinal": ordinal,
+                "request_limit": request_limit,
+            }
             if scope is not None:
                 event["condition_scope"] = scope
+                event["condition_request_ordinal"] = counts[scope]
+                event["condition_request_limit"] = 4 * limit if counter else limit
             self.events.append(event)
             self.save()
             return event
@@ -349,6 +367,38 @@ class Relay(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
+    def _emit_event(self, state, name, event, *, attempt=None, **extra):
+        now = state.now()
+        scope = event.get("condition_scope")
+        started_at = event.get("started_at", now)
+        value = {
+            "event": name,
+            "timestamp": now,
+            "sandbox_id": state.sandbox_id,
+            "model": state.model,
+            "route": event.get("path"),
+            "request_kind": event.get("request_kind"),
+            "request_ordinal": event.get("request_ordinal"),
+            "request_limit": event.get("request_limit"),
+            "condition_request_ordinal": event.get("condition_request_ordinal"),
+            "condition_request_limit": event.get("condition_request_limit"),
+            "condition_scope_hash": (
+                hashlib.sha256(scope.encode("utf-8")).hexdigest()[:16]
+                if scope is not None
+                else None
+            ),
+            "status": event.get("status"),
+            "http_status": event.get("http_status"),
+            "elapsed_seconds": max(0, now - started_at),
+        }
+        if attempt is not None:
+            value["attempt"] = attempt
+        value.update(extra)
+        try:
+            print(json.dumps(value, sort_keys=True, allow_nan=False), flush=True)
+        except Exception:
+            pass
 
     def _prefix(self, response, state, deadline):
         content_type = response.headers.get("Content-Type", "").lower()
@@ -461,6 +511,9 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 event = None
                 event = state.admit(route, scope=scope, limit=limit, deadline=deadline)
                 attempts += 1
+                self._emit_event(
+                    state, "model_request_started", event, attempt=attempts
+                )
                 try:
                     response = state.opener.open(
                         request, timeout=min(300, max(0.001, deadline - state.now()))
@@ -483,6 +536,13 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 ):
                     break
                 state.finish(event, "retryable_rejection", retry_delay_seconds=delay)
+                self._emit_event(
+                    state,
+                    "model_request_retrying",
+                    event,
+                    attempt=attempts,
+                    retry_delay_seconds=delay,
+                )
                 response.close()
                 response = None
                 state.sleep(delay)
@@ -526,19 +586,39 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(chunk)
                 self.wfile.flush()
             state.finish(event, "completed")
+            self._emit_event(
+                state, "model_request_finished", event, attempt=attempts
+            )
         except (BrokenPipeError, ConnectionResetError):
             if event is not None:
                 state.finish(event, "client_disconnected")
+                self._emit_event(
+                    state, "model_request_failed", event, attempt=attempts
+                )
         except ValueError as error:
             if event is not None:
                 state.finish(
                     event, "allowance_exhausted", error_type=type(error).__name__
+                )
+                self._emit_event(
+                    state,
+                    "model_request_failed",
+                    event,
+                    attempt=attempts,
+                    error_type=type(error).__name__,
                 )
             if not sent_headers:
                 self.send_error(400)
         except Exception as error:
             if event is not None:
                 state.finish(event, "transport_error", error_type=type(error).__name__)
+                self._emit_event(
+                    state,
+                    "model_request_failed",
+                    event,
+                    attempt=attempts,
+                    error_type=type(error).__name__,
+                )
             if not sent_headers:
                 self.send_error(502)
         finally:

@@ -924,7 +924,13 @@ def remove_owned_tree(path, *, parent):
 
 
 def execute_local_sequential(
-    manifest, *, policy, output_dir, work_dir=None, on_progress=None
+    manifest,
+    *,
+    policy,
+    output_dir,
+    work_dir=None,
+    on_progress=None,
+    on_asset_start=None,
 ):
     """Evaluate each reference, export its artefacts and release temporary data."""
     output = _absolute(output_dir)
@@ -954,10 +960,18 @@ def execute_local_sequential(
     results = []
     reports = []
     report = None
+    selection = manifest.get("reconstruction_selection")
+    selected_asset_count = sum(
+        selection is None or bool(selection[asset["id"]])
+        for asset in manifest["assets"]
+    )
+    selected_asset_ordinal = 0
     for index, asset in enumerate(manifest["assets"]):
-        selection = manifest.get("reconstruction_selection")
         if selection is not None and not selection[asset["id"]]:
             continue
+        selected_asset_ordinal += 1
+        if on_asset_start is not None:
+            on_asset_start(asset, selected_asset_ordinal, selected_asset_count)
         experiment = copy.deepcopy(manifest)
         experiment["assets"] = [copy.deepcopy(asset)]
         if selection is not None:
@@ -1137,13 +1151,16 @@ def execute_local_reported(
                 )
 
     execute = execute_local_sequential if len(manifest["assets"]) > 1 else execute_local
+    options = {"on_progress": progress}
+    if execute is execute_local_sequential:
+        options["on_asset_start"] = reporter.asset_started
     try:
         result = execute(
             manifest,
             policy=policy,
             output_dir=output,
             work_dir=work_dir,
-            on_progress=progress,
+            **options,
         )
     except Exception as error:
         report = (getattr(error, "result", None) or {}).get("report")

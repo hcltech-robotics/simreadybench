@@ -1,5 +1,6 @@
 import io
 import json
+import time
 
 from simready_bench.controller_runner import (
     ControllerReporter,
@@ -93,6 +94,28 @@ def test_failed_reconstruction_does_not_emit_a_completed_score(tmp_path):
     assert event["score_percent"] is None and event["completed_conditions"] == 0
 
 
+def test_controller_heartbeat_reports_active_asset_and_progress(tmp_path):
+    output = tmp_path / "output"
+    output.mkdir()
+    stream = io.StringIO()
+    reporter = ControllerReporter(output, manifest(), stream=stream)
+    reporter.asset_started({"id": "box"}, 1, 1)
+    reporter.start_heartbeat(interval_seconds=0.01)
+    time.sleep(0.04)
+    reporter.close()
+
+    events = [json.loads(line) for line in stream.getvalue().splitlines()]
+    heartbeat = next(event for event in events if event["event"] == "run_heartbeat")
+    assert heartbeat["active_asset_id"] == "box"
+    assert heartbeat["active_asset_index"] == 1
+    assert heartbeat["active_asset_count"] == 1
+    assert heartbeat["completed_conditions"] == 0
+    assert heartbeat["planned_conditions"] == 4
+    assert heartbeat["active_asset_elapsed_seconds"] >= 0
+    assert reporter._heartbeat_thread is not None
+    assert not reporter._heartbeat_thread.is_alive()
+
+
 def test_controller_streams_stdout_stderr_and_keeps_original_exit_status(
     tmp_path, monkeypatch, capsys
 ):
@@ -176,6 +199,15 @@ def test_real_otlp_exporters_send_reconstruction_logs_spans_and_scores(tmp_path)
             "fidelity_materials_percent": 0,
         }
         telemetry.emit(event)
+        telemetry.emit(
+            {
+                "event": "run_heartbeat",
+                "timestamp": 130,
+                "elapsed_seconds": 30,
+                "completed_conditions": 1,
+                "planned_conditions": 4,
+            }
+        )
         telemetry.close()
         assert {"/v1/logs", "/v1/traces", "/v1/metrics"} <= received.keys()
         traces = ExportTraceServiceRequest.FromString(received["/v1/traces"][0])
@@ -186,9 +218,12 @@ def test_real_otlp_exporters_send_reconstruction_logs_spans_and_scores(tmp_path)
         assert attributes["service.name"] == "sandbox-owned-executor"
         assert attributes["daytona_organization_id"] == "organisation"
         assert attributes["daytona_snapshot"] == "simready-bench-cpu"
-        span = resources.scope_spans[0].spans[0]
+        spans = {span.name: span for span in resources.scope_spans[0].spans}
+        span = spans["reconstruction_completed"]
         assert span.name == "reconstruction_completed"
         assert span.end_time_unix_nano - span.start_time_unix_nano == 24_000_000_000
+        heartbeat_span = spans["run_heartbeat"]
+        assert heartbeat_span.end_time_unix_nano == heartbeat_span.start_time_unix_nano
         logs = ExportLogsServiceRequest.FromString(received["/v1/logs"][0])
         record = logs.resource_logs[0].scope_logs[0].log_records[0]
         assert json.loads(record.body.string_value) == event
