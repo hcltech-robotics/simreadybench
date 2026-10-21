@@ -69,7 +69,7 @@ def test_open_circuit_stops_the_owned_worker_before_further_observation(monkeypa
     assert any('docker kill' in command for command in commands)
 
 
-def test_truncated_provider_stream_stops_live_worker_for_native_collection(monkeypatch, tmp_path):
+def test_truncated_provider_stream_keeps_live_worker_for_native_retry(monkeypatch, tmp_path):
     failure = {
         "request_ordinal": 1, "condition_request_ordinal": 1,
         "path": "/chat/completions", "status": "transport_error",
@@ -78,27 +78,28 @@ def test_truncated_provider_stream_stops_live_worker_for_native_collection(monke
     }
     sandbox, record, commands, _ = monitor_fixture(
         monkeypatch, tmp_path, stale=False, relay_events=[failure],
-        gateway_failure={"status": "transport_failed", "error_code": "upstream_stream_incomplete"},
     )
     record["condition_retry_counts"] = {"saved-condition": 2}
+    outcomes = iter([None, 0])
+    sandbox.process.get_session_command = lambda *a, **k: SimpleNamespace(exit_code=next(outcomes))
     daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
-    assert record["termination_reason"] == "inference_transport_circuit_open"
+    assert record["controller_exit"] == 0
     assert record["terminal_confirmed"] is True
     assert record["provider_transport_failure"]["error_type"] == "IncompleteRead"
     assert len(record["provider_transport_failure"]["ledger_sha256"]) == 64
     assert record["condition_retry_counts"] == {"saved-condition": 2}
     assert record["activity_counters"] == [1, 0]
-    assert any("docker kill" in command for command in commands)
-    assert (tmp_path / "executor-terminal-proof.json").is_file()
+    assert not any("docker kill" in command for command in commands)
+    assert not (tmp_path / "executor-terminal-proof.json").exists()
 
 
-def test_clean_provider_eof_is_stopped_from_authoritative_gateway_failure(monkeypatch, tmp_path):
+def test_permanent_rejection_stops_from_authoritative_gateway_evidence(monkeypatch, tmp_path):
     sandbox, record, commands, _ = monitor_fixture(
         monkeypatch, tmp_path, stale=False, relay_events=[{"status": "completed"}],
-        gateway_failure={"status": "transport_failed", "error_code": "upstream_stream_incomplete"},
+        gateway_failure={"status": "completed", "upstream_status": 401},
     )
     daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
-    assert record["gateway_transport_failure"]["error_code"] == "upstream_stream_incomplete"
+    assert record["gateway_transport_failure"]["upstream_status"] == 401
     assert record["termination_reason"] == "inference_transport_circuit_open"
     assert any("docker kill" in command for command in commands)
 
@@ -131,11 +132,11 @@ def test_nonfatal_relay_event_does_not_stop_live_worker(monkeypatch, tmp_path, s
     assert not any("docker kill" in command for command in commands)
 
 
-def test_failed_transport_stop_is_not_swallowed_as_an_observation_error(monkeypatch, tmp_path):
+def test_failed_rejection_stop_is_not_swallowed_as_an_observation_error(monkeypatch, tmp_path):
     sandbox, record, _, _ = monitor_fixture(
         monkeypatch, tmp_path, stale=False,
         relay_events=[{"status": "transport_error", "error_type": "IncompleteRead"}],
-        gateway_failure={"status": "transport_failed", "error_code": "upstream_transport_error"},
+        gateway_failure={"status": "completed", "upstream_status": 413},
     )
     original = sandbox.process.exec
     sandbox.process.exec = lambda command, **k: (
@@ -164,10 +165,19 @@ def test_gateway_observation_failure_has_a_finite_persisted_limit(monkeypatch, t
 
 
 @pytest.mark.parametrize("record,failed", [
-    ({"status": "transport_failed", "error_code": "upstream_stream_incomplete"}, True),
-    ({"status": "transport_failed", "error_code": "upstream_transport_error"}, True),
+    ({"status": "transport_failed", "error_code": "upstream_stream_incomplete"}, False),
+    ({"status": "transport_failed", "error_code": "upstream_transport_error"}, False),
     ({"status": "completed", "upstream_status": 413}, True),
-    ({"status": "completed", "upstream_status": 502}, True),
+    ({"status": "completed", "upstream_status": 401}, True),
+    ({"status": "completed", "upstream_status": 403}, True),
+    ({"status": "completed", "upstream_status": 404}, True),
+    ({"status": "completed", "upstream_status": 422}, True),
+    ({"status": "completed", "upstream_status": 408}, False),
+    ({"status": "completed", "upstream_status": 429}, False),
+    ({"status": "completed", "upstream_status": 500}, False),
+    ({"status": "completed", "upstream_status": 502}, False),
+    ({"status": "completed", "upstream_status": 503}, False),
+    ({"status": "completed", "upstream_status": 504}, False),
     ({"status": "completed", "upstream_status": 200, "provider_finish_reasons": ["stop"]}, False),
     ({"status": "cancelled", "observed_upstream_status": 200}, False),
     ({"status": "transport_failed", "error_code": "inference_budget_exhausted"}, False),
@@ -185,6 +195,105 @@ def test_gateway_probe_uses_terminal_transport_outcomes_only(monkeypatch, tmp_pa
     assert (observed["failure"] is not None) is failed
     if failed:
         assert observed["failure"]["status"] == record["status"]
+
+
+@pytest.mark.parametrize("records,failed", [
+    (["stream", "admitted"], False),
+    (["stream", "stream", "admitted"], False),
+    (["stream", "stream", "stream", "admitted"], False),
+    (["stream", "stream", "success", "stream", "admitted"], False),
+    (["stream", "success"], False),
+    (["busy", "busy", "busy"], False),
+    (["stream", "busy", "stream"], False),
+    (["auth", "success"], True),
+])
+def test_gateway_probe_preserves_native_retry_ownership_and_permanent_rejections(
+        monkeypatch, tmp_path, capsys, records, failed):
+    kinds = {
+        "stream": {"status": "transport_failed", "error_code": "upstream_stream_incomplete"},
+        "busy": {"status": "completed", "upstream_status": 503},
+        "success": {"status": "completed", "upstream_status": 200},
+        "auth": {"status": "completed", "upstream_status": 401},
+        "admitted": {"status": "admitted"},
+    }
+    database = tmp_path / "inference-gateway.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE requests (record TEXT)")
+        connection.executemany("INSERT INTO requests VALUES (?)", [
+            (json.dumps({**kinds[kind], "gateway_request_id": str(index)}),)
+            for index, kind in enumerate(records)
+        ])
+    monkeypatch.setattr(Path, "rglob", lambda self, pattern: iter([database]))
+    exec(daytona._GATEWAY_FAILURE_PROBE, {})
+    observed = json.loads(capsys.readouterr().out)
+    assert (observed["failure"] is not None) is failed
+
+
+def test_gateway_probe_does_not_combine_failures_from_independent_conditions(
+        monkeypatch, tmp_path, capsys):
+    databases = [tmp_path / (name + ".sqlite3") for name in ("first", "second")]
+    for database in databases:
+        with sqlite3.connect(database) as connection:
+            connection.execute("CREATE TABLE requests (record TEXT)")
+            connection.execute("INSERT INTO requests VALUES (?)", (json.dumps({
+                "status": "transport_failed", "error_code": "upstream_stream_incomplete",
+            }),))
+    monkeypatch.setattr(Path, "rglob", lambda self, pattern: iter(databases))
+    exec(daytona._GATEWAY_FAILURE_PROBE, {})
+    observed = json.loads(capsys.readouterr().out)
+    assert observed["databases"] == 2
+    assert observed["failure"] is None
+
+
+@pytest.mark.parametrize("failures", [1, 2, 3])
+def test_monitor_does_not_preempt_an_admitted_native_retry(
+        monkeypatch, tmp_path, failures):
+    from contextlib import redirect_stdout
+    import io
+
+    database = tmp_path / "inference-gateway.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE requests (record TEXT)")
+        connection.executemany("INSERT INTO requests VALUES (?)", [
+            (json.dumps({"gateway_request_id": str(index), "status": "transport_failed",
+                         "error_code": "upstream_stream_incomplete"}),)
+            for index in range(failures)
+        ])
+        connection.execute("INSERT INTO requests VALUES (?)", (json.dumps({
+            "gateway_request_id": "retry", "status": "admitted",
+        }),))
+    monkeypatch.setattr(Path, "rglob", lambda self, pattern: iter([database]))
+    sandbox, record, commands, _ = monitor_fixture(monkeypatch, tmp_path, stale=False)
+    original = sandbox.process.exec
+
+    def execute(command, **kwargs):
+        if "inference-gateway.sqlite3" not in command:
+            return original(command, **kwargs)
+        commands.append(command)
+        captured = io.StringIO()
+        with redirect_stdout(captured):
+            exec(daytona._GATEWAY_FAILURE_PROBE, {})
+        return SimpleNamespace(exit_code=0, result=captured.getvalue())
+
+    sandbox.process.exec = execute
+    outcomes = iter([None, 0])
+    sandbox.process.get_session_command = lambda *a, **k: SimpleNamespace(exit_code=next(outcomes))
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert not any("docker kill" in command for command in commands)
+    assert record["controller_exit"] == 0
+    assert record["deadline_at"] == 20000
+    assert not (tmp_path / "executor-terminal-proof.json").exists()
+
+
+def test_native_retry_exhaustion_remains_terminal(monkeypatch, tmp_path):
+    sandbox, record, commands, _ = monitor_fixture(monkeypatch, tmp_path, stale=False,
+        relay_events=[{"status": "transport_error", "error_type": "IncompleteRead"}])
+    outcomes = iter([None, 1])
+    sandbox.process.get_session_command = lambda *a, **k: SimpleNamespace(exit_code=next(outcomes))
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert record["controller_exit"] == 1
+    assert record["termination_reason"] == "controller_exited"
+    assert any("docker kill" in command for command in commands)
 
 
 def test_stale_running_status_cannot_hide_a_dead_controller(monkeypatch, tmp_path):

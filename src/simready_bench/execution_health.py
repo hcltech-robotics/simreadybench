@@ -79,6 +79,7 @@ class ExecutionHealth:
         _save(self.path, self.state)
 
     def observe(self, outcomes, *, active):
+        """Count unique outcomes within a persistent window after an actual failure."""
         seen = set(self.state['seen_attempts'])
         fresh = {row['attempt_id']: row for row in outcomes
             if row['attempt_id'] not in seen
@@ -88,6 +89,9 @@ class ExecutionHealth:
         if successes:
             self.state['last_completed_at'] = self.now()
             self.state['failures_since_completion'] = 0
+            self.state.pop('failure_window_started_at', None)
+        if failures and not self.state['failures_since_completion']:
+            self.state['failure_window_started_at'] = self.now()
         self.state['failures_since_completion'] += failures
         self.state['seen_attempts'] = sorted(seen | fresh.keys())
         if self.state['status'].startswith('repair_probe'):
@@ -106,7 +110,8 @@ class ExecutionHealth:
             if self.state['failures_since_completion'] >= self.failure_limit:
                 reason = 'repeated_infrastructure_failures'
             elif (active and self.state['failures_since_completion']
-                  and self.now() - self.state['last_completed_at'] >= self.progress_seconds):
+                  and self.now() - self.state.get('failure_window_started_at',
+                                                 self.state['last_completed_at']) >= self.progress_seconds):
                 reason = 'no_completed_result_progress'
             if reason:
                 self.state.update(status='circuit_open', reason=reason, opened_at=self.now())
