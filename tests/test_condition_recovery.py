@@ -72,6 +72,7 @@ def test_failed_condition_retries_do_not_repeat_zero_or_stop_other_conditions(
             batch / "daytona-delivery.json",
             {
                 "schema": "simready-bench-daytona-delivery-v2",
+                "sandbox_id": 'owned-' + batch.name,
                 "cleanup_confirmed": True,
                 "collection": "completed",
             },
@@ -79,6 +80,8 @@ def test_failed_condition_retries_do_not_repeat_zero_or_stop_other_conditions(
         write(
             batch / "retirement.json",
             {
+                "executor_deleted": True,
+                "sandbox_id": 'owned-' + batch.name,
                 "requests": len(chosen) * 32,
                 "admitted_conditions": list(chosen),
                 "unreported_admitted_conditions": [],

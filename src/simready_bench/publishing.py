@@ -18,6 +18,7 @@ import yaml
 from .benchmark_metadata import build_benchmark_metadata
 from .config import AUTHORING_PROTOCOL, condition_identity
 from .leaderboard import leaderboard_entry
+from .provenance import provenance_fields, validate_operational_provenance, validate_run_spec
 from .reporting import (
     SCORE_FIELDS,
     mandatory_report_metadata,
@@ -177,6 +178,7 @@ def _copy(root, item, target, *, path=None, size_key="bytes", maximum=32 * 1024*
 def _settings(manifest):
     defaults = manifest.get("defaults", {})
     return {
+        "settings_schema": "simready-bench-public-settings-v2",
         "reference_assets": [asset["id"] for asset in manifest["assets"]],
         "reference_revision": manifest.get("source", {}).get("revision"),
         "repetitions": manifest["repetitions"],
@@ -208,6 +210,9 @@ def _settings(manifest):
         "scoring_policy_id": manifest["scoring"]["policy_id"],
         "generation": defaults.get("generation", {}),
         "system_prompt": defaults.get("system_prompt", ""),
+        "budgets": deepcopy(defaults.get("budgets", {})),
+        "overrides": deepcopy(manifest.get("overrides", [])),
+        "tool_protocol": manifest.get("tool_protocol"),
         "fidelity": {
             key: value
             for key, value in defaults.get("fidelity", {}).items()
@@ -219,6 +224,15 @@ def _settings(manifest):
             if key != "seconds"
         },
     }
+
+
+def _compatible_settings(previous, current):
+    """Retain every published setting while exposing older coverage explicitly."""
+    if not isinstance(previous, dict):
+        return False
+    if previous.get("settings_schema") == "simready-bench-public-settings-v2":
+        return previous == current
+    return all(key in current and value == current[key] for key, value in previous.items())
 
 
 def _validate_comparison_rig(rig):
@@ -348,6 +362,7 @@ def _signature(rows):
                 "nvidia_findings": (row.get("nvidia_validator_report_file") or {}).get(
                     "sha256"
                 ),
+                "execution_provenance": provenance_fields(row).get("execution_provenance"),
             }
         )
     return json.dumps(
@@ -436,10 +451,12 @@ def _stage_row(row, source, stage):
             "official_conformance_passed",
             "inference_cost_kind",
             "usage_reconstruction",
+            "request_recovery",
         )
         if key in row
     }
     public.update(usage_columns(row))
+    public.update(provenance_fields(row))
     primary_fields = (
         "schema",
         "policy_id",
@@ -1155,6 +1172,23 @@ class HuggingFacePublisher:
                     "settings": self.settings,
                     "results": [_stage_row(row, source, run_stage) for row in rows],
                 }
+                spec = value.get("run_spec")
+                if spec is not None:
+                    public["run_spec"] = validate_run_spec(spec)
+                    _write_json(run_stage / "run-spec.json", public["run_spec"])
+                history = value.get('operational_provenance')
+                if history is not None:
+                    public['operational_provenance'] = validate_operational_provenance(history)
+                    if spec is None or history['run_spec_sha256'] != spec['sha256']:
+                        raise ValueError('Operational history requires its unchanged run specification')
+                    _write_json(run_stage / 'run-provenance.json', history)
+                for row in public["results"]:
+                    if row.get("execution_provenance") and (
+                            spec is None or row["run_spec_sha256"] != spec["sha256"]
+                            or row["protocol_sha256"] != spec["protocol_sha256"]):
+                        raise ValueError("Every bound attempt requires its unchanged run specification")
+                    if row.get("execution_provenance"):
+                        provenance_fields(row, run_spec=spec)
                 for row in public["results"]:
                     generation = _manifest_generation(row, self.manifest)
                     row["reasoning_effort"] = generation.get("reasoning_effort")
@@ -1164,12 +1198,23 @@ class HuggingFacePublisher:
                     old = _json(old_readout)
                     old_rows = self._rows(old)
                     old_ids = {row["condition_id"] for row in old_rows}
-                    if old.get("settings") != self.settings or not old_ids <= {
+                    if not _compatible_settings(old.get("settings"), self.settings) or not old_ids <= {
                         row["condition_id"] for row in rows
                     }:
                         raise ValueError(
                             "Publication would change settings or omit completed reconstructions"
                         )
+                    if old.get("run_spec") is not None and old["run_spec"] != spec:
+                        raise ValueError("Publication would change the frozen run specification")
+                    if old.get('operational_provenance') is not None:
+                        previous = validate_operational_provenance(old['operational_provenance'])
+                        if (history is None or history['entries'][:len(previous['entries'])] != previous['entries']):
+                            raise ValueError('Publication would remove or rewrite operational provenance history')
+                    legacy = set(old.get("legacy_settings_conditions", []))
+                    if old.get("settings", {}).get("settings_schema") != "simready-bench-public-settings-v2":
+                        legacy.update(old_ids)
+                    if legacy:
+                        public["legacy_settings_conditions"] = sorted(legacy)
                     if _signature(
                         _enrich_previous_metadata(old_rows, public["results"])
                     ) != _signature(

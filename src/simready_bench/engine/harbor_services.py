@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 import asyncio, hashlib, hmac, json, secrets, shutil, tempfile, time
+import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from aiohttp import web
@@ -14,6 +16,62 @@ from simready_bench.engine.native_output import EXTENSION_FILENAME
 from simready_bench.engine.verifier import PROTOCOL_VERSION
 from simready_bench.engine.evaluation import Evaluator
 from simready_bench.engine.verifier import validate_report
+
+
+def _validation_failure(controller, error, *, episode_id, snapshot, phase, report=None, job_id=None):
+    """Write bounded private diagnostics before returning a stable actor error."""
+    from simready_bench.engine.scoring import public_report
+
+    causes, seen = [], set()
+    current = error
+    while current is not None and id(current) not in seen and len(causes) < 8:
+        seen.add(id(current))
+        message = public_report({"message": str(current)[:2048]})["message"]
+        message = re.sub(r"[A-Za-z]:[\\/][^\s\"'<>]+", "<private host path>", message)
+        message = re.sub(r"\b(?:hf_|sk-|ghp_)[A-Za-z0-9_-]+", "<redacted secret>", message)
+        message = re.sub(r"(?i)(?:authorization|proxy-authorization|token|api[_-]?key|secret|password)\s*[:=]\s*(?:(?:basic|bearer)\s+)?[^\s\"'<>]+", "<redacted secret>", message)
+        message = re.sub(r"(?i)(https?://)[^/\s@]+:[^/\s@]+@", r"\1<redacted secret>@", message)
+        causes.append({"type": type(current).__name__, "message": message[:1024]})
+        current = current.__cause__ or (None if current.__suppress_context__ else current.__context__)
+    failure_id = secrets.token_hex(16)
+    record = {
+        "schema": "simready-validation-failure-v1", "failure_id": failure_id,
+        "episode_id": episode_id, "job_id": job_id, "phase": phase,
+        "snapshot_id": getattr(snapshot, "snapshot_id", None),
+        "snapshot_sha256": getattr(snapshot, "sha256", None),
+        "causes": causes, "recorded_at": time.time(),
+        "partial_report_sha256": hashlib.sha256(
+            json.dumps(report, sort_keys=True, default=str).encode()
+        ).hexdigest() if report is not None else None,
+    }
+    directory = controller.state_dir / "validation-failures"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    path = directory / (failure_id + ".json")
+    with path.open("x") as stream:
+        json.dump(record, stream, sort_keys=True, allow_nan=False)
+        stream.flush()
+        os.fsync(stream.fileno())
+    path.chmod(0o600)
+    return failure_id
+
+
+class _DiagnosticObserver:
+    """Retain the cause before the scorer converts unavailable observation to unknown."""
+
+    def __init__(self, observer, controller):
+        self.observer, self.controller = observer, controller
+        self.failures = {}
+
+    def __call__(self, snapshot, *, episode_id, deadline_at):
+        key = (episode_id, snapshot.snapshot_id)
+        self.failures.pop(key, None)
+        try:
+            return self.observer(snapshot, episode_id=episode_id, deadline_at=deadline_at)
+        except Exception as error:
+            failure_id = _validation_failure(self.controller, error, episode_id=episode_id,
+                                            snapshot=snapshot, phase="candidate_observation")
+            self.failures[key] = (error, failure_id)
+            raise
 
 
 @dataclass(frozen=True)
@@ -145,8 +203,11 @@ class ReferenceActorTools(ActorTools):
         return super()._adapter(adapter, kind)
 
     def _validation_job(self, *, binding, job, payload, arguments):
+        raw = None
+        phase = "interactive_evaluation"
         try:
             raw = self._adapter(self.validator, "validation")(job)
+            phase = "interactive_report_delivery"
             self._private(job.job_id, raw)
             delivery = self.validator_reports.register(
                 job.episode_id, raw.get("nvidia_validator_report")
@@ -186,9 +247,13 @@ class ReferenceActorTools(ActorTools):
             }
             payload.update(feedback=feedback, status="completed")
             return _result(payload)
-        except Exception:
+        except Exception as error:
+            failure_id = _validation_failure(
+                self.controller, error, episode_id=job.episode_id,
+                snapshot=job.snapshot, phase=phase, report=raw, job_id=job.job_id,
+            )
             return _result(
-                {**payload, "status": "infrastructure_error", "reward": None},
+                {**payload, "status": "infrastructure_error", "reward": None, "failure_id": failure_id},
                 error=True,
             )
 
@@ -261,6 +326,7 @@ class ReferenceVerifierTransport(InferenceGateway):
             service_deadline = time.time() + min(
                 self.services.verifier_timeout_seconds, 580
             )
+            phase, report = "final_evaluation", None
             try:
                 async with asyncio.timeout(max(0.001, service_deadline - time.time())):
                     if "validator_scoring" in record.task_config and (
@@ -279,20 +345,20 @@ class ReferenceVerifierTransport(InferenceGateway):
                             task_config=record.task_config,
                             task_input=record,
                         )
-                    report = await asyncio.to_thread(
-                        self.services.evaluator.evaluate,
-                        snapshot,
-                        record.task_config,
-                        self.episode_id,
-                        service_deadline - 2,
-                        final=True,
-                        stop_reason=reason,
+                    from simready_bench.engine.validation_recovery import evaluate_final_snapshot
+
+                    report = await evaluate_final_snapshot(
+                        self.services.evaluator, lifecycle.controller,
+                        snapshot, record.task_config, self.episode_id,
+                        deadline_at=service_deadline - 2, stop_reason=reason,
                     )
                     from simready_bench.engine.scoring import build_wire
 
+                    phase = "final_wire_validation"
                     wire = build_wire(report, snapshot=snapshot)
                     validate_report(wire)
                 directory = lifecycle.controller.state_dir / "final-service-reports"
+                phase = "final_report_persistence"
                 directory.mkdir(mode=448, exist_ok=True)
                 p = directory / (self.episode_id + ".json")
                 tmp = p.with_suffix(".tmp")
@@ -301,9 +367,13 @@ class ReferenceVerifierTransport(InferenceGateway):
                 )
                 tmp.chmod(384)
                 tmp.replace(p)
-            except Exception:
+            except Exception as error:
+                failure_id = _validation_failure(
+                    lifecycle.controller, error, episode_id=self.episode_id,
+                    snapshot=snapshot, phase=phase, report=report,
+                )
                 return web.json_response(
-                    {"error": "final_validation_failed"}, status=503
+                    {"error": "final_validation_failed", "failure_id": failure_id}, status=503
                 )
             return web.json_response(wire)
 
@@ -314,6 +384,8 @@ class ReferenceNativeServices(NativeServices):
     ):
         if type(evaluator) is not Evaluator:
             raise ValueError("Exact NVIDIA evaluator required")
+        if evaluator.observer is not None and not isinstance(evaluator.observer, _DiagnosticObserver):
+            evaluator.observer = _DiagnosticObserver(evaluator.observer, lifecycle.controller)
         if any((type(r) is not ReferenceTaskInput for r in task_inputs)):
             raise ValueError("Frozen task inputs required")
         super().__init__(
@@ -347,6 +419,11 @@ class ReferenceNativeServices(NativeServices):
             shutil.copyfile(source, public / source.name)
             (public / source.name).chmod(292)
         public.chmod(365)
+        tool_mounts = []
+        if getattr(self.lifecycle, "tool_protocol", "legacy") == "bounded-v1":
+            from simready_bench.engine.tool_protocol import stage_tool_protocol
+
+            tool_mounts.append(stage_tool_protocol(actor_root / "tool-protocol"))
         return [
             {
                 "type": "bind",
@@ -362,7 +439,7 @@ class ReferenceNativeServices(NativeServices):
                 "read_only": True,
                 "bind": {"create_host_path": False},
             },
-        ] + self.public_client_mounts(actor_root)
+        ] + self.public_client_mounts(actor_root) + tool_mounts
 
     async def ensure_verifier(self, episode_id):
         if episode_id in self.verifiers:

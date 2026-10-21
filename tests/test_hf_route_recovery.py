@@ -28,6 +28,7 @@ def run_probe(monkeypatch, responses, *, deadline=1000):
     monkeypatch.setattr(hf.time, "time", lambda: clock[0])
     monkeypatch.setattr(hf, "_fetch_hf_route_once", fetch)
     monkeypatch.setattr(hf.asyncio, "sleep", sleep)
+    monkeypatch.setattr(hf.random, "uniform", lambda low, high: 1)
     return calls, waits, lambda: asyncio.run(hf.fetch_hf_route(MODEL, deadline_at=deadline))
 
 
@@ -106,6 +107,7 @@ def test_http_catalogue_recovery_preserves_exact_prices_and_sends_no_credentials
         port = site._server.sockets[0].getsockname()[1]
         monkeypatch.setattr(hf, "HF_CATALOG_URL", f"http://127.0.0.1:{port}/v1/models")
         monkeypatch.setattr(hf.asyncio, "sleep", sleep)
+        monkeypatch.setattr(hf.random, "uniform", lambda low, high: 1)
         try:
             result = await hf.fetch_hf_route(MODEL, deadline_at=time.time() + 30)
             assert result.model == MODEL

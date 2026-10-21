@@ -180,6 +180,7 @@ class PiAgent(Pi):
         version=PI_VERSION,
         native_bridge_id=None,
         native_output_policy="bounded",
+        tool_protocol="legacy",
         **kwargs,
     ):
         _compatibility(version)
@@ -194,6 +195,11 @@ class PiAgent(Pi):
                     "Native Pi provider must use the supported scoped OpenAI gateway"
                 )
         self.native_bridge_id = native_bridge_id
+        from simready_bench.engine.tool_protocol import validate_tool_protocol
+
+        self.tool_protocol = validate_tool_protocol(tool_protocol)
+        if self.tool_protocol != "legacy" and native_bridge_id is None:
+            raise ValueError("Bounded tool protocol requires native lifecycle binding")
         self._native_bound_episode = None
         # Consume this project-only keyword before Harbor's strict PiOptions.
         self.model_metadata = _metadata(model_metadata)
@@ -364,6 +370,11 @@ class PiAgent(Pi):
         metadata = _metadata(options.pop("model_metadata", None))
         bridge_id = options.pop("native_bridge_id", None)
         output_policy = options.pop("native_output_policy", "bounded")
+        from simready_bench.engine.tool_protocol import validate_tool_protocol
+
+        tool_protocol = validate_tool_protocol(options.pop("tool_protocol", "legacy"))
+        if tool_protocol != "legacy" and bridge_id is None:
+            raise ValueError("Bounded tool protocol requires native lifecycle binding")
         _native_options(bridge_id, env)
         _native_output_metadata(bridge_id, metadata, output_policy)
         _compatibility(options.get("version", PI_VERSION))
@@ -408,4 +419,8 @@ class PiAgent(Pi):
         flags = super().build_cli_flags()
         if self.native_output_policy == NATIVE_OUTPUT_POLICY:
             flags += " --extension " + shlex.quote(EXTENSION_PATH)
+        if getattr(self, "tool_protocol", "legacy") == "bounded-v1":
+            from simready_bench.engine.tool_protocol import TOOL_EXTENSION_PATH
+
+            flags += " --extension " + shlex.quote(TOOL_EXTENSION_PATH)
         return " ".join(part for part in (flags, shlex.quote(THUMBNAIL)) if part)

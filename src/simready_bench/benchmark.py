@@ -356,11 +356,12 @@ def compose_experiment(
     maximum_spend_usd=0,
     authoring_turns=DEFAULT_AUTHORING_TURNS,
     max_output_tokens=None,
+    tool_protocol='legacy',
 ):
     from simready_bench.engine.native_output import validate_output_cap
 
     validate_output_cap(max_output_tokens)
-    protocol = authoring_protocol(authoring_turns, max_output_tokens)
+    protocol = authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol)
     if type(repetitions) is not int or not 1 <= repetitions <= 1000:
         raise ValueError("Repetitions must be between 1 and 1000")
     result = copy.deepcopy(manifest)
@@ -373,6 +374,8 @@ def compose_experiment(
     )
     result.setdefault("schema_version", SCHEMA_VERSION)
     result["authoring_protocol"] = protocol
+    if tool_protocol != 'legacy':
+        result['tool_protocol'] = tool_protocol
     result["scoring"] = result.get("scoring", template["scoring"])
     result["defaults"] = {
         **copy.deepcopy(template["defaults"]),
@@ -836,6 +839,12 @@ def _aggregate_reports(
     evidence = output / "evidence"
     evidence.mkdir(mode=0o700, exist_ok=True)
     rows = []
+    spec_path = output / 'run-spec.json'
+    spec = read_json(spec_path) if spec_path.is_file() else None
+    operational = None
+    if spec is not None:
+        from simready_bench.provenance import collect_operational_provenance
+        operational = collect_operational_provenance(output, spec)
     scoring_notice = (
         "SimReady Robotics-Prop compliance and direct USD reconstruction fidelity."
     )
@@ -851,6 +860,39 @@ def _aggregate_reports(
             ) != str(Path(report["results"]).absolute()):
                 continue
             row = copy.deepcopy(source)
+            if spec is not None and row.get('status') == 'completed':
+                from simready_bench.provenance import (
+                    build_attempt_provenance, load_attempt_provenance,
+                    provenance_fields, write_attempt_provenance,
+                )
+                from simready_bench.orchestration import _completed_digest
+                source_identity = {'attempt': prefix, 'condition_id': row['condition_id'],
+                                   'measurement_sha256': _completed_digest(row)}
+                receipt = load_attempt_provenance(output, source=source_identity)
+                if receipt is not None:
+                    if row.get('execution_provenance') and row['execution_provenance'] != receipt:
+                        raise ValueError('The completed source differs from its immutable attempt receipt')
+                    row['execution_provenance'] = receipt
+                elif not row.get('execution_provenance'):
+                    owner = attempt
+                    while owner != output and not (owner / 'daytona-delivery.json').is_file():
+                        owner = owner.parent
+                    delivery = read_json(owner / 'daytona-delivery.json') if (owner / 'daytona-delivery.json').is_file() else {}
+                    runtime = {key: delivery[key] for key in ('wheel_sha256', 'runtime_images') if key in delivery}
+                    if not runtime:
+                        runtime = spec['runtime']
+                    repairs = [read_json(path) for path in [output / 'executor-repair.json', *sorted((output / 'executor-repairs').glob('*.json'))] if path.is_file()]
+                    interventions = [{'path': path.relative_to(output).as_posix(), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+                                     for path in sorted((output / 'operational-interventions').glob('*.json'))]
+                    candidate = row.get('candidate') or {}
+                    bound = {key: candidate[key] for key in ('manifest_sha256', 'files') if key in candidate}
+                    if row.get('snapshot_sha256'):
+                        bound['snapshot_sha256'] = row['snapshot_sha256']
+                    receipt = build_attempt_provenance(spec, attempt_id=owner.relative_to(output).as_posix() + '/' + row['condition_id'],
+                        condition_id=row['condition_id'], runtime=runtime, candidate=bound, repairs=repairs, interventions=interventions)
+                    row['execution_provenance'] = receipt
+                row.update(provenance_fields(row, run_spec=spec))
+                write_attempt_provenance(output, source=source_identity, receipt=row['execution_provenance'])
             for kind in ("images", "traces"):
                 for item in row.get(kind, []):
                     original = attempt / "evidence" / item["path"]
@@ -893,6 +935,9 @@ def _aggregate_reports(
         "scoring_notice": scoring_notice,
         "results": rows,
     }
+    if spec is not None:
+        summary['run_spec'] = spec
+        summary['operational_provenance'] = operational
     _save_json(output / "results.json", summary)
     temporary = output / "scores.csv.tmp"
     write_scores(temporary, rows, mode="w")
@@ -1141,6 +1186,42 @@ def publication_callback(output_dir, manifest, *, hf_repo=None, hf_run=None):
     return callback
 
 
+def freeze_execution_spec(output, manifest, policy, *, wheel=None, runtime_images=None, cpu_snapshot=None):
+    """Bind the effective matrix before dispatch, including lazily fetched references."""
+    import itertools
+    from simready_bench.config import _merge, _closure
+    from simready_bench.resume import condition_plan
+    from simready_bench.provenance import build_run_spec, write_run_spec
+    output = Path(output)
+    normalized = copy.deepcopy(manifest)
+    for skill in normalized.get('skill_sets', []):
+        skill['closure'] = _closure(Path(policy['roots']['skills']), skill.get('paths', []), 'skills', allow_directories=True)
+    for asset in normalized.get('assets', []):
+        if (Path(policy['roots']['assets']) / asset['usd']).is_file():
+            asset['closure'] = _closure(Path(policy['roots']['assets']), [asset['usd'], *asset.get('dependencies', [])], 'reference')
+    conditions = []
+    plan = condition_plan(manifest)
+    for asset, harness, model, skill in itertools.product(*(manifest[key] for key in ('assets', 'harnesses', 'models', 'skill_sets'))):
+        labels = {'asset': asset['id'], 'harness': harness['id'], 'model': model['id'], 'skill_set': skill['id']}
+        settings = _merge({'generation': model.get('generation', {})}, manifest.get('defaults', {}))
+        for override in manifest.get('overrides', []):
+            if all(value == '*' or value == labels[key] for key, value in override['match'].items()):
+                settings = _merge(settings, override['settings'])
+        for identity, row in plan.items():
+            if (row['asset_id'], row['harness_id'], row['model_id'], row['skill_set_id']) == tuple(labels[key] for key in ('asset', 'harness', 'model', 'skill_set')):
+                conditions.append({'condition_id': identity, **row, 'settings': settings,
+                    'authoring_protocol': manifest.get('authoring_protocol'), 'tool_protocol': manifest.get('tool_protocol', 'legacy')})
+    runtime = {'runtime_images': runtime_images or {}}
+    if wheel is not None:
+        runtime['wheel_sha256'] = hashlib.sha256(Path(wheel).read_bytes()).hexdigest()
+    if cpu_snapshot:
+        runtime['cpu_snapshot'] = cpu_snapshot
+    spec = build_run_spec({'normalized_manifest': normalized, 'operator_policy': policy,
+        'conditions': conditions, 'aggregate_budget': {'maximum_spend_usd': policy.get('limits', {}).get('maximum_spend_usd')}}, runtime=runtime, wheel=wheel)
+    write_run_spec(output, spec)
+    return spec
+
+
 def execute_local_reported(
     manifest, *, policy, output_dir, work_dir=None, on_report=None
 ):
@@ -1213,6 +1294,7 @@ def benchmark(
     repetitions=4,
     authoring_turns=None,
     max_output_tokens=None,
+    tool_protocol=None,
     provider=None,
     api_key_env=None,
     model_metadata=None,
@@ -1256,6 +1338,7 @@ def benchmark(
             repetitions=repetitions,
             authoring_turns=authoring_turns,
             max_output_tokens=max_output_tokens,
+            tool_protocol=tool_protocol,
             provider=provider,
             api_key_env=api_key_env,
             model_metadata=model_metadata,
@@ -1274,6 +1357,8 @@ def benchmark(
             dispatch_pending=dispatch_pending,
         )
     authoring_turns = DEFAULT_AUTHORING_TURNS if authoring_turns is None else authoring_turns
+    tool_protocol = ('bounded-v1' if harness == 'pi' else 'legacy') if tool_protocol is None else tool_protocol
+    authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol)
     authoring_protocol(authoring_turns, max_output_tokens)
     output = _absolute(output_dir)
     if output.exists() or output.is_symlink():
@@ -1402,6 +1487,7 @@ def benchmark(
         maximum_spend_usd=float(Decimal(str(maximum_spend_usd)) / (maximum_attempts if original is None else 1)),
         authoring_turns=authoring_turns,
         max_output_tokens=max_output_tokens,
+        tool_protocol=tool_protocol,
     )
     effective_policy = prepare_policy(
         output_dir=output,
@@ -1449,19 +1535,14 @@ def benchmark(
     on_report = publication_callback(output, experiment, hf_repo=hf_repo, hf_run=hf_run)
     try:
         if deploy == "daytona":
-            if workers > 1:
-                from simready_bench.parallel import run_parallel_daytona as execute
+            from simready_bench.parallel import run_parallel_daytona as execute
 
-                worker_options = {
-                    "workers": workers,
-                    "max_retries": max_retries,
-                    "retry_delay_seconds": retry_delay_seconds,
-                    "maximum_retry_delay_seconds": maximum_retry_delay_seconds,
-                }
-            else:
-                from simready_bench.daytona import run_daytona as execute
-
-                worker_options = {}
+            worker_options = {
+                "workers": workers,
+                "max_retries": max_retries,
+                "retry_delay_seconds": retry_delay_seconds,
+                "maximum_retry_delay_seconds": maximum_retry_delay_seconds,
+            }
 
             result = execute(
                 experiment,
@@ -1503,6 +1584,7 @@ def benchmark(
         repetitions=repetitions,
         authoring_turns=authoring_turns,
         max_output_tokens=max_output_tokens,
+        tool_protocol=tool_protocol,
         provider=provider,
         api_key_env=api_key_env,
         work_dir=work_dir,

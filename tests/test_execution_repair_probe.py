@@ -5,7 +5,7 @@ import pytest
 
 from simready_bench.execution_health import ExecutionHealth
 from simready_bench.executor_repair import approve_executor_repair
-from test_executor_repair import wheel
+from test_executor_repair import repack, wheel
 
 
 def stopped_run(tmp_path):
@@ -14,7 +14,7 @@ def stopped_run(tmp_path):
     outcomes = [{'attempt_id': f'{i}/old', 'status': 'infrastructure_error'} for i in range(5)]
     assert health.observe(outcomes, active=False)
     original = wheel(tmp_path / 'original.whl')
-    replacement = wheel(tmp_path / 'replacement.whl', transport=b'repair')
+    replacement = repack(tmp_path / 'replacement.whl', original)
     approve_executor_repair(tmp_path, original, replacement, reason='Tested repair')
     evidence = tmp_path / 'verified-repair.json'
     evidence.write_text(json.dumps({'tests_passed': True}))
@@ -64,3 +64,15 @@ def test_stalled_probe_cannot_run_indefinitely(tmp_path):
     clock[0] += 3901
     assert health.observe([], active=True)
     assert health.state['failures_since_completion'] == 5
+
+
+def test_scientific_revision_cannot_rearm_the_frozen_run(tmp_path):
+    health, evidence, _ = stopped_run(tmp_path)
+    changed = wheel(tmp_path / 'scientific-revision.whl', transport=b'changed budget')
+    approve_executor_repair(tmp_path, tmp_path / 'original.whl', changed,
+        reason='Declared tool contract revision', append=True, scientific_revision='bounded-tools-v2')
+    previous = deepcopy(health.state)
+    with pytest.raises(ValueError, match='new run specification'):
+        health.begin_repair_probe(['a', 'b'], evidence_path=evidence)
+    assert health.state == previous
+    assert not (tmp_path / 'execution-recoveries').exists()

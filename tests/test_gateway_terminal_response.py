@@ -247,6 +247,7 @@ def test_walltime_still_stops_actor_after_final_response_without_another_inferen
 
         async def stop_actor_writes():
             stopped.append(True)
+            env.actor_stopped = True
 
         # The engine operation alone is substituted; real lifecycle/controller
         # closing, budget state, response delivery and immutable capture remain.
@@ -254,6 +255,7 @@ def test_walltime_still_stops_actor_after_final_response_without_another_inferen
             actor_root=actor,
             final_snapshot=None,
             actor_phase=True,
+            actor_stopped=False,
             stop_actor_writes=stop_actor_writes,
         )
         lifecycle._episodes["episode"] = env

@@ -1070,7 +1070,7 @@ def test_effective_reasoning_uses_defaults_then_matching_overrides(publication):
     changed = deepcopy(manifest)
     changed["overrides"][0]["settings"]["generation"]["reasoning_effort"] = "medium"
     before = deepcopy(hub.files)
-    with pytest.raises(PublicationError, match="reconstruction has changed"):
+    with pytest.raises(PublicationError, match="reconstruction has changed|change settings"):
         HuggingFacePublisher("team/results", "effective", changed, api=hub)(save([row(), row(asset="reference-b")]))
     assert hub.files == before
 

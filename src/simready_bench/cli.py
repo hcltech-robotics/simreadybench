@@ -1,6 +1,8 @@
 """Run USD reconstruction benchmarks."""
 
 import argparse
+import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -19,6 +21,9 @@ def main(argv=None):
     raw_arguments = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(prog="simready-bench")
     commands = parser.add_subparsers(dest="command", required=True)
+    status = commands.add_parser('status', help='Show durable measurement, publication and cleanup progress')
+    status.add_argument('--output-dir', type=Path, required=True)
+    status.add_argument('--json', action='store_true')
     setup = commands.add_parser("setup", help="Prepare a benchmark runtime")
     targets = setup.add_subparsers(dest="setup_target", required=True)
     daytona = targets.add_parser("daytona", help="Import the published runtime into Daytona")
@@ -44,6 +49,8 @@ def main(argv=None):
     command.add_argument("--output-dir", type=Path, required=True)
     command.add_argument("--skills", nargs="+", action="extend", type=Path)
     command.add_argument("--repetitions", type=int, default=4)
+    command.add_argument('--tool-protocol', choices=('legacy', 'bounded-v1'), default=None,
+                         help='Tool execution contract (default for new runs: bounded-v1)')
     command.add_argument(
         "--authoring-turns", type=int, choices=range(1, 129), default=None,
         metavar="1..128", help="Maximum inference turns per reconstruction (default: 64)",
@@ -99,6 +106,20 @@ def main(argv=None):
         help="Continue the saved benchmark in this output directory",
     )
     arguments = parser.parse_args(raw_arguments)
+    if arguments.command == 'status':
+        from simready_bench.attempt_state import read_status
+        try:
+            value = read_status(arguments.output_dir)
+        except (ValueError, OSError, sqlite3.Error) as error:
+            sys.stderr.write(str(error) + '\n')
+            return 2
+        if arguments.json:
+            sys.stdout.write(json.dumps(value, sort_keys=True) + '\n')
+        else:
+            sys.stdout.write(f"{value['measured']} of {value['planned']} measured, "
+                f"{value['publication_pending']} awaiting publication, "
+                f"{value['cleanup_pending']} awaiting cleanup, {value['held_attempts']} held.\n")
+        return 0
     if arguments.command == "setup":
         from simready_bench.runtime_release import setup_daytona
 
@@ -142,6 +163,7 @@ def main(argv=None):
             "repetitions",
             "authoring_turns",
             "max_output_tokens",
+            "tool_protocol",
             "workers",
             "max_retries",
             "retry_delay_seconds",

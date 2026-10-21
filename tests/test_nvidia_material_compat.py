@@ -91,6 +91,7 @@ def run_checker(stage, *, adapted):
         api.destroy()
 
 
+@pytest.mark.licensed
 @native
 def test_native_checker_malformed_surface_has_only_preview_requirement_failure(tmp_path):
     from pxr import Usd
@@ -118,6 +119,7 @@ def test_native_checker_malformed_surface_has_only_preview_requirement_failure(t
     assert path.read_bytes() == source
 
 
+@pytest.mark.licensed
 @native
 def test_native_valid_material_and_binding_relationship_keep_identical_findings(tmp_path):
     from pxr import Usd
@@ -139,6 +141,7 @@ def test_native_valid_material_and_binding_relationship_keep_identical_findings(
     )
 
 
+@pytest.mark.licensed
 @native
 def test_stronger_valid_attribute_retains_native_connection(tmp_path):
     from pxr import Usd, UsdShade
@@ -157,6 +160,7 @@ def test_stronger_valid_attribute_retains_native_connection(tmp_path):
     )
 
 
+@pytest.mark.licensed
 @native
 def test_native_profile_scores_malformed_surface_without_unknown_or_package_rejection(tmp_path):
     from simready_bench.engine.scoring import score_validation
@@ -184,6 +188,7 @@ def test_native_profile_scores_malformed_surface_without_unknown_or_package_reje
     assert path.read_bytes() == source
 
 
+@pytest.mark.licensed
 @native
 def test_unexpected_native_checker_error_remains_unknown(tmp_path, monkeypatch):
     from simready_bench.engine import validator
@@ -217,6 +222,7 @@ def test_unexpected_native_checker_error_remains_unknown(tmp_path, monkeypatch):
     assert score["unknown_count"] == 4 and score["applicable_count"] == 46
 
 
+@pytest.mark.licensed
 @native
 def test_native_connection_helpers_are_restored_after_an_exception():
     from simready.foundation.tier_core.capabilities.visualization.materials.validation import (
@@ -236,6 +242,7 @@ def test_native_connection_helpers_are_restored_after_an_exception():
     )
 
 
+@pytest.mark.licensed
 @native
 def test_adapter_refuses_an_unpinned_native_implementation(monkeypatch):
     monkeypatch.setattr(nvidia_compat, "RULE_SOURCE_SHA256", "0" * 64)

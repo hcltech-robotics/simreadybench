@@ -28,9 +28,11 @@ def test_resume_reuses_retained_original_wheel_without_building_current_code(
         lambda *args: pytest.fail("Changed evaluator was rebuilt"),
     )
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
-    with pytest.raises(RuntimeError, match="Verified original package"):
+    with pytest.raises(recovery.RecoveryLimitReached, match="bounded recovery") as caught:
         resume.resume_benchmark(**arguments(output, max_retries=0))
-    assert observed and all(path == original for path in observed)
+    assert isinstance(caught.value.__cause__, RuntimeError)
+    assert str(caught.value.__cause__) == 'Verified original package'
+    assert observed == [original]
 
 
 @pytest.mark.parametrize(

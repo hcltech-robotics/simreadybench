@@ -3,12 +3,15 @@ import os
 from pathlib import Path
 import sqlite3
 import threading
+from dataclasses import replace
 
 import pytest
 
 from simready_bench import parallel, recovery, resume
+from simready_bench.engine.inference_gateway import ProjectBudget
+from simready_bench.local import ParentAuthorityLedger
 from test_parallel import manifest
-from test_resume import portable, stopped_run
+from test_resume import frozen_executor_wheel, portable, stopped_run, write
 
 
 pytestmark = pytest.mark.skipif(os.name == "nt", reason="Linux allowance ownership")
@@ -239,9 +242,10 @@ def test_invalid_resume_callbacks_do_not_block_a_later_valid_report(
 ):
     from simready_bench import benchmark as workflow
 
-    output, original, _, _ = stopped_run(tmp_path, monkeypatch)
+    output, original, policy, _ = stopped_run(tmp_path, monkeypatch)
     old_identity, old_condition = next(iter(resume.condition_plan(original).items()))
     published = []
+    dispatched = []
     monkeypatch.setattr(
         workflow,
         "publication_callback",
@@ -251,6 +255,16 @@ def test_invalid_resume_callbacks_do_not_block_a_later_valid_report(
     )
 
     def execute(selected, **options):
+        conditions = resume.condition_plan(selected)
+        dispatched.append(set(conditions))
+        parent = ProjectBudget(**policy["providers"]["selected"]["project_budget"])
+        ParentAuthorityLedger(policy["runtime"]["authority_state_dir"]).reserve(
+            parent,
+            allocation_id="shard-" + options["output_dir"].name,
+            requests=32 * len(conditions),
+            maximum_spend_usd=2.5 * len(conditions),
+            work_root=options["output_dir"],
+        )
         path = portable(
             options["output_dir"] / "attempts/000-recovered",
             [
@@ -280,6 +294,10 @@ def test_invalid_resume_callbacks_do_not_block_a_later_valid_report(
     result = resume.resume_benchmark(**arguments(output, max_retries=0))
     assert result["completed_conditions"] == 100
     assert published[-1]["completed_conditions"] == 100
+    assert len(dispatched) == 97
+    assert all(len(conditions) == 1 for conditions in dispatched)
+    assert len(set().union(*dispatched)) == 97
+    assert resume._remaining(policy, original) == (0, 0)
 
 
 def make_draft(output):
@@ -347,12 +365,68 @@ def test_malformed_failed_report_does_not_poison_other_worker_publication(
         path.mkdir()
         roots[name] = str(path)
     wheel = tmp_path / "frozen.whl"
-    wheel.write_bytes(b"frozen evaluator")
+    frozen_executor_wheel(wheel)
+    authority = tmp_path / "authority"
+    authority.mkdir(mode=0o700)
+    from simready_bench import benchmark as workflow
+
+    provider = workflow._new_provider(
+        "openai",
+        "gpt-6.1-sol",
+        api_key_env=None,
+        maximum_spend_usd=20,
+        conditions=8,
+        authoring_turns=32,
+    )
+    policy = {
+        "roots": roots,
+        "providers": {"selected": provider},
+        "runtime": {"authority_state_dir": str(authority)},
+        "limits": {
+            "maximum_spend_usd": 20,
+            "maximum_condition_spend_usd": 2.5,
+            "maximum_matrix_runs": 8,
+            "inference_requests": 32,
+        },
+    }
     barrier = threading.Barrier(2)
     rejected = threading.Event()
     publications = []
 
     def execute(shard, **options):
+        conditions = resume.condition_plan(shard)
+        parent = ProjectBudget(**provider["project_budget"])
+        batch = options["output_dir"]
+        allocation = "shard-" + batch.name
+        ParentAuthorityLedger(authority).reserve(
+            parent,
+            allocation_id=allocation,
+            requests=32 * len(conditions),
+            maximum_spend_usd=2.5 * len(conditions),
+            work_root=options["output_dir"],
+        )
+        child_root = batch / "daytona-executor/authority"
+        child_root.mkdir(parents=True, mode=0o700)
+        child = replace(
+            parent,
+            authorization_id="cloud-" + allocation,
+            upstream_origin="http://127.0.0.1:1234",
+            maximum_requests=32 * len(conditions),
+            maximum_spend_usd=2.5 * len(conditions),
+        )
+        for identity in conditions:
+            work_root = "/dev/shm/fixture/" + batch.name
+            ParentAuthorityLedger(child_root).reserve(
+                child,
+                allocation_id=resume._digest({
+                    "work_root": work_root,
+                    "configuration": "c" * 64,
+                    "condition": identity,
+                }),
+                requests=32,
+                maximum_spend_usd=2.5,
+                work_root=work_root,
+            )
         path = portable(
             options["output_dir"] / "attempts/reference",
             [
@@ -361,7 +435,16 @@ def test_malformed_failed_report_does_not_poison_other_worker_publication(
             ],
         )
         report = {"directory": str(path.parent), "results": str(path)}
-        barrier.wait(timeout=10)
+        write(batch / "daytona-executor/controller-status.json", {"status": "failed"})
+        write(batch / "daytona-delivery.json", {
+            "collection": "completed", "cleanup_confirmed": True,
+            "sandbox_id": "deleted-fixture-" + batch.name,
+            "parent_allocation": {"allocation_id": allocation},
+            "planned_requests": 32 * len(conditions),
+            "maximum_spend_usd": 2.5 * len(conditions),
+        })
+        if int(options["output_dir"].name) <= 2:
+            barrier.wait(timeout=10)
         if options["output_dir"].name == "001":
             options["on_report"](report)
             with pytest.raises(ValueError, match="directory and results"):
@@ -375,10 +458,17 @@ def test_malformed_failed_report_does_not_poison_other_worker_publication(
         rows = json.loads(Path(report["results"]).read_text())["results"]
         publications.append(len(rows))
 
+    class Deleted:
+        def get(self, identifier):
+            from daytona.common.errors import DaytonaNotFoundError
+
+            raise DaytonaNotFoundError("deleted")
+
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
+    monkeypatch.setattr(resume, "_daytona_client", Deleted)
     result = parallel.run_parallel_daytona(
         selected,
-        policy={"roots": roots},
+        policy=policy,
         output_dir=tmp_path,
         workers=2,
         wheel=wheel,
@@ -386,3 +476,7 @@ def test_malformed_failed_report_does_not_poison_other_worker_publication(
     )
     assert publications[-1] == 8
     assert result["completed_conditions"] == 8
+    from simready_bench.attempt_state import AttemptStore
+
+    attempts = AttemptStore(tmp_path, selected).snapshot()["attempts"]
+    assert len(attempts) == 8 and all(row["cleanup"] == "deleted" for row in attempts)

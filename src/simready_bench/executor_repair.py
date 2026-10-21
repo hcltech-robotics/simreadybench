@@ -1,7 +1,6 @@
-"""Approve a transport repair while retaining every evaluator byte and attempt."""
+"""Bind runtime changes to a complete immutable package contract."""
 from __future__ import annotations
 
-import ast
 import hashlib
 import json
 from pathlib import Path
@@ -9,14 +8,7 @@ import time
 import zipfile
 
 from .recovery import _save
-
-REPAIR_MODULES = {
-    'simready_bench/engine/actor_relay.py',
-    'simready_bench/engine/inference_gateway.py',
-    'simready_bench/daytona.py', 'simready_bench/orchestration.py',
-    'simready_bench/recovery.py', 'simready_bench/resume.py',
-    'simready_bench/execution_health.py', 'simready_bench/executor_repair.py',
-}
+from .provenance import content_sha256
 
 
 def _wheel(path):
@@ -27,42 +19,38 @@ def _wheel(path):
     return path, hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _changes(original, replacement):
-    with zipfile.ZipFile(original) as before, zipfile.ZipFile(replacement) as after:
-        names = set(before.namelist()) | set(after.namelist())
-        changed = []
-        for name in sorted(names):
-            if '.dist-info/' in name:
+def _contract(path):
+    """All installed files participate, including dependencies and entry points.
+
+    Python module names cannot enforce a semantic boundary. Even a transport
+    wrapper can return unvalidated data or mutate another module at import time.
+    A compatible replacement therefore retains every installed byte. Any code
+    change is declared as a scientific revision and cannot rejoin a frozen run.
+    """
+    files = {}
+    with zipfile.ZipFile(path) as archive:
+        for item in archive.infolist():
+            name = item.filename
+            if item.is_dir():
                 continue
-            old = before.read(name) if name in before.namelist() else None
-            new = after.read(name) if name in after.namelist() else None
-            if old != new:
-                changed.append(name)
-        pricing = 'simready_bench/engine/hf_pricing.py'
-        allowed = set(REPAIR_MODULES)
-        if pricing in changed and pricing in before.namelist() and pricing in after.namelist():
-            _pricing_fetch_only(before.read(pricing), after.read(pricing))
-            allowed.add(pricing)
-        if not changed or not set(changed) <= allowed:
-            raise ValueError('Executor repair changes a protected evaluator or protocol file')
-        return changed
+            if (name in files or name.startswith('/') or '\\' in name
+                    or ':' in name or '..' in name.split('/')):
+                raise ValueError('A repair wheel requires unique confined package files')
+            files[name] = hashlib.sha256(archive.read(item)).hexdigest()
+    if not files:
+        raise ValueError('A repair wheel cannot have an empty package contract')
+    return {'schema': 'simready-bench-wheel-contract-v1', 'files': files,
+            'sha256': content_sha256(files)}
 
 
-def _pricing_fetch_only(before, after):
-    """Permit retry orchestration while retaining every pricing validation statement."""
-    old, new = ast.parse(before), ast.parse(after)
-    def protected(tree):
-        return [ast.dump(node) for node in tree.body
-                if not (isinstance(node, ast.AsyncFunctionDef)
-                        and node.name in {'fetch_hf_route', '_fetch_hf_route_once'})
-                and not (isinstance(node, ast.Import)
-                         and [(alias.name, alias.asname) for alias in node.names] == [('asyncio', None)])]
-    old_fetch = next(node for node in old.body if getattr(node, 'name', None) == 'fetch_hf_route')
-    new_fetch = next(node for node in new.body if getattr(node, 'name', None) == '_fetch_hf_route_once')
-    if (protected(old) != protected(new)
-            or [ast.dump(node) for node in old_fetch.body[2:]]
-            != [ast.dump(node) for node in new_fetch.body[1:]]):
-        raise ValueError('Executor repair changes protected HF pricing validation')
+def _changes(original, replacement, *, scientific_revision=None):
+    before, after = _contract(original)['files'], _contract(replacement)['files']
+    changed = sorted(name for name in before.keys() | after.keys()
+                     if before.get(name) != after.get(name))
+    if changed and not scientific_revision:
+        raise ValueError('Executor repair changes a protected evaluator or protocol file. '
+                         'An explicit scientific revision and new run specification are required')
+    return changed
 
 
 def repair_chain(output):
@@ -77,14 +65,29 @@ def repair_chain(output):
             raise ValueError('Executor repair history is incomplete')
         raw = path.read_bytes()
         record = json.loads(raw)
-        if record.get('schema') != 'simready-bench-executor-repair-v1':
+        if record.get('schema') not in ('simready-bench-executor-repair-v1',
+                                        'simready-bench-executor-repair-v2'):
             raise ValueError('Invalid executor repair approval')
         original, old_hash = _wheel(record['original_path'])
         replacement, new_hash = _wheel(record['replacement_path'])
+        if old_hash != record['original_sha256'] or new_hash != record['replacement_sha256']:
+            raise ValueError('Executor repair differs from its recorded approval')
+        revision = record.get('scientific_revision')
+        changed = _changes(original, replacement, scientific_revision=revision)
+        before, after = _contract(original), _contract(replacement)
+        equivalent = not changed
         if (old_hash != record['original_sha256'] or new_hash != record['replacement_sha256']
-                or _changes(original, replacement) != record['changed_modules']
-                or record.get('protected_files_identical') is not True
+                or changed != record['changed_modules']
+                or record.get('protected_files_identical') is not equivalent
+                or record.get('schema') == 'simready-bench-executor-repair-v2' and (
+                    record.get('protocol_equivalent') is not equivalent
+                    or record.get('requires_new_run_spec') is not (not equivalent)
+                    or record.get('original_contract') != before
+                    or record.get('replacement_contract') != after
+                    or record.get('original_contract_sha256') != before['sha256']
+                    or record.get('replacement_contract_sha256') != after['sha256'])
                 or index and (record.get('previous_approval_sha256') != previous_hash
+                              or record.get('previous_replacement_sha256') != chain[-1][1]['replacement_sha256']
                               or old_hash != original_hash)):
             raise ValueError('Executor repair differs from its recorded approval')
         previous_hash = hashlib.sha256(raw).hexdigest()
@@ -93,8 +96,9 @@ def repair_chain(output):
     return chain
 
 
-def approve_executor_repair(output, original, replacement, *, reason, append=False):
-    """Record an explicitly authorised infrastructure-only runtime replacement."""
+def approve_executor_repair(output, original, replacement, *, reason, append=False,
+                            scientific_revision=None):
+    """Record a byte-equivalent repack or an explicitly separate scientific revision."""
     output = Path(output).absolute()
     path = output / 'executor-repair.json'
     if path.exists() and not append:
@@ -104,9 +108,13 @@ def approve_executor_repair(output, original, replacement, *, reason, append=Fal
         raise ValueError('An appended repair requires the original approval')
     if not isinstance(reason, str) or not reason.strip():
         raise ValueError('An explicit operator repair reason is required')
+    if scientific_revision is not None and (
+            not isinstance(scientific_revision, str) or not scientific_revision.strip()):
+        raise ValueError('An explicit nonempty scientific revision is required')
     original, original_hash = _wheel(original)
     replacement, replacement_hash = _wheel(replacement)
-    changed = _changes(original, replacement)
+    changed = _changes(original, replacement, scientific_revision=scientific_revision)
+    before, after = _contract(original), _contract(replacement)
     if chain and original_hash != chain[0][1]['original_sha256']:
         raise ValueError('An appended repair must retain the original wheel')
     baseline = []
@@ -120,11 +128,17 @@ def approve_executor_repair(output, original, replacement, *, reason, append=Fal
         if not json.loads(p.read_text()).get('cleanup_confirmed')]
     if pending:
         raise ValueError('Close old executors before approving a transport repair')
-    record = {'schema': 'simready-bench-executor-repair-v1', 'approved_at': time.time(),
+    record = {'schema': 'simready-bench-executor-repair-v2', 'approved_at': time.time(),
         'reason': reason, 'original_path': str(original),
         'original_sha256': original_hash, 'replacement_path': str(replacement),
         'replacement_sha256': replacement_hash, 'changed_modules': changed,
-        'baseline_attempts': sorted(set(baseline)), 'protected_files_identical': True}
+        'baseline_attempts': sorted(set(baseline)), 'protected_files_identical': not changed,
+        'protocol_equivalent': not changed, 'requires_new_run_spec': bool(changed),
+        'original_contract': before, 'replacement_contract': after,
+        'original_contract_sha256': before['sha256'],
+        'replacement_contract_sha256': after['sha256']}
+    if scientific_revision is not None:
+        record['scientific_revision'] = scientific_revision
     if chain:
         record['previous_approval_sha256'] = chain[-1][2]
         record['previous_replacement_sha256'] = chain[-1][1]['replacement_sha256']
@@ -139,6 +153,8 @@ def approve_executor_repair(output, original, replacement, *, reason, append=Fal
 
 def repaired_wheel(output, saved_hashes, supplied=None):
     chain = repair_chain(output)
+    if any(record.get('requires_new_run_spec') for _, record, _ in chain):
+        raise ValueError('A scientific runtime revision requires a new run specification')
     allowed = {chain[0][1]['original_sha256']} | {record['replacement_sha256'] for _, record, _ in chain}
     if not saved_hashes <= allowed:
         raise ValueError('Executor repair differs from its recorded approval')

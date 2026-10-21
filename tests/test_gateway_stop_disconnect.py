@@ -193,7 +193,7 @@ def test_cancelled_stop_waiter_does_not_cancel_or_duplicate_the_lifecycle_operat
     asyncio.run(exercise())
 
 
-def test_failed_shared_stop_stays_failed_and_still_tears_down_docker(
+def test_failed_shared_stop_retries_within_allowance_and_still_tears_down_docker(
     tmp_path, monkeypatch
 ):
     async def exercise():
@@ -215,7 +215,7 @@ def test_failed_shared_stop_stays_failed_and_still_tears_down_docker(
                 await bridge.request_stop("episode", "submitted")
             with pytest.raises(RuntimeError, match="Docker state unavailable"):
                 await env.stop(delete=True)
-            assert stops == [True]
+            assert stops == [True, True]
             assert teardown == [True]
             assert env.final_snapshot is None
             assert await bridge.confirmed_actor_exit(env, 137) is None

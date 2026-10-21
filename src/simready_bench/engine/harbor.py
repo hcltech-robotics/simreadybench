@@ -89,6 +89,7 @@ class NativeLifecycle:
         validation_limit=5,
         stop_timeout_seconds=120,
         bridge_id=None,
+        tool_protocol="legacy",
     ):
         if version("harbor") != "0.24.0":
             raise RuntimeError("Native lifecycle requires pinned Harbor 0.24.0")
@@ -109,6 +110,9 @@ class NativeLifecycle:
         ):
             raise ValueError("Valid authoritative episode limits required")
         self.controller = controller
+        from simready_bench.engine.tool_protocol import validate_tool_protocol
+
+        self.tool_protocol = validate_tool_protocol(tool_protocol)
         self.actor_base = _directory(actor_base)
         if self.actor_base.is_relative_to(
             controller.state_dir
@@ -130,6 +134,8 @@ class NativeLifecycle:
         self._loop = None
         self._controlled_stops = {}
         self._controlled_receipts = {}
+        self._stop_attempts = {}
+        self._stop_deadlines = {}
 
     def install(self):
         if self.bridge_id in _BRIDGES:
@@ -326,12 +332,58 @@ class NativeLifecycle:
         if episode_id not in self._episodes:
             raise RuntimeError("No native actor registered for episode")
         operation = self._stop_operations.get(episode_id)
-        if operation is None:
-            operation = asyncio.create_task(self._finish_stop(episode_id, reason))
+        failed = operation is not None and operation.done() and (
+            operation.cancelled() or operation.exception() is not None
+        )
+        if operation is None or failed:
+            attempt = self._stop_attempts.get(episode_id, 0) + 1
+            deadline = self._stop_deadlines.setdefault(
+                episode_id, time.monotonic() + 3 * self._stop_wait_timeout(self._episodes[episode_id])
+            )
+            if attempt > 3 or time.monotonic() >= deadline:
+                raise RuntimeError("Native stop recovery allowance exhausted")
+            self._stop_attempts[episode_id] = attempt
+            operation = asyncio.create_task(self._stop_transition(episode_id, reason, attempt))
             self._stop_operations[episode_id] = operation
         # Stopping the actor also closes its outstanding HTTP connections. Their
         # handlers may disappear, but the one owned stop and capture must finish.
         return await asyncio.shield(operation)
+
+    async def _stop_transition(self, episode_id, reason, attempt):
+        """Retain each bounded transition and resume only unfinished phases."""
+        status, error_type = "failed", None
+        try:
+            timeout = min(self._stop_wait_timeout(self._episodes[episode_id]),
+                          self._stop_deadlines[episode_id] - time.monotonic())
+            async with asyncio.timeout(max(0.001, timeout)):
+                result = await self._finish_stop(episode_id, reason)
+            status = "completed"
+            return result
+        except BaseException as error:
+            error_type = type(error).__name__
+            raise
+        finally:
+            env = self._episodes[episode_id]
+            snapshot = env.final_snapshot
+            record = {
+                "schema": "simready-native-stop-transition-v1",
+                "bridge_id": self.bridge_id, "episode_id": episode_id,
+                "attempt": attempt, "status": status, "error_type": error_type,
+                "actor_stopped": env.actor_stopped,
+                "snapshot_id": snapshot.snapshot_id if snapshot is not None else None,
+                "snapshot_sha256": snapshot.sha256 if snapshot is not None else None,
+                "stop_progress": getattr(env, "_actor_stop_progress", None),
+                "termination_reason": self.controller.get_episode(episode_id).termination_reason,
+            }
+            directory = self.controller.state_dir / "native-stop-transitions"
+            directory.mkdir(mode=0o700, exist_ok=True)
+            name = hashlib.sha256((self.bridge_id + ":" + episode_id).encode()).hexdigest()
+            path = directory / (name + "." + str(attempt).zfill(3) + ".json")
+            with path.open("x") as stream:
+                json.dump(record, stream, sort_keys=True)
+                stream.flush()
+                os.fsync(stream.fileno())
+            path.chmod(0o600)
 
     async def _finish_stop(self, episode_id, reason):
         env = self._episodes.get(episode_id)
@@ -676,6 +728,24 @@ class BenchmarkDockerEnvironment(DockerEnvironment):
             if len(identifiers) != 1 or not _CONTAINER_ID.fullmatch(identifiers[0]):
                 raise RuntimeError("Exactly one actual native actor container required")
             identifier = identifiers[0]
+            directory = self.bridge.controller.state_dir / "native-environments"
+            directory.mkdir(mode=0o700, exist_ok=True)
+            prefix = hashlib.sha256((self.bridge.bridge_id + ":" + self.episode_id).encode()).hexdigest()
+            progress_path = directory / (prefix + ".actor-stop-progress.json")
+            progress = getattr(self, "_actor_stop_progress", None)
+            if progress is None and progress_path.is_file():
+                progress = self._actor_stop_progress = json.loads(progress_path.read_text())
+            if progress is not None and progress["container_id"] != identifier:
+                raise RuntimeError("Native stop recovery container changed")
+
+            def save_progress():
+                temporary = progress_path.with_suffix(".tmp")
+                with temporary.open("w") as stream:
+                    json.dump(progress, stream, sort_keys=True)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                temporary.chmod(0o600)
+                temporary.replace(progress_path)
             try:
                 before = json.loads(
                     await self._engine(
@@ -684,26 +754,34 @@ class BenchmarkDockerEnvironment(DockerEnvironment):
                 )
             except (RuntimeError, ValueError, TypeError):
                 before = {}
-            killed = None
-            kill_error = None
-            try:
-                killed = await self._run_docker_compose_command(
-                    ["kill", "-s", "SIGKILL", MAIN_SERVICE_NAME],
-                    check=False,
-                    timeout_sec=30,
-                )
-            except RuntimeError as exc:
-                if (
-                    type(exc) is not RuntimeError
-                    or str(exc) != "Command timed out after 30 seconds"
-                    or (self.network_isolation_proof or {}).get("container_id")
-                    != identifier
-                ):
-                    raise
-                kill_error = {
-                    "error_type": "RuntimeError",
-                    "code": "compose_kill_timeout",
+            if progress is None:
+                progress = self._actor_stop_progress = {
+                    "container_id": identifier, "was_running": before.get("Running") is True,
+                    "kill_return_code": None, "kill_command_error": None,
                 }
+                save_progress()
+            # A previous kill may have succeeded before inspection failed. Observe
+            # the same container again before repeating its destructive operation.
+            if before.get("Running") is not False or before.get("Paused") is not False:
+                try:
+                    killed = await self._run_docker_compose_command(
+                        ["kill", "-s", "SIGKILL", MAIN_SERVICE_NAME],
+                        check=False, timeout_sec=30,
+                    )
+                    progress["kill_return_code"] = killed.return_code
+                    save_progress()
+                except RuntimeError as exc:
+                    if (
+                        type(exc) is not RuntimeError
+                        or str(exc) != "Command timed out after 30 seconds"
+                        or (self.network_isolation_proof or {}).get("container_id") != identifier
+                    ):
+                        raise
+                    progress["kill_command_error"] = {
+                        "error_type": "RuntimeError", "code": "compose_kill_timeout",
+                    }
+                    save_progress()
+            kill_error = progress["kill_command_error"]
             state = json.loads(
                 await self._engine("inspect", "--format", "{{json .State}}", identifier)
             )
@@ -717,8 +795,8 @@ class BenchmarkDockerEnvironment(DockerEnvironment):
                 )
         self._actor_stop_audit = {
             "container_id": identifier,
-            "was_running": before.get("Running") is True,
-            "kill_return_code": killed.return_code if killed is not None else None,
+            "was_running": progress["was_running"],
+            "kill_return_code": progress["kill_return_code"],
             "state": state,
         }
         if kill_error is not None:
@@ -734,8 +812,12 @@ class BenchmarkDockerEnvironment(DockerEnvironment):
         raw = (
             json.dumps(self._actor_stop_audit, sort_keys=True, indent=2) + "\n"
         ).encode()
-        with path.open("xb") as stream:
-            stream.write(raw)
+        if path.exists():
+            if path.read_bytes() != raw:
+                raise RuntimeError("Native stop audit identity changed")
+        else:
+            with path.open("xb") as stream:
+                stream.write(raw)
         path.chmod(0o600)
         self.actor_stopped = True
 
