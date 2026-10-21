@@ -116,6 +116,8 @@ The workflow retains `runtime-release.json` and `build-receipt.json` as its `run
 
 ## Recovery
 
+The [execution contract and local acceptance gates](execution.md) define durable ownership, phase recovery and the evidence required before scaling a runtime.
+
 Transient source-download failures receive up to five attempts per file with exponential backoff and jitter. Each attempt starts with a clean partial file and the completed download must pass the original digest checks. Authentication, certificate and integrity failures retain their cause.
 
 The coordinator retries individual infrastructure failures as soon as a slot becomes available and their backoff has elapsed. Two further attempts per condition are allowed by default. Use `--max-retries` to change this limit, `--retry-delay-seconds` for the initial delay and `--maximum-retry-delay-seconds` for its ceiling. Completed reconstructions retain their scores and artefacts, including measured zero scores. Each retry retains the model, reference, seed, evaluator and authoring limit and receives a separate immutable execution record. An exhausted condition is reported while the remaining conditions continue.

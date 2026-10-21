@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv, hashlib, html, json, math
 from collections import Counter
 from pathlib import Path
+from simready_bench.provenance import provenance_fields, validate_run_spec
 from simready_bench.composites import (
     APPEARANCE_FIELDS,
     KINEMATIC_FIELDS,
@@ -298,6 +299,9 @@ def compact_report(value):
         "error_code",
         "error_message",
         "scoring_notice",
+        "run_spec",
+        "operational_provenance",
+        "legacy_settings_conditions",
     )
     fields = set(SCORE_FIELDS) | {
         "model_id",
@@ -309,6 +313,11 @@ def compact_report(value):
         "error_type",
         "error_code",
         "error_message",
+        "failure_scope",
+        "automatic_retry",
+        "infrastructure_hold",
+        "infrastructure_hold_evidence",
+        "request_recovery",
         "termination_reason",
         "inference_calls_used",
         "validation_calls_used",
@@ -331,6 +340,10 @@ def compact_report(value):
         "actor_stop_receipt",
         "actor_stop_audit",
         "optional_score",
+        "execution_provenance",
+        "protocol_sha256",
+        "run_spec_sha256",
+        "provenance_coverage",
     }
     fields.update(
         "fidelity_" + component + "_eligible" for component in FIDELITY_COMPONENTS
@@ -375,6 +388,7 @@ def compact_report(value):
         if not isinstance(source, dict):
             raise ValueError("Portable report attempts must be objects")
         row = {key: source[key] for key in fields if key in source}
+        row.update(provenance_fields(source, run_spec=value.get("run_spec")))
         primary = source.get("simready")
         if isinstance(primary, dict):
             primary = mandatory_report_metadata(primary)
@@ -417,6 +431,13 @@ def compact_report(value):
                 if key in illustrations
             }
         conditions.append(row)
+    if "run_spec" in value:
+        validate_run_spec(value["run_spec"])
+    if "operational_provenance" in value:
+        from simready_bench.provenance import validate_operational_provenance
+        history = validate_operational_provenance(value['operational_provenance'])
+        if history['run_spec_sha256'] != value.get('run_spec', {}).get('sha256'):
+            raise ValueError('Operational history requires its unchanged run specification')
     return {
         **{key: value[key] for key in summary_fields if key in value},
         "results": conditions,
@@ -1294,6 +1315,11 @@ def export_report(work_dir, output_dir, *, results=None):
                 "error_type",
                 "error_code",
                 "error_message",
+                "failure_scope",
+                "automatic_retry",
+                "infrastructure_hold",
+                "infrastructure_hold_evidence",
+                "request_recovery",
                 "termination_reason",
                 "inference_calls_used",
                 "validation_calls_used",
@@ -1304,6 +1330,10 @@ def export_report(work_dir, output_dir, *, results=None):
                 "actor_stop_receipt",
                 "actor_stop_audit",
                 "optional_score",
+                "execution_provenance",
+                "protocol_sha256",
+                "run_spec_sha256",
+                "provenance_coverage",
             )
         }
         conditions.append(

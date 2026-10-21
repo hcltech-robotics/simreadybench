@@ -1,6 +1,7 @@
 import hashlib
 import json
 import time
+import zipfile
 from dataclasses import replace
 
 import pytest
@@ -20,6 +21,13 @@ pytestmark = pytest.mark.skipif(
 def write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value))
+
+
+def frozen_executor_wheel(path):
+    with zipfile.ZipFile(path, 'w') as archive:
+        member = zipfile.ZipInfo('simready_bench/config.py', date_time=(2020, 1, 1, 0, 0, 0))
+        archive.writestr(member, b'REQUESTS = 64\n')
+    return path
 
 
 def portable(attempt, rows, configuration="c" * 64):
@@ -106,7 +114,7 @@ def stopped_run(tmp_path, monkeypatch, *, fourth="blocked", unmatched=False):
     output.mkdir()
     wheel = output / ".executor-package/simready_bench-original.whl"
     wheel.parent.mkdir()
-    wheel.write_bytes(b"frozen evaluator")
+    frozen_executor_wheel(wheel)
     for name in ("assets", "skills", "input_views", "private_manifests"):
         (output / name).mkdir()
     authority = tmp_path / "authority"
@@ -252,11 +260,20 @@ def test_resume_uses_original_parent_and_finishes_exactly_one_result_per_conditi
             options["policy"]["runtime"]["authority_state_dir"]
             == policy["runtime"]["authority_state_dir"]
         )
-        assert options["output_dir"] == output / "executions/001"
+        batch = options["output_dir"]
+        assert batch == output / "executions" / str(len(called)).zfill(3)
         assert options["runtime_images"] == DEFAULT_IMAGES
         conditions = resume.condition_plan(selected)
-        assert len(conditions) == 97
-        assert selected["reconstruction_selection"][manifest["assets"][0]["id"]] == [3]
+        assert len(conditions) == 1
+        assert not set(list(resume.condition_plan(manifest))[:3]) & conditions.keys()
+        parent = ProjectBudget(**policy["providers"]["selected"]["project_budget"])
+        ParentAuthorityLedger(policy["runtime"]["authority_state_dir"]).reserve(
+            parent,
+            allocation_id="shard-" + batch.name,
+            requests=32,
+            maximum_spend_usd=2.5,
+            work_root=batch,
+        )
         for index, asset in enumerate(selected["assets"]):
             rows = [
                 (identifier, condition, "completed")
@@ -282,10 +299,12 @@ def test_resume_uses_original_parent_and_finishes_exactly_one_result_per_conditi
         repetitions=4,
         resume=True,
     )
-    assert len(called) == 1
+    assert len(called) == 97
+    assert len({identity for shard in called for identity in resume.condition_plan(shard)}) == 97
     assert result["completed_conditions"] == len(result["results"]) == 100
     assert len({row["condition_id"] for row in result["results"]}) == 100
     assert result["partial"] is False
+    assert resume._remaining(policy, manifest) == (0, 0)
     with ledger._db() as db:
         assert db.execute("SELECT id FROM parents").fetchall() == [
             ("original-project",)
@@ -298,7 +317,7 @@ def test_resume_uses_original_parent_and_finishes_exactly_one_result_per_conditi
 def test_started_unscored_condition_keeps_its_full_ceiling(tmp_path, monkeypatch):
     from simready_bench.recovery import RecoveryLimitReached
 
-    output, manifest, _, ledger = stopped_run(
+    output, manifest, policy, ledger = stopped_run(
         tmp_path, monkeypatch, fourth="infrastructure_error"
     )
     admitted = set(list(resume.condition_plan(manifest))[:4])
@@ -306,8 +325,17 @@ def test_started_unscored_condition_keeps_its_full_ceiling(tmp_path, monkeypatch
 
     def execute(selected, **options):
         conditions = resume.condition_plan(selected)
-        assert len(conditions) == 96 and not admitted & conditions.keys()
+        assert len(conditions) == 1 and not admitted & conditions.keys()
         dispatched.append(set(conditions))
+        batch = options["output_dir"]
+        parent = ProjectBudget(**policy["providers"]["selected"]["project_budget"])
+        ParentAuthorityLedger(policy["runtime"]["authority_state_dir"]).reserve(
+            parent,
+            allocation_id="shard-" + batch.name,
+            requests=32,
+            maximum_spend_usd=2.5,
+            work_root=batch,
+        )
         portable(
             options["output_dir"] / "attempts/remaining",
             [
@@ -326,8 +354,10 @@ def test_started_unscored_condition_keeps_its_full_ceiling(tmp_path, monkeypatch
             resume=True,
             max_retries=0,
         )
-    assert len(dispatched) == 1
+    assert len(dispatched) == 96
+    assert len(set().union(*dispatched)) == 96
     assert caught.value.result["completed_conditions"] == 99
+    assert resume._remaining(policy, manifest) == (0, 0)
     with ledger._db() as db:
         assert db.execute("SELECT requests,usd FROM retirements").fetchall() == [
             (128, "10.0")
@@ -423,6 +453,7 @@ def test_resume_reconnects_before_reading_reports_and_reclaiming_allowance(
     )
     write(delivery_path, delivery)
     events = []
+    dispatched = []
 
     def reconnect(selected, **options):
         assert selected == manifest and options["output_dir"] == output
@@ -433,20 +464,27 @@ def test_resume_reconnects_before_reading_reports_and_reclaiming_allowance(
 
     def execute(selected, **options):
         events.append("new-batch")
-        assert len(resume.condition_plan(selected)) == 97
+        dispatched.append((options["output_dir"], set(resume.condition_plan(selected))))
+        assert len(resume.condition_plan(selected)) == 1
         raise RuntimeError("stop after scheduling")
 
     monkeypatch.setattr("simready_bench.daytona.reconnect_daytona", reconnect)
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
-    with pytest.raises(RuntimeError, match="stop after scheduling"):
+    from simready_bench.recovery import RecoveryLimitReached
+
+    with pytest.raises(RecoveryLimitReached, match="bounded recovery policy") as caught:
         workflow.benchmark(
             "nvidia-25",
             model="gpt-6.1-sol",
             deploy="daytona",
             output_dir=output,
             resume=True,
+            retry_delay_seconds=0,
+            maximum_retry_delay_seconds=0,
         )
     assert events == ["reconnected-original", "new-batch", "new-batch", "new-batch"]
+    assert all(dispatch == dispatched[0] for dispatch in dispatched)
+    assert str(caught.value.__cause__) == "stop after scheduling"
     with ledger._db() as db:
         assert db.execute("SELECT requests,usd FROM retirements").fetchall() == [
             (96, "7.5")

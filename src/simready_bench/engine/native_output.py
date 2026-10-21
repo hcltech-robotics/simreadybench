@@ -29,21 +29,23 @@ EXTENSION_SOURCE = """export default function (pi) {
 """
 
 
-def authoring_protocol(turns=DEFAULT_AUTHORING_TURNS, max_output_tokens=None):
+def authoring_protocol(turns=DEFAULT_AUTHORING_TURNS, max_output_tokens=None, *, tool_protocol='legacy'):
     if type(turns) is not int or not 1 <= turns <= MAX_AUTHORING_TURNS:
         raise ValueError("Authoring turns must be an integer between 1 and 128")
     validate_output_cap(max_output_tokens)
+    if tool_protocol not in ('legacy', 'bounded-v1'):
+        raise ValueError('Unknown authoring tool protocol')
     output = "native-output" if max_output_tokens is None else "bounded-output-" + str(max_output_tokens)
-    return "authoring-" + str(turns) + "-" + output + "-v1"
+    return "authoring-" + str(turns) + "-" + output + "-v1" + ('-tools-bounded-v1' if tool_protocol == 'bounded-v1' else '')
 
 
 def authoring_turns(protocol):
-    match = re.fullmatch(r"authoring-([1-9][0-9]*)-(?:native-output|bounded-output-([1-9][0-9]*))-v1", protocol or "")
+    match = re.fullmatch(r"authoring-([1-9][0-9]*)-(?:native-output|bounded-output-([1-9][0-9]*))-v1(-tools-bounded-v1)?", protocol or "")
     if match is None:
         raise ValueError("Unknown authoring protocol")
     turns = int(match[1])
     cap = int(match[2]) if match[2] is not None else None
-    if authoring_protocol(turns, cap) != protocol:
+    if authoring_protocol(turns, cap, tool_protocol='bounded-v1' if match[3] else 'legacy') != protocol:
         raise ValueError("Unknown authoring protocol")
     return turns
 
@@ -59,7 +61,7 @@ def native_output(condition):
         authoring_turns(condition.get("authoring_protocol"))
     except (ValueError, TypeError):
         return False
-    return condition["authoring_protocol"].endswith("-native-output-v1") and condition.get("settings", {}).get("generation", {}).get("max_output_tokens") is None
+    return '-native-output-v1' in condition['authoring_protocol'] and condition.get("settings", {}).get("generation", {}).get("max_output_tokens") is None
 
 
 def validate_output_cap(value):

@@ -1,6 +1,24 @@
+import os
+
 import pytest
 
 from simready_bench.benchmark import compose_experiment, select_model
+
+
+def pytest_addoption(parser):
+    for tier in ("licensed", "container", "paid"):
+        parser.addoption("--run-" + tier, action="store_true", default=False,
+                         help="Explicitly enable the local " + tier + " acceptance tier")
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        for tier in ("licensed", "container", "paid"):
+            if item.get_closest_marker(tier) is None:
+                continue
+            if os.environ.get("CI") or not config.getoption("--run-" + tier):
+                item.add_marker(pytest.mark.skip(
+                    reason=tier + " acceptance requires explicit local opt-in"))
 
 
 @pytest.fixture

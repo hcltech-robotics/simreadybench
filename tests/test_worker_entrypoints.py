@@ -1,7 +1,5 @@
 import json
-import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -273,20 +271,11 @@ def test_workers_change_executor_only_and_preserve_scientific_configuration(
     monkeypatch.setattr(
         workflow, "publication_callback", lambda *args, **kwargs: publish
     )
-    monkeypatch.setitem(
-        sys.modules,
-        "simready_bench.daytona",
-        SimpleNamespace(
-            run_daytona=executor("serial"),
-        ),
-    )
-    monkeypatch.setitem(
-        sys.modules,
-        "simready_bench.parallel",
-        SimpleNamespace(
-            run_parallel_daytona=executor("parallel"),
-        ),
-    )
+    from simready_bench import daytona, parallel
+
+    monkeypatch.setattr(daytona, "run_daytona", lambda *args, **kwargs:
+                        pytest.fail("The command bypassed the coordinator"))
+    monkeypatch.setattr(parallel, "run_parallel_daytona", executor("coordinator"))
     wheel = tmp_path / "frozen.whl"
     work = tmp_path / "work"
     for workers in (1, 4):
@@ -304,10 +293,10 @@ def test_workers_change_executor_only_and_preserve_scientific_configuration(
             work_dir=work,
         )
 
-    assert [kind for kind, _, _ in calls] == ["serial", "parallel"]
+    assert [kind for kind, _, _ in calls] == ["coordinator", "coordinator"]
     assert calls[0][1] == calls[1][1]
     assert "workers" not in calls[0][1]
-    assert "workers" not in calls[0][2]
+    assert calls[0][2]["workers"] == 1
     assert calls[1][2]["workers"] == 4
     from simready_bench.resume import condition_plan
 

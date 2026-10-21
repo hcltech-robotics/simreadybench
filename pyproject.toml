@@ -57,3 +57,10 @@ simready_bench = ["resources/**/*.json", "resources/**/*.yaml", "engine/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not licensed and not container and not paid'"
+markers = [
+  "acceptance: installed-wheel execution and recovery against local transports",
+  "licensed: local NVIDIA validator execution requiring the pinned licensed runtime",
+  "container: local acceptance requiring the pinned container runtime",
+  "paid: explicitly authorised external model or cloud execution",
+]

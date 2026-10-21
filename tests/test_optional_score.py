@@ -209,6 +209,7 @@ def test_optional_measurements_reject_inconsistent_scores_counts_or_bounds(key, 
         validate_optional_score(score)
 
 
+@pytest.mark.licensed
 def test_installed_sdk_optional_inventory_and_implementations_match_the_pinned_profile():
     pytest.importorskip("simready.validate")
     from simready_bench.engine.validator import derive_inventory
@@ -227,6 +228,7 @@ def test_installed_sdk_optional_inventory_and_implementations_match_the_pinned_p
         assert hashlib.sha256(source.read_bytes()).hexdigest() == expected
 
 
+@pytest.mark.licensed
 def test_real_sdk_dispatch_records_both_mandatory_and_optional_requirement_outcomes(
     tmp_path,
 ):

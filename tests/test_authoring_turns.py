@@ -107,7 +107,7 @@ def test_public_cli_freezes_full_turn_capacity_and_honours_explicit_cap(
     monkeypatch, tmp_path, explicit, relative,
 ):
     from simready_bench.cli import main
-    from simready_bench import daytona
+    from simready_bench import parallel
 
     output = tmp_path / "run"
     if relative:
@@ -120,7 +120,7 @@ def test_public_cli_freezes_full_turn_capacity_and_honours_explicit_cap(
         calls.append((manifest, options))
         return {"completed_conditions": 100, "planned_conditions": 100, "results": []}
 
-    monkeypatch.setattr(daytona, "run_daytona", execute)
+    monkeypatch.setattr(parallel, "run_parallel_daytona", execute)
     argv = [
         "benchmark", "NV25", "--model", "gpt-6.1-sol", "--deploy", "daytona",
         "--output-dir", "../run" if relative else str(output),
@@ -130,7 +130,7 @@ def test_public_cli_freezes_full_turn_capacity_and_honours_explicit_cap(
     assert main(argv) == 0
     manifest, options = calls[0]
     assert options["output_dir"] == output
-    assert manifest["authoring_protocol"] == "authoring-64-native-output-v1"
+    assert manifest["authoring_protocol"] == "authoring-64-native-output-v1-tools-bounded-v1"
     assert manifest["defaults"]["budgets"]["inference_requests"] == 64
     assert manifest["defaults"]["generation"]["max_output_tokens"] is None
     budget = options["policy"]["providers"]["selected"]["project_budget"]
@@ -206,7 +206,7 @@ def test_preparing_native_execution_cannot_widen_explicit_policy(tmp_path, restr
 
 def test_fractional_condition_allowance_survives_custom_matrix_preflight(tmp_path, monkeypatch):
     workflow = importlib.import_module("simready_bench.benchmark")
-    from simready_bench import daytona
+    from simready_bench import parallel
 
     granted = tmp_path / "granted"
     granted.mkdir()
@@ -226,7 +226,7 @@ def test_fractional_condition_allowance_survives_custom_matrix_preflight(tmp_pat
         calls.append(options)
         return {"completed_conditions": 75, "planned_conditions": 75, "results": []}
 
-    monkeypatch.setattr(daytona, "run_daytona", execute)
+    monkeypatch.setattr(parallel, "run_parallel_daytona", execute)
     result = workflow.benchmark(
         "NV25", model="gpt-6.1-sol", deploy="daytona", repetitions=3,
         output_dir=tmp_path / "run", policy=granted / "operator.json",

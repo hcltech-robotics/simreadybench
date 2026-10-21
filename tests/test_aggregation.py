@@ -1,6 +1,8 @@
 import hashlib
 import json
 
+import pytest
+
 from simready_bench import benchmark, orchestration, resume
 from simready_bench.reporting import read_generated_report
 from test_parallel import manifest
@@ -70,3 +72,31 @@ def test_child_evidence_names_are_bounded_and_stable(tmp_path):
         reports, output_dir=output, planned_conditions=4
     )
     assert read_generated_report(repeated["results"]) == original
+
+
+def test_progressive_backfills_retain_only_the_original_baseline(tmp_path):
+    selected = manifest()
+    selected["assets"] = selected["assets"][:1]
+    conditions = list(resume.condition_plan(selected).items())
+    output = tmp_path / "run"
+    initial = output / "attempts/000"
+    report = capture_report(initial, conditions[0])
+    benchmark._aggregate_reports(
+        [(initial, report)], output_dir=output, planned_conditions=4
+    )
+    index = orchestration.ReportIndex(output, selected)
+    index.backfill([output])
+    for number, condition in enumerate(conditions[1:], start=1):
+        attempt = output / "attempts" / str(number).zfill(3)
+        capture_report(attempt, condition)
+        index.backfill([output])
+        result = index.aggregate()
+        value = read_generated_report(result["results"])
+        assert value["completed_conditions"] == number + 1
+    retained = list((output / ".coordinator-reports").glob("baseline-*.json"))
+    assert len(retained) == 1
+
+    # A new index still verifies every retained baseline before accepting it.
+    retained[0].write_text('{"results": []}')
+    with pytest.raises(ValueError, match="immutable report snapshot changed"):
+        orchestration.ReportIndex(output, selected)

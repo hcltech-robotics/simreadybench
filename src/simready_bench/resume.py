@@ -412,6 +412,7 @@ def _executor_terminal_proof(batch, delivery):
         or proof.get("reason") not in {
             "executor_stalled", "executor_deadline_exceeded", "controller_exited",
             "inference_transport_circuit_open",
+            "collection_integrity_failure", "collection_retries_exhausted",
         }
         or proof["reason"] != delivery.get("termination_reason")
         or proof.get("all_containers_stopped") is not True
@@ -826,6 +827,7 @@ def resume_benchmark(
     _initial_failure=False,
     authoring_turns=None,
     max_output_tokens=None,
+    tool_protocol=None,
 ):
     """Collect existing executors and retry incomplete work within saved limits."""
     options = dict(locals())
@@ -1006,6 +1008,7 @@ def _resume_once(
     _allowed_pending=None,
     authoring_turns=None,
     max_output_tokens=None,
+    tool_protocol=None,
     max_retries=2,
     retry_delay_seconds=5,
     maximum_retry_delay_seconds=60,
@@ -1023,6 +1026,8 @@ def _resume_once(
         raise ValueError("Parallel workers require Daytona deployment")
     output = Path(os.path.abspath(output_dir))
     original = _read(output / "experiment.json")
+    if tool_protocol is not None and tool_protocol != original.get('tool_protocol', 'legacy'):
+        raise ValueError('Resume must retain its original tool protocol')
     if max_output_tokens is not None and max_output_tokens != original.get("defaults", {}).get("generation", {}).get("max_output_tokens"):
         raise ValueError("Resume must retain its original output token cap")
     if authoring_turns is not None:

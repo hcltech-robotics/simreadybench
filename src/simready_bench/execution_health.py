@@ -46,6 +46,8 @@ class ExecutionHealth:
 
         conditions = sorted(set(conditions))
         chain = repair_chain(self.path.parent)
+        if any(record.get('requires_new_run_spec') for _, record, _ in chain):
+            raise ValueError('A scientific runtime revision requires a new run specification')
         evidence_path = Path(evidence_path).resolve(strict=True)
         evidence = evidence_path.read_bytes()
         if (not self.opened or not 1 <= len(conditions) <= 2

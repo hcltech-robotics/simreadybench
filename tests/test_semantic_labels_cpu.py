@@ -3,6 +3,8 @@
 import importlib.util
 import pytest
 
+pytestmark = pytest.mark.licensed
+
 pytest.importorskip("pxr")
 if importlib.util.find_spec("simready") is None:
     pytest.skip("installed NVIDIA framework required", allow_module_level=True)

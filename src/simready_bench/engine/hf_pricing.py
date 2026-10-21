@@ -14,14 +14,17 @@ from decimal import Decimal, InvalidOperation, ROUND_CEILING
 import hashlib
 import json
 import math
+import random
 import time
 from types import MappingProxyType
+from weakref import WeakKeyDictionary
 
 import aiohttp
 
 HF_ORIGIN = "https://router.huggingface.co"
 HF_CATALOG_URL = HF_ORIGIN + "/v1/models"
 HF_PRICING_CHECKED = "2026-10-18"
+_INFLIGHT = WeakKeyDictionary()
 
 
 @dataclass(frozen=True)
@@ -117,14 +120,37 @@ def validate_catalog_route(catalog, model):
 
 
 async def fetch_hf_route(model, *, deadline_at):
-    """Retry transient catalogue loss within two minutes and the caller deadline."""
-    from simready_bench.engine.request_cost import CostDenied
-
+    """Share only a running fresh check, with each caller's original deadline."""
     if model not in HF_PRICING:
         _deny("hf_cost_model_not_authorized")
     if not math.isfinite(deadline_at) or deadline_at <= time.time():
         _deny("hf_pricing_deadline_exceeded")
     deadline_at = min(deadline_at, time.time() + 120)
+    loop = asyncio.get_running_loop()
+    pending = _INFLIGHT.setdefault(loop, {})
+    operation = pending.get(model)
+    if operation is None or operation.done():
+        operation = asyncio.create_task(_wait_for_hf_route(model, deadline_at=deadline_at))
+        pending[model] = operation
+
+        def retired(task):
+            if pending.get(model) is task:
+                pending.pop(model, None)
+            if not task.cancelled():
+                task.exception()
+
+        operation.add_done_callback(retired)
+    try:
+        async with asyncio.timeout(max(0.001, deadline_at - time.time())):
+            return await asyncio.shield(operation)
+    except TimeoutError:
+        _deny("hf_pricing_deadline_exceeded")
+
+
+async def _wait_for_hf_route(model, *, deadline_at):
+    """Bound an admission wait without caching or relaxing the route pins."""
+    from simready_bench.engine.request_cost import CostDenied
+
     for attempt in range(5):
         try:
             return await _fetch_hf_route_once(model, deadline_at=deadline_at)
@@ -134,7 +160,7 @@ async def fetch_hf_route(model, *, deadline_at):
                 "hf_pricing_metadata_unavailable",
             } or attempt == 4:
                 raise
-            delay = 5 * 2**attempt
+            delay = 5 * 2**attempt * random.uniform(0.8, 1.2)
             if time.time() + delay >= deadline_at:
                 raise
             await asyncio.sleep(delay)

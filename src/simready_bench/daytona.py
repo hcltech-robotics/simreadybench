@@ -1301,6 +1301,53 @@ def _delete_executor(client, sandbox, record, *, save):
     )
 
 
+def contain_executor(manifest, *, policy, output_dir, client=None, reason):
+    """Stop an exact owned executor and retain failed collection evidence."""
+    from daytona.common.errors import DaytonaNotFoundError
+    from simready_bench.resume import _read, _reports, _retire
+
+    output = Path(output_dir).absolute()
+    delivery = output / 'daytona-delivery.json'
+    if output.resolve() != output or delivery.resolve() != delivery:
+        raise ValueError('Containment requires a confined delivery receipt')
+    record = _read(delivery)
+    sandbox_id = record.get('sandbox_id')
+    if (record.get('schema') != 'simready-bench-daytona-delivery-v2'
+            or not sandbox_id or not record.get('run_id')):
+        raise ValueError('Containment requires an exact saved executor identity')
+    if client is None:
+        from daytona import Daytona
+        client = Daytona()
+
+    def save():
+        _json(delivery, record)
+
+    try:
+        sandbox = client.get(sandbox_id)
+    except DaytonaNotFoundError:
+        sandbox = None
+    if sandbox is not None:
+        if sandbox.id != sandbox_id:
+            raise ValueError('Containment observed a different executor')
+        _stop_stalled_executor(sandbox, record, output, reason=reason, save=save)
+        _delete_executor(client, sandbox, record, save=save)
+    else:
+        record['cleanup_confirmed'] = True
+    record.update(collection='lost', status='failed', terminal_confirmed=True,
+        health_policy=record.get('health_policy') or _health_policy(policy),
+        missing_executor_proof={'schema': 'simready-bench-daytona-not-found-v1',
+            'sandbox_id': sandbox_id, 'observed_at': time.time()})
+    save()
+    _json(output / 'collection-hold.json', {
+        'schema': 'simready-bench-collection-hold-v1', 'reason': reason,
+        'sandbox_id': sandbox_id, 'executor_deleted': True,
+        'retained_collections': [path.name for path in sorted(output.glob('.daytona-collection-*'))],
+        'observed_at': time.time(),
+    })
+    _retire(output, _reports(output), policy=policy, manifest=manifest, client=client)
+    return _read(output / 'retirement.json')
+
+
 def _collected_result(manifest, output, record, *, clean):
     remote = output / "daytona-executor"
     result_path = remote / "run-result.json"

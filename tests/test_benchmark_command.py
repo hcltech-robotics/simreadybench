@@ -127,14 +127,9 @@ def test_cli_dispatches_whole_reference_set_to_selected_executor(
 
     monkeypatch.setattr(workflow, "prepare_policy", policy)
     if deploy == "daytona":
-        import sys
-        import types
+        from simready_bench import parallel
 
-        monkeypatch.setitem(
-            sys.modules,
-            "simready_bench.daytona",
-            types.SimpleNamespace(run_daytona=execute),
-        )
+        monkeypatch.setattr(parallel, "run_parallel_daytona", execute)
     else:
         monkeypatch.setattr(workflow, "execute_local_sequential", execute)
     assert (

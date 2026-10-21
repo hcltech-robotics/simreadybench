@@ -65,14 +65,14 @@ def test_hf_pi_uses_max_tokens_at_the_local_gateway(setup):
 
 def test_public_cli_freezes_cap_and_reasoning(monkeypatch, tmp_path):
     from simready_bench.cli import main
-    from simready_bench import daytona
+    from simready_bench import parallel
 
     captured = []
     monkeypatch.setenv("OPENAI_API_KEY", "fixture-only")
-    monkeypatch.setattr(daytona, "run_daytona", lambda manifest, **options: captured.append((manifest, options)) or {"completed_conditions": 100, "planned_conditions": 100, "results": []})
+    monkeypatch.setattr(parallel, "run_parallel_daytona", lambda manifest, **options: captured.append((manifest, options)) or {"completed_conditions": 100, "planned_conditions": 100, "results": []})
     assert main(["benchmark", "NV25", "--model", "gpt-6.1-sol", "--deploy", "daytona", "--output-dir", str(tmp_path / "run"), "--max-output-tokens", "8192", "--reasoning", "medium"]) == 0
     manifest, options = captured[0]
-    assert manifest["authoring_protocol"] == "authoring-64-bounded-output-8192-v1"
+    assert manifest["authoring_protocol"] == "authoring-64-bounded-output-8192-v1-tools-bounded-v1"
     assert manifest["defaults"]["generation"] == {"output_limit": "bounded", "max_output_tokens": 8192, "reasoning_effort": "medium"}
     assert options["policy"]["limits"]["max_output_tokens"] == 8192
     allowance = json.loads((tmp_path / "run" / "allowance.json").read_text())

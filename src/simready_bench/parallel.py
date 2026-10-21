@@ -232,17 +232,8 @@ def run_parallel_daytona(
             from uuid import uuid4
 
             wheel = build_wheel(output / (".parallel-package-" + uuid4().hex))
-        _stage_shards(
-            manifest,
-            policy,
-            output,
-            workers,
-            assets_root=assets_root or policy["roots"]["assets"],
-            skills_root=skills_root or policy["roots"]["skills"],
-            wheel=wheel,
-            cpu_snapshot=cpu_snapshot,
-            runtime_images=images,
-        )
+        from simready_bench.benchmark import freeze_execution_spec
+        freeze_execution_spec(output, manifest, policy, wheel=wheel, runtime_images=images, cpu_snapshot=cpu_snapshot)
         return coordinate_daytona(
             manifest,
             policy=policy,

@@ -9,7 +9,8 @@ from simready_bench import daytona, orchestration, parallel, recovery, resume
 from simready_bench.runtime_images import DEFAULT_IMAGES
 from test_daytona_recovery import setup_run, source_failure
 from test_parallel import manifest
-from test_resume import portable, write
+from test_recovery_publication import retained_report
+from test_resume import frozen_executor_wheel, portable, write
 
 
 def select_conditions(original, conditions):
@@ -38,7 +39,7 @@ def test_unstarted_tail_membership_does_not_consume_transport_retries(
         roots[name] = str(output / name)
     policy = {"roots": roots}
     wheel = output / "frozen.whl"
-    wheel.write_bytes(b"original evaluator")
+    frozen_executor_wheel(wheel)
     tail_id, tail = conditions[3]
     for number, (identity, actor) in zip(("005", "009", "010"), conditions[:3]):
         batch = output / "executions" / number
@@ -114,6 +115,7 @@ def test_exhausted_zero_admission_transport_scope_does_not_abort_live_collection
     tmp_path, monkeypatch
 ):
     output, original, policy, parent, wheel = setup_run(tmp_path, monkeypatch)
+    frozen_executor_wheel(wheel)
     conditions = list(resume.condition_plan(original).items())
     failed_id, failed = conditions[0]
     live_id, live = conditions[1]
@@ -148,10 +150,7 @@ def test_exhausted_zero_admission_transport_scope_does_not_abort_live_collection
         assert set(resume.condition_plan(shard)) == {live_id}
         dispatched.append(options["output_dir"])
         time.sleep(0.05)
-        path = portable(
-            options["output_dir"] / "attempts/final", [(live_id, live, "completed")]
-        )
-        options["on_report"]({"directory": str(path.parent), "results": str(path)})
+        options["on_report"](retained_report(shard, options, policy))
 
     monkeypatch.setattr(daytona, "run_daytona", execute)
     options = dict(

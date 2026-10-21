@@ -563,9 +563,10 @@ def _controlled_final_stream_cancel(records, *, normal_stop):
     )
 
 
-def reconstruction_status(evaluation, records, *, normal_stop=False):
+def reconstruction_status(evaluation, records, *, normal_stop=False, recovery=None):
     final_stream_cancel = _controlled_final_stream_cancel(
-        records, normal_stop=normal_stop
+        [row for row in records if recovery is None or row.get("gateway_request_id") not in recovery["resolved_request_ids"]],
+        normal_stop=normal_stop,
     )
     successful = False
     for index, row in enumerate(records):
@@ -574,6 +575,8 @@ def reconstruction_status(evaluation, records, *, normal_stop=False):
                 return "infrastructure_error"
             successful = True
         elif not (
+            recovery is not None and row.get("gateway_request_id") in recovery["resolved_request_ids"]
+            or
             final_stream_cancel and index == len(records) - 1
             or normal_stop
             and row.get("error_code")
@@ -595,16 +598,36 @@ def reconstruction_status(evaluation, records, *, normal_stop=False):
 
 
 def complete_trial_result(result, job_result, *, normal_stop):
+    from simready_bench.engine.recovery_evidence import (
+        verified_request_recovery, native_terminal_failure, infrastructure_hold,
+    )
+
+    recovery = (
+        verified_request_recovery(result, normal_stop=normal_stop)
+        if len(getattr(job_result, "trial_results", None) or []) == 1 else None
+    )
     status = reconstruction_status(
         result.get("evaluation"),
         result.get("gateway_records", []),
         normal_stop=normal_stop,
+        recovery=recovery,
     )
     failure = _native_failure(job_result, normal_stop=normal_stop)
     if failure is not None:
         result.update(failure)
         status = "infrastructure_error"
+    native_error = native_terminal_failure(result, normal_stop=normal_stop)
+    if native_error is not None:
+        result.update(error_type="NativeActorError", error_code=native_error["error_code"],
+                      failure_scope="infrastructure", automatic_retry=False)
+        status = "infrastructure_error"
+    hold = infrastructure_hold(result, normal_stop=normal_stop)
+    if hold is not None:
+        result.update(infrastructure_hold=hold["code"], infrastructure_hold_evidence=hold,
+                      automatic_retry=False)
     result["status"] = status
+    if recovery is not None and status == "completed":
+        result["request_recovery"] = recovery
     if status != "completed":
         result.update(
             official_reward=None,
@@ -732,6 +755,7 @@ async def _condition(condition, prepared, resolved, root, controller):
         inference_limit=budgets["inference_requests"],
         preview_limit=budgets["preview_requests"],
         validation_limit=budgets["validation_calls"],
+        tool_protocol=condition.get("tool_protocol", "legacy"),
     )
     cpu = CandidateObserver(
         validator_python=runtime["validator_python"],
@@ -809,6 +833,10 @@ async def _condition(condition, prepared, resolved, root, controller):
         await services.start()
         try:
             native_agent = agent_config(condition, bridge.bridge_id, skilldirs)
+            if condition.get("tool_protocol", "legacy") != "legacy":
+                if condition["harness"]["adapter"] != "pi":
+                    raise ValueError("Bounded tool protocol requires the pinned Pi harness")
+                native_agent.setdefault("kwargs", {})["tool_protocol"] = condition["tool_protocol"]
         except ValueError as exc:
             raise ConditionExecutionError(
                 "native_agent_configuration_rejected",

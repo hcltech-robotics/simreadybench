@@ -14,7 +14,7 @@ from simready_bench import parallel, resume
 from simready_bench.engine.inference_gateway import ProjectBudget
 from simready_bench.local import ParentAuthorityLedger
 from simready_bench.runtime_images import DEFAULT_IMAGES
-from test_resume import portable, stopped_run, write
+from test_resume import frozen_executor_wheel as frozen_wheel, portable, stopped_run, write
 
 
 def manifest():
@@ -107,11 +107,21 @@ def test_new_parallel_run_publishes_cumulative_reports_from_one_writer(
         path.mkdir()
         roots[name] = str(path)
     wheel = tmp_path / "frozen.whl"
-    wheel.write_bytes(b"frozen evaluator")
+    frozen_wheel(wheel)
+    authority = tmp_path / "authority"
+    authority.mkdir(mode=0o700)
+    provider = workflow._new_provider("openai", "gpt-6.1-sol", api_key_env=None,
+        maximum_spend_usd=20, conditions=8, authoring_turns=32)
+    policy = {"roots": roots, "providers": {"selected": provider},
+              "runtime": {"authority_state_dir": str(authority)},
+              "limits": {"maximum_spend_usd": 20, "maximum_condition_spend_usd": 2.5,
+                         "maximum_matrix_runs": 8, "inference_requests": 32}}
     barrier = threading.Barrier(2)
     counts = []
+    dispatched = []
 
     def execute(shard, **options):
+        dispatched.append(set(resume.condition_plan(shard)))
         path = portable(
             options["output_dir"] / "attempts/reference",
             [
@@ -140,7 +150,7 @@ def test_new_parallel_run_publishes_cumulative_reports_from_one_writer(
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
     result = parallel.run_parallel_daytona(
         selected,
-        policy={"roots": roots},
+        policy=policy,
         output_dir=tmp_path,
         workers=2,
         wheel=wheel,
@@ -148,7 +158,9 @@ def test_new_parallel_run_publishes_cumulative_reports_from_one_writer(
     )
     assert result["completed_conditions"] == 8
     assert [count for count, _ in counts] == sorted(count for count, _ in counts)
-    assert counts[-1] == (8, True)
+    assert counts[-1][0] == 8
+    assert len(dispatched) == 8 and all(len(conditions) == 1 for conditions in dispatched)
+    assert set().union(*dispatched) == set(resume.condition_plan(selected))
 
 
 linux_only = pytest.mark.skipif(
@@ -162,7 +174,7 @@ def test_parallel_resume_has_one_publisher_and_original_frozen_allowance(
 ):
     output, original, policy, ledger = stopped_run(tmp_path, monkeypatch)
     wheel = tmp_path / "frozen.whl"
-    wheel.write_bytes(b"frozen evaluator")
+    frozen_wheel(wheel)
     barrier = threading.Barrier(8)
     seen, publications = [], []
     active, maximum = 0, 0
@@ -219,7 +231,9 @@ def test_parallel_resume_has_one_publisher_and_original_frozen_allowance(
         )
         with state_lock:
             seen.append(set(conditions))
-        barrier.wait(timeout=10)
+            first_wave = len(seen) <= 8
+        if first_wave:
+            barrier.wait(timeout=10)
         options["on_report"](
             {
                 "directory": str(path.parent),
@@ -242,10 +256,11 @@ def test_parallel_resume_has_one_publisher_and_original_frozen_allowance(
         wheel=wheel,
     )
     assert result["completed_conditions"] == len(result["results"]) == 100
-    assert len(seen) == 8 and sum(map(len, seen)) == 97
+    assert len(seen) == 97 and all(len(conditions) == 1 for conditions in seen)
+    assert sum(map(len, seen)) == len(set().union(*seen)) == 97
     assert maximum == 1
     assert all(a[0] <= b[0] for a, b in zip(publications, publications[1:]))
-    assert len(publications[-1][0]) == 100 and publications[-1][1] is True
+    assert len(publications[-1][0]) == 100
     assert resume._remaining(policy, original) == (0, 0)
     with ledger._db() as db:
         assert db.execute("SELECT id FROM parents").fetchall() == [
@@ -257,7 +272,7 @@ def test_parallel_resume_has_one_publisher_and_original_frozen_allowance(
 def test_worker_failure_keeps_other_workers_and_their_reports(tmp_path, monkeypatch):
     output, original, _, _ = stopped_run(tmp_path, monkeypatch)
     wheel = tmp_path / "frozen.whl"
-    wheel.write_bytes(b"frozen evaluator")
+    frozen_wheel(wheel)
     barrier = threading.Barrier(4)
     seen = []
     failed = set()
@@ -266,20 +281,22 @@ def test_worker_failure_keeps_other_workers_and_their_reports(tmp_path, monkeypa
         conditions = resume.condition_plan(selected)
         batch = options["output_dir"]
         seen.append(batch.name)
-        barrier.wait(timeout=10)
         if batch.name == "001":
             failed.update(conditions)
+            barrier.wait(timeout=10)
             raise RuntimeError("One worker is unavailable")
-        portable(
+        path = portable(
             batch / "attempts/reference",
             [
                 (identity, condition, "completed")
                 for identity, condition in conditions.items()
             ],
         )
+        options["on_report"]({"directory": str(path.parent), "results": str(path)})
+        barrier.wait(timeout=10)
 
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
-    with pytest.raises(RuntimeError, match="One worker is unavailable") as caught:
+    with pytest.raises(RuntimeError, match="bounded recovery policy") as caught:
         resume.resume_benchmark(
             "NV25",
             model="gpt-6.1-sol",
@@ -291,8 +308,10 @@ def test_worker_failure_keeps_other_workers_and_their_reports(tmp_path, monkeypa
             max_retries=0,
         )
     result = caught.value.result
+    assert str(caught.value.__cause__) == "One worker is unavailable"
     assert set(seen) == {"001", "002", "003", "004"}
-    assert result["completed_conditions"] == 100 - len(failed)
+    assert result["completed_conditions"] == 6
+    assert len(failed) == 1
     assert len(result["results"]) == len(
         {row["condition_id"] for row in result["results"]}
     )
@@ -464,7 +483,7 @@ def test_parallel_resume_never_reaggregates_itself_or_drops_prior_artefacts(
 
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
     wheel = tmp_path / "frozen.whl"
-    wheel.write_bytes(b"frozen evaluator")
+    frozen_wheel(wheel)
     result = resume.resume_benchmark(
         "NV25",
         model="gpt-6.1-sol",

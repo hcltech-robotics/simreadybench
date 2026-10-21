@@ -552,6 +552,7 @@ def validate_manifest(value, *, base_dir, policy=None):
             "reconstruction_selection",
             "source",
             "authoring_protocol",
+            "tool_protocol",
             "benchmark_freeze",
             "scoring",
         },
@@ -569,6 +570,9 @@ def validate_manifest(value, *, base_dir, policy=None):
         validate_freeze(m["benchmark_freeze"])
     protocol = m.get("authoring_protocol", AUTHORING_PROTOCOL)
     turns = authoring_turns(protocol)
+    tool_protocol = m.get('tool_protocol', 'legacy')
+    if tool_protocol not in ('legacy', 'bounded-v1') or protocol.endswith('-tools-bounded-v1') != (tool_protocol == 'bounded-v1'):
+        raise ValueError('Authoring and tool protocol must match')
     m["authoring_protocol"] = protocol
     if "source" in m:
         from simready_bench.sources import validate_source
@@ -705,6 +709,8 @@ def validate_manifest(value, *, base_dir, policy=None):
                 from simready_bench.capabilities import normalize_native_harness
 
                 entry = normalize_native_harness(entry)
+                if tool_protocol == 'bounded-v1' and entry.get('adapter') != 'pi':
+                    raise ValueError('Bounded tools require the Pi harness')
                 if entry.get("adapter") not in ("pi", "harbor"):
                     raise ValueError("Use pi or an installed native Harbor harness")
             elif label == "models":
@@ -963,7 +969,7 @@ def resolve_experiment(value, *, base_dir, policy=None):
         cap = settings["generation"].get("max_output_tokens")
         from simready_bench.engine.native_output import authoring_protocol
 
-        if m["authoring_protocol"] != authoring_protocol(turns, cap):
+        if m["authoring_protocol"] != authoring_protocol(turns, cap, tool_protocol=m.get('tool_protocol', 'legacy')):
             raise ValueError("Authoring protocol and output token cap must match")
         if settings["budgets"]["max_output_tokens"] != cap:
             raise ValueError("Generation and budget output token caps must match")
@@ -1015,6 +1021,8 @@ def resolve_experiment(value, *, base_dir, policy=None):
                 "seed": seed,
             }
             c["authoring_protocol"] = m["authoring_protocol"]
+            if 'tool_protocol' in m:
+                c['tool_protocol'] = m['tool_protocol']
             c["configuration_sha256"] = _digest(c)
             conditions.append(c)
     allocated = sum(

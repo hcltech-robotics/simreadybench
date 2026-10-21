@@ -10,8 +10,8 @@ from simready_bench.recovery import frozen_wheel
 
 def test_appended_repair_retains_and_verifies_every_previous_approval(tmp_path):
     original = wheel(tmp_path / 'original.whl')
-    first = wheel(tmp_path / 'first.whl', transport=b'first repair')
-    second = wheel(tmp_path / 'second.whl', transport=b'second repair')
+    first = repack(tmp_path / 'first.whl', original, comment=b'first repack')
+    second = repack(tmp_path / 'second.whl', original, comment=b'second repack')
     approve_executor_repair(tmp_path, original, first, reason='First verified repair')
     approval = (tmp_path / 'executor-repair.json').read_bytes()
     approve_executor_repair(tmp_path, original, second, reason='Second verified repair', append=True)
@@ -26,8 +26,7 @@ def test_appended_repair_retains_and_verifies_every_previous_approval(tmp_path):
         frozen_wheel(tmp_path)
 
 
-def test_pricing_retry_repair_cannot_change_pins_or_validation():
-    from simready_bench.executor_repair import _pricing_fetch_only
+def test_pricing_retry_is_a_declared_runtime_revision(tmp_path):
     from simready_bench.engine import hf_pricing
     import inspect
 
@@ -39,12 +38,13 @@ def test_pricing_retry_repair_cannot_change_pins_or_validation():
     original = original.replace('    duration = min(20, deadline_at - time.time())',
         '    if model not in HF_PRICING:\n        _deny("hf_cost_model_not_authorized")\n'
         '    duration = min(20, deadline_at - time.time())', 1)
-    _pricing_fetch_only(original.encode(), current.encode())
-    for changed in (current.replace('"0.20"', '"0.01"'),
-                    current.replace('route["status"] != "live"', 'False'),
-                    current.replace('allow_redirects=False', 'allow_redirects=True')):
-        with pytest.raises(ValueError, match='protected HF pricing'):
-            _pricing_fetch_only(original.encode(), changed.encode())
+    name = 'simready_bench/engine/hf_pricing.py'
+    before, after = tmp_path / 'before.whl', tmp_path / 'after.whl'
+    for path, source in ((before, original), (after, current)):
+        with zipfile.ZipFile(path, 'w') as archive:
+            archive.writestr(name, source)
+    with pytest.raises(ValueError, match='scientific revision'):
+        approve_executor_repair(tmp_path, before, after, reason='Pricing retry')
 
 
 def wheel(path, *, transport=b'original', evaluator=b'frozen evaluator'):
@@ -54,9 +54,17 @@ def wheel(path, *, transport=b'original', evaluator=b'frozen evaluator'):
     return path
 
 
+def repack(path, original, *, comment=b'repack'):
+    with zipfile.ZipFile(original) as source, zipfile.ZipFile(path, 'w') as archive:
+        for name in source.namelist():
+            archive.writestr(name, source.read(name))
+        archive.comment = comment
+    return path
+
+
 def test_approved_repair_keeps_original_and_new_execution_identities(tmp_path):
     original = wheel(tmp_path / 'original.whl')
-    replacement = wheel(tmp_path / 'replacement.whl', transport=b'fixed')
+    replacement = repack(tmp_path / 'replacement.whl', original)
     old_hash = hashlib.sha256(original.read_bytes()).hexdigest()
     (tmp_path / 'parallel-plan-001.json').write_text(json.dumps({'wheel_sha256': old_hash}))
     approve_executor_repair(tmp_path, original, replacement, reason='Operator authorised relay repair')
@@ -72,7 +80,7 @@ def test_repair_cannot_change_scoring_or_replace_a_recorded_approval(tmp_path):
     changed = wheel(tmp_path / 'changed.whl', evaluator=b'changed scoring')
     with pytest.raises(ValueError, match='protected evaluator'):
         approve_executor_repair(tmp_path, original, changed, reason='Repair')
-    replacement = wheel(tmp_path / 'replacement.whl', transport=b'fixed')
+    replacement = repack(tmp_path / 'replacement.whl', original)
     approve_executor_repair(tmp_path, original, replacement, reason='Repair')
     with pytest.raises(FileExistsError):
         approve_executor_repair(tmp_path, original, replacement, reason='Reset')
@@ -80,14 +88,14 @@ def test_repair_cannot_change_scoring_or_replace_a_recorded_approval(tmp_path):
 
 def test_changed_repair_package_is_rejected_on_resume(tmp_path):
     original = wheel(tmp_path / 'original.whl')
-    replacement = wheel(tmp_path / 'replacement.whl', transport=b'fixed')
+    replacement = repack(tmp_path / 'replacement.whl', original)
     approve_executor_repair(tmp_path, original, replacement, reason='Repair')
     replacement.write_bytes(b'different runtime')
     with pytest.raises(ValueError, match='recorded approval'):
         frozen_wheel(tmp_path)
 
 
-def test_gateway_transport_repair_keeps_agent_prompt_protected(tmp_path):
+def test_gateway_and_agent_prompt_are_both_protected(tmp_path):
     original = tmp_path / 'original.whl'
     replacement = tmp_path / 'replacement.whl'
     changed_prompt = tmp_path / 'changed-prompt.whl'
@@ -101,7 +109,7 @@ def test_gateway_transport_repair_keeps_agent_prompt_protected(tmp_path):
             archive.writestr('simready_bench/engine/pi.py', prompt)
     with pytest.raises(ValueError, match='protected evaluator'):
         approve_executor_repair(tmp_path, original, changed_prompt, reason='Transport repair')
-    receipt = approve_executor_repair(
-        tmp_path, original, replacement, reason='Reject incomplete upstream streams'
-    )
-    assert receipt['changed_modules'] == ['simready_bench/engine/inference_gateway.py']
+    with pytest.raises(ValueError, match='scientific revision'):
+        approve_executor_repair(
+            tmp_path, original, replacement, reason='Reject incomplete upstream streams'
+        )

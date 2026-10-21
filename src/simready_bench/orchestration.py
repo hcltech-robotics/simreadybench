@@ -101,6 +101,8 @@ def _completed_digest(row):
     """Bind measurements and content while allowing owned artefact relocation."""
     value = copy.deepcopy(row)
     value.pop("report_path", None)
+    for key in ('execution_provenance', 'protocol_sha256', 'run_spec_sha256', 'provenance_coverage'):
+        value.pop(key, None)
     candidate = value.get("candidate") or {}
     for key in ("directory", "entrypoint", "manifest"):
         candidate.pop(key, None)
@@ -142,12 +144,47 @@ class ReportIndex:
         self.completed_sources = {}
         self.closed = set()
         self.backfilling = True
+        self.baseline_retained = False
         self.published_signature = None
         self.retry_after = 0
         self.result = None
         self.detached = False
         self.publication_pending = False
+        from simready_bench.attempt_state import AttemptStore
+        self.attempts = AttemptStore(self.output, manifest)
         self._load_index()
+        state_path = self.output / 'publication-state.json'
+        self.publication_attempts = 0
+        self.publication_held = False
+        if state_path.is_file():
+            saved = json.loads(state_path.read_text())
+            if saved.get('manifest_sha256') == hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest():
+                if saved.get('status') in ('published', 'local'):
+                    self.published_signature = saved.get('delivery_signature')
+                else:
+                    self.failed_signature = saved.get('delivery_signature')
+                    self.retry_after = saved.get('retry_after', 0)
+                    self.publication_attempts = saved.get('attempts', 0)
+                    self.publication_held = saved.get('status') == 'held'
+                    self.publication_pending = True
+
+    def _retain_measurement(self, row, *, batch, root, snapshot):
+        identity = row['condition_id']
+        digest = _completed_digest(row)
+        previous = [item for item in self.attempts.snapshot()['attempts']
+                    if item['condition_id'] == identity and item['measurement'] == 'measured']
+        attempt_id = previous[0]['attempt_id'] if previous else batch.name + '/' + identity
+        if not previous:
+            retirement_path = batch / 'retirement.json'
+            retirement = json.loads(retirement_path.read_text()) if retirement_path.is_file() else None
+            if retirement and not (retirement.get('executor_deleted') and retirement.get('sandbox_id')):
+                retirement = None
+            self.attempts.lease(identity, attempt_id, str(self.output), retirement=retirement)
+        self.attempts.measure(attempt_id, digest)
+        self.attempts.update(attempt_id,
+            publication=(previous[0]['publication'] if previous and previous[0]['publication'] in {'published', 'held'}
+                         else 'pending' if self.publisher is not None else 'not_requested'),
+            evidence={'report_directory': str(root), 'snapshot': str(snapshot)})
 
     def _load_index(self):
         from simready_bench.resume import _digest, _read
@@ -177,6 +214,7 @@ class ReportIndex:
             for row in value["results"]:
                 identity = row["condition_id"]
                 if row.get("status") == "completed":
+                    self._retain_measurement(row, batch=root, root=root, snapshot=snapshot)
                     digest = _completed_digest(row)
                     if (
                         identity in self.completed_measurements
@@ -237,6 +275,10 @@ class ReportIndex:
                     "A published reconstruction changes its owned identity"
                 )
             seen.add(identity)
+            if row.get('infrastructure_hold'):
+                error = ValueError('Infrastructure metadata requires an unchanged run specification')
+                error.infrastructure_hold = row['infrastructure_hold']
+                raise error
             if row.get("status") == "completed" and not _completed(root, row):
                 raise ValueError(
                     "A completed reconstruction requires its frozen artefacts"
@@ -316,6 +358,7 @@ class ReportIndex:
             for row in value["results"]:
                 identity = row["condition_id"]
                 if row.get("status") == "completed":
+                    self._retain_measurement(row, batch=batch, root=root, snapshot=snapshot)
                     self.completed_sources.setdefault(identity, key)
                 if _closed_condition(row):
                     self.closed.add(identity)
@@ -378,8 +421,14 @@ class ReportIndex:
             self.backfilling = True
             for batch in batches:
                 for root, report, _ in report_sources(batch):
-                    self.add(batch, {"directory": str(root), **report}, defer=True)
-            self.retain_baseline()
+                    try:
+                        self.add(batch, {"directory": str(root), **report}, defer=True)
+                    except (ValueError, TypeError) as error:
+                        error._simready_batch = batch
+                        raise
+            if not self.baseline_retained:
+                self.retain_baseline()
+                self.baseline_retained = True
             self.backfilling = False
 
     def aggregate(self, *, final=False):
@@ -398,26 +447,38 @@ class ReportIndex:
                         selected[identity] = key
             selected.update(self.completed_sources)
             used = set(selected.values())
-            signature = hashlib.sha256(
-                json.dumps(
-                    sorted((key, self.fingerprints[key]) for key in used)
-                ).encode()
-            ).hexdigest()
-            if signature == self.published_signature and not final:
-                return self.result
             self.result = _aggregate_reports(
                 [entry for key, entry in self.entries.items() if key in used],
                 output_dir=self.output,
                 planned_conditions=len(self.expected),
                 condition_sources=selected,
             )
+            portable = read_generated_report(self.result['results'])
+            signature = hashlib.sha256(json.dumps({
+                'rows': sorted((_completed_digest(row), (row.get('execution_provenance') or {}).get('sha256'))
+                               for row in portable['results']),
+                'planned': portable.get('planned_conditions'),
+                'run_spec': (portable.get('run_spec') or {}).get('sha256'),
+                'operational_provenance': (portable.get('operational_provenance') or {}).get('sha256'),
+            }, sort_keys=True).encode()).hexdigest()
+            if signature == self.published_signature:
+                self.publication_pending = False
+                return self.result
             state_path = self.output / "publication-state.json"
             if self.publisher is not None and used:
+                if signature != getattr(self, 'failed_signature', None):
+                    self.publication_attempts = 0
+                    self.publication_held = False
+                if self.publication_held:
+                    self.publication_pending = True
+                    self._hold_publication()
+                    return self.result
                 if time.time() < self.retry_after and signature == getattr(
                     self, "failed_signature", None
                 ):
                     return self.result
                 try:
+                    self.publication_attempts += 1
                     self.publisher(
                         self.result,
                         final=final
@@ -427,19 +488,29 @@ class ReportIndex:
                     self.publication_pending = True
                     self.failed_signature = signature
                     self.retry_after = time.time() + 5
+                    self.publication_held = self.publication_attempts >= 3 or getattr(error, 'retryable', True) is False
+                    if self.publication_held:
+                        self._hold_publication()
                     _save(
                         state_path,
                         {
                             "schema": "simready-bench-publication-state-v1",
-                            "status": "pending",
+                            "status": 'held' if self.publication_held else 'pending',
                             "error_type": type(error).__name__,
                             "completed_conditions": sorted(self.completed_sources),
                             "retry_after": self.retry_after,
+                            'attempts': self.publication_attempts,
+                            'delivery_signature': signature,
+                            'manifest_sha256': hashlib.sha256(json.dumps(self.manifest, sort_keys=True).encode()).hexdigest(),
                         },
                     )
                     return self.result
             self.published_signature = signature
             self.publication_pending = False
+            if self.publisher is not None:
+                for attempt in self.attempts.snapshot()['attempts']:
+                    if attempt['condition_id'] in self.completed_sources and attempt['measurement'] == 'measured':
+                        self.attempts.update(attempt['attempt_id'], publication='published')
             self.retry_after = 0
             _save(
                 state_path,
@@ -447,9 +518,19 @@ class ReportIndex:
                     "schema": "simready-bench-publication-state-v1",
                     "status": "published" if self.publisher is not None else "local",
                     "completed_conditions": sorted(self.completed_sources),
+                    'delivery_signature': signature,
+                    'manifest_sha256': hashlib.sha256(json.dumps(self.manifest, sort_keys=True).encode()).hexdigest(),
+                    'attempts': self.publication_attempts,
                 },
             )
             return self.result
+
+    def _hold_publication(self):
+        for attempt in self.attempts.snapshot()['attempts']:
+            if (attempt['condition_id'] in self.completed_sources
+                    and attempt['measurement'] == 'measured'
+                    and attempt['publication'] != 'published'):
+                self.attempts.update(attempt['attempt_id'], publication='held')
 
 
 def coordinate_daytona(
@@ -495,11 +576,13 @@ def coordinate_daytona(
 
     validate_recovery(max_retries, retry_delay_seconds, maximum_retry_delay_seconds)
     output = Path(os.path.abspath(output_dir))
+    from simready_bench.attempt_state import AttemptStore
+    attempts_store = AttemptStore(output, manifest)
     from simready_bench.execution_health import ExecutionHealth
     health = ExecutionHealth(output)
     health.require_dispatch(allowed_pending, workers)
     expected = condition_plan(manifest)
-    index = ReportIndex(output, manifest, on_report)
+    index = None
     client = None
     state_path = output / "coordinator-state.json"
     retry_policy = {
@@ -556,6 +639,48 @@ def coordinate_daytona(
             client = _daytona_client()
         return client
 
+    def cleanup_held_batch(batch, selected, identities, reason):
+        pending = [attempts_store.get(batch.name + '/' + identity) for identity in identities]
+        pending = [row for row in pending if row['cleanup'] != 'deleted']
+        if not pending or any(time.time() < row['evidence'].get('cleanup_retry_after', 0) for row in pending):
+            return
+        permitted = True
+        for row in pending:
+            deadline = row['evidence'].get('cleanup_deadline_at', time.time() + 600)
+            attempts_store.update(row['attempt_id'], evidence={
+                'cleanup_deadline_at': deadline,
+                'cleanup_retry_after': time.time() + retry_delay_seconds})
+            allowed = attempts_store.retry(row['attempt_id'], 'cleanup',
+                maximum_retries=3, deadline_at=deadline)
+            permitted = allowed and permitted
+        if not permitted:
+            return
+        from simready_bench.daytona import contain_executor
+        try:
+            proof = contain_executor(selected, policy=policy, output_dir=batch,
+                client=get_client(), reason=reason)
+        except Exception as cleanup_error:
+            proof_path = batch / 'collection-hold.json'
+            proof = _read(proof_path) if proof_path.is_file() else {}
+            for row in pending:
+                attempts_store.update(row['attempt_id'],
+                    evidence={'cleanup_error_type': type(cleanup_error).__name__})
+        if proof.get('executor_deleted') is True and proof.get('sandbox_id'):
+            for row in pending:
+                attempts_store.release(row['attempt_id'], proof)
+
+    def hold_batch(batch, error, reason):
+        stop_event.set()
+        identities = list(condition_plan(batches[batch]))
+        for identity in identities:
+            attempt_id = batch.name + '/' + identity
+            attempts_store.lease(identity, attempt_id, str(output))
+            attempts_store.update(attempt_id, phase='held', infrastructure='held',
+                evidence={'failure_phase': 'collection', 'error_type': type(error).__name__,
+                    'hold_reason': reason, 'infrastructure_hold': getattr(error, 'infrastructure_hold', None)})
+        cleanup_held_batch(batch, batches[batch], identities, reason)
+        save('collection_held')
+
     def save(status):
         state.update(
             status=status,
@@ -569,6 +694,10 @@ def coordinate_daytona(
 
     def execute(batch):
         selected = batches[batch]
+        for identity in condition_plan(selected):
+            attempt_id = batch.name + '/' + identity
+            attempts_store.lease(identity, attempt_id, str(output))
+            attempts_store.update(attempt_id, phase='preparing')
 
         def callback(report, **_):
             return index.add(batch, report)
@@ -582,6 +711,8 @@ def coordinate_daytona(
                 on_report=callback,
                 stop_requested=stop_event.is_set,
             )
+        if set(condition_plan(selected)) & attempts_store.snapshot()['measurements'].keys():
+            raise ValueError('A measured reconstruction cannot create another executor without its saved delivery')
         selected_policy = _read(batch / "operator.json")
         return run_daytona(
             selected,
@@ -598,6 +729,16 @@ def coordinate_daytona(
         )
 
     try:
+        held = [row for row in attempts_store.snapshot()['attempts'] if row['infrastructure'] == 'held']
+        if held:
+            for batch in _batches(output):
+                rows = [row for row in held if row['attempt_id'].startswith(batch.name + '/')]
+                if rows:
+                    selected = manifest if batch == output else _read(batch / 'experiment.json')
+                    cleanup_held_batch(batch, selected, [row['condition_id'] for row in rows],
+                        rows[0]['evidence'].get('hold_reason', 'collection_integrity_failure'))
+            raise RecoveryLimitReached('Collection or observation is held with retained evidence')
+        index = ReportIndex(output, manifest, on_report)
         while True:
             active = set(futures.values())
             owned = set()
@@ -616,6 +757,24 @@ def coordinate_daytona(
                 ):
                     raise ValueError("A saved executor changes the original matrix")
                 batches[batch] = selected
+                observed_delivery = _read(batch / 'daytona-delivery.json') if (batch / 'daytona-delivery.json').is_file() else {}
+                if (batch not in finished and observed_delivery.get('cleanup_confirmed')
+                        and observed_delivery.get('collection') in ('completed', 'lost', 'not_started')):
+                    _retire(batch, _reports(batch), policy=policy, manifest=manifest, client=get_client())
+                for identity in condition_plan(selected):
+                    attempt_id = batch.name + '/' + identity
+                    retirement_path = batch / 'retirement.json'
+                    retired = _read(retirement_path) if retirement_path.is_file() else None
+                    if retired and not (retired.get('executor_deleted') is True and retired.get('sandbox_id')):
+                        retired = None
+                    if observed_delivery.get('cleanup_confirmed') and retired is None:
+                        continue
+                    attempts_store.lease(identity, attempt_id, str(output), retirement=retired)
+                    delivery = batch / 'daytona-delivery.json'
+                    if delivery.is_file():
+                        observed = _read(delivery)
+                        if observed.get('sandbox_id'):
+                            attempts_store.update(attempt_id, evidence={'sandbox_id': observed['sandbox_id']})
                 delivery_path = batch / "daytona-delivery.json"
                 if (
                     delivery_path.exists()
@@ -625,7 +784,13 @@ def coordinate_daytona(
                     state["dispatches"].setdefault(
                         batch.name, list(condition_plan(selected))
                     )
-            index.backfill(batches)
+            try:
+                index.backfill(batches)
+            except (ValueError, TypeError) as error:
+                failed_batch = getattr(error, '_simready_batch', None)
+                for candidate in ([failed_batch] if failed_batch in batches else list(batches)):
+                    hold_batch(candidate, error, 'collection_integrity_failure')
+                raise RecoveryLimitReached('Collection integrity failed with retained evidence') from error
             observations = _health_observations(batches)
             if health.observe(observations, active=bool(futures)):
                 stop_event.set()
@@ -648,6 +813,9 @@ def coordinate_daytona(
                         client=get_client(),
                     )
                     proof = _read(batch / "retirement.json")
+                    if proof.get('executor_deleted') is True and proof.get('sandbox_id'):
+                        for identity in condition_plan(selected):
+                            attempts_store.release(batch.name + '/' + identity, proof)
                     index.closed.update(proof.get("terminal_unadmitted_conditions", []))
                     for identity in proof.get("admitted_conditions", []):
                         attempts = admitted_attempts.setdefault(identity, set())
@@ -671,18 +839,11 @@ def coordinate_daytona(
                             )
                     finished.add(batch)
                     continue
-                if (
-                    batch not in active
-                    and batch.name in state["dispatches"]
-                    and delivery is None
-                ):
-                    finished.add(batch)
-                    continue
                 identities = set(condition_plan(selected))
                 if owned & identities:
                     raise ValueError("Two active executors own the same reconstruction")
                 owned.update(identities)
-            pending = set(expected) - index.closed - owned - blocked
+            pending = set(expected) - index.closed - owned - blocked - attempts_store.snapshot()['measurements'].keys()
             if allowed_pending is not None:
                 pending &= set(allowed_pending)
             exhausted_admitted = {
@@ -733,7 +894,7 @@ def coordinate_daytona(
                 for identity in pending
                 if time.time() >= state["condition_not_before"].get(identity, 0)
             }
-            if ready and available and dispatch_pending and not stop_event.is_set():
+            if ready and available and dispatch_pending and not stop_event.is_set() and not index.publication_held:
                 requests, dollars = _remaining(policy, manifest)
                 budget = manifest["defaults"]["budgets"]
                 capacity = requests // budget["inference_requests"]
@@ -792,15 +953,17 @@ def coordinate_daytona(
             save("running")
             report = index.aggregate()
             if not futures:
-                if not pending or not dispatch_pending or stop_event.is_set():
+                if not pending or not dispatch_pending or stop_event.is_set() or index.publication_held:
                     break
                 time.sleep(min(1, maximum_retry_delay_seconds))
                 continue
             done, _ = wait(futures, timeout=1, return_when=FIRST_COMPLETED)
             for future in done:
                 batch = futures.pop(future)
+                completed = False
                 try:
                     future.result()
+                    completed = True
                 except Exception as error:
                     errors.append(error)
                     count = state["observation_failures"].get(batch.name, 0) + 1
@@ -809,9 +972,23 @@ def coordinate_daytona(
                         maximum_retry_delay_seconds,
                         retry_delay_seconds * 2 ** min(count - 1, 10),
                     )
+                    identities = list(condition_plan(batches[batch]))
+                    deadline = state.setdefault('observation_deadlines', {}).setdefault(
+                        batch.name, time.time() + 600)
+                    integrity = isinstance(error, (ValueError, TypeError))
+                    retry = not integrity
+                    retry_phase = 'observation' if isinstance(error, DaytonaObservationError) else 'collection'
+                    for identity in identities:
+                        attempt_id = batch.name + '/' + identity
+                        attempts_store.lease(identity, attempt_id, str(output))
+                        retry = attempts_store.retry(attempt_id, retry_phase, maximum_retries=max_retries,
+                            deadline_at=deadline) and retry
+                    if not retry:
+                        hold_batch(batch, error, 'collection_integrity_failure' if integrity else 'collection_retries_exhausted')
+                        raise RecoveryLimitReached('Collection exhausted its bounded recovery policy') from error
                     if isinstance(error, DaytonaObservationError):
                         raise
-                if not (batch / "daytona-delivery.json").exists():
+                if completed and not (batch / "daytona-delivery.json").exists():
                     finished.add(batch)
                     blocked.update(set(condition_plan(batches[batch])) - index.closed)
         report = index.aggregate(final=True)
@@ -873,9 +1050,9 @@ def coordinate_daytona(
             save("interrupted")
             raise
         try:
-            report = index.aggregate()
+            report = index.aggregate() if index is not None else None
         except Exception:
-            report = index.result
+            report = index.result if index is not None else None
         if report is not None:
             error.result = {
                 **(getattr(error, "result", None) or {}),
@@ -889,7 +1066,7 @@ def coordinate_daytona(
             }
         save(
             "publication_pending"
-            if index.publication_pending
+            if index is not None and index.publication_pending
             else (
                 "observation_pending"
                 if isinstance(error, DaytonaObservationError)
@@ -898,7 +1075,8 @@ def coordinate_daytona(
         )
         raise
     finally:
-        index.detached = True
+        if index is not None:
+            index.detached = True
         pool.shutdown(wait=not interrupted)
         with _observer_guard:
             if _live_observers.get(str(output)) is pool and not any(
