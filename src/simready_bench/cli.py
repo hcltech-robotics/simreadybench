@@ -5,6 +5,16 @@ import sys
 from pathlib import Path
 
 
+def _positive_integer(value):
+    try:
+        result = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be a positive integer") from None
+    if result < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return result
+
+
 def main(argv=None):
     raw_arguments = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(prog="simready-bench")
@@ -40,11 +50,10 @@ def main(argv=None):
     )
     command.add_argument(
         "--workers",
-        type=int,
-        choices=range(1, 17),
+        type=_positive_integer,
         default=1,
-        metavar="1..16",
-        help="Number of simultaneous Daytona workers",
+        metavar="N",
+        help="Positive number of simultaneous Daytona workers within your allocation",
     )
     command.add_argument(
         "--reasoning", choices=("low", "medium", "high", "xhigh", "max")

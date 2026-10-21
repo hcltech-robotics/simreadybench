@@ -25,7 +25,8 @@ def manifest():
     )
 
 
-def test_partition_preserves_conditions_seeds_and_scientific_settings():
+@pytest.mark.parametrize("workers", [8, 25])
+def test_partition_preserves_conditions_seeds_and_scientific_settings(workers):
     original = manifest()
     original_copy = copy.deepcopy(original)
     first = original["assets"][0]["id"]
@@ -34,7 +35,7 @@ def test_partition_preserves_conditions_seeds_and_scientific_settings():
         for asset in original["assets"]
     }
     expected = resume.condition_plan(original)
-    shards = parallel.partition_manifest(original, 8)
+    shards = parallel.partition_manifest(original, workers)
     joined = {}
     for shard in shards:
         conditions = resume.condition_plan(shard)
@@ -48,15 +49,25 @@ def test_partition_preserves_conditions_seeds_and_scientific_settings():
     assert sum(len(resume.condition_plan(shard)) * 2.5 for shard in shards) == 97 * 2.5
 
 
+def test_25_workers_partition_the_full_nv25_matrix_without_overlapping_conditions():
+    selected = manifest()
+    expected = resume.condition_plan(selected)
+    shards = parallel.partition_manifest(selected, 25)
+    identities = [identity for shard in shards for identity in resume.condition_plan(shard)]
+    assert len(shards) == 25
+    assert len(identities) == len(set(identities)) == 100
+    assert set(identities) == set(expected)
+
+
 def test_partition_can_parallelise_repetitions_of_one_asset():
     selected = manifest()
     selected["assets"] = selected["assets"][:1]
     assert len(parallel.partition_manifest(selected, 16)) == 4
 
 
-@pytest.mark.parametrize("workers", [0, 17, True, 1.5, "4", None])
+@pytest.mark.parametrize("workers", [-1, 0, True, False, 1.5, "4", None])
 def test_invalid_worker_limits(workers):
-    with pytest.raises(ValueError, match="integer between 1 and 16"):
+    with pytest.raises(ValueError, match="positive integer"):
         parallel.partition_manifest(manifest(), workers)
 
 

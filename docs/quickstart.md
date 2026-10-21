@@ -40,7 +40,7 @@ simready-bench benchmark nvidia-25 \
 
 Pi receives the reference image, brief and dimensions for each reconstruction, then authors the USD with validator feedback. The default accounting allowance covers the permitted requests at full native provider capacity. `--max-spend-usd AMOUNT` adds a separate monetary ceiling. Completed reconstructions are exported during the run, and the Daytona executor is removed after collection.
 
-`--workers` selects one to 16 Daytona workers within your organisation's allocation. Each worker uses a separate sandbox and Harbor environment, and completed reconstructions enter the same report.
+`--workers` selects a positive number of Daytona workers within your organisation's CPU, memory and disk allocation. Each worker uses a separate sandbox and Harbor environment, and completed reconstructions enter the same report.
 
 Open `../simreadybench-results/report.html` to compare scores and captures. `../simreadybench-results/scores.csv` contains the score table and `../simreadybench-results/results.json` contains the structured readout. The report links each attempt's generated asset, validator report and Harbor trace. See [reporting](reporting.md) for the output layout.
 

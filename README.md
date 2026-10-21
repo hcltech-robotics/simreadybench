@@ -54,7 +54,7 @@ simready-bench benchmark nvidia-25 --model gpt-6.1-sol --harness pi --deploy loc
 
 The standard NV25 command runs four reconstructions per asset, giving 100 attempts with up to 64 authoring turns each. Open `report.html` in the output directory to inspect scores and aligned captures. `scores.csv` contains the score table and `results.json` contains the structured measurements and trace links. Completed reconstructions enter the report during the run.
 
-`--workers` selects one to 16 Daytona workers. Transient asset downloads retry automatically, failed workers are replaced without waiting for the others and `--supervise` restarts an interrupted coordinator using the saved run. Completed conditions and admitted attempts retain their original identities and authoring limits. To publish completed readouts during evaluation, set `HF_TOKEN` and add `--hf-repo YOUR_ACCOUNT/simreadybench-results --hf-run RUN_ID`.
+`--workers` selects a positive number of Daytona workers within your organisation's CPU, memory and disk allocation. Transient asset downloads retry automatically, failed workers are replaced without waiting for the others and `--supervise` restarts an interrupted coordinator using the saved run. Completed conditions and admitted attempts retain their original identities and authoring limits. To publish completed readouts during evaluation, set `HF_TOKEN` and add `--hf-repo YOUR_ACCOUNT/simreadybench-results --hf-run RUN_ID`.
 
 For built-in providers, the default accounting allowance covers every permitted request at the provider's full native capacity. `allowance.json` records its derivation. Add `--max-spend-usd AMOUNT` to impose a separate monetary ceiling, or supply an operator policy with an existing allowance.
 

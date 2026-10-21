@@ -23,6 +23,7 @@ from simready_bench.engine.native_output import (
     authoring_protocol,
     authoring_seconds,
 )
+from simready_bench.parallel import validate_workers
 
 
 def _absolute(path):
@@ -1194,8 +1195,7 @@ def benchmark(
         raise ValueError("Dispatch pending must be a boolean")
     if not dispatch_pending and not resume:
         raise ValueError("Collecting existing executors requires resume")
-    if type(workers) is not int or not 1 <= workers <= 16:
-        raise ValueError("Workers must be an integer between 1 and 16")
+    validate_workers(workers)
     if deploy == "local" and workers > 1:
         raise ValueError("Parallel workers require Daytona deployment")
     if resume:

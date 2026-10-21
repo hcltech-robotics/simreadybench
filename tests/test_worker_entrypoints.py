@@ -9,7 +9,7 @@ from simready_bench import benchmark as workflow
 from simready_bench.cli import main
 
 
-@pytest.mark.parametrize("workers", [None, 4])
+@pytest.mark.parametrize("workers", [None, 4, 25])
 def test_cli_passes_worker_count_with_resume(tmp_path, monkeypatch, workers):
     seen = []
 
@@ -38,7 +38,7 @@ def test_cli_passes_worker_count_with_resume(tmp_path, monkeypatch, workers):
     assert seen[0]["maximum_retry_delay_seconds"] == 60
 
 
-@pytest.mark.parametrize("value", ["0", "17", "2.5"])
+@pytest.mark.parametrize("value", ["-1", "0", "2.5", "true"])
 def test_cli_rejects_invalid_worker_count_before_dispatch(tmp_path, monkeypatch, value):
     def unexpected(*args, **kwargs):
         raise AssertionError("Invalid worker count reached benchmark dispatch")
@@ -61,10 +61,10 @@ def test_cli_rejects_invalid_worker_count_before_dispatch(tmp_path, monkeypatch,
     assert error.value.code == 2
 
 
-@pytest.mark.parametrize("workers", [False, 0, 17, 2.0, "2", None])
+@pytest.mark.parametrize("workers", [False, True, -1, 0, 2.0, "2", None])
 def test_api_rejects_invalid_worker_count_without_preparing_run(tmp_path, workers):
     output = tmp_path / "unallocated"
-    with pytest.raises(ValueError, match="Workers must be an integer"):
+    with pytest.raises(ValueError, match="Workers must be a positive integer"):
         workflow.benchmark(
             model="gpt-6.1-sol",
             deploy="daytona",
@@ -87,8 +87,9 @@ def test_local_parallel_workers_are_rejected_before_preparation(tmp_path, resume
     assert not output.exists()
 
 
+@pytest.mark.parametrize("workers", [8, 25])
 def test_resume_receives_worker_count_without_recomposing_experiment(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, workers
 ):
     from simready_bench import resume
 
@@ -106,13 +107,13 @@ def test_resume_receives_worker_count_without_recomposing_experiment(
             model="gpt-6.1-sol",
             deploy="daytona",
             output_dir=tmp_path,
-            workers=8,
+            workers=workers,
             resume=True,
         )
         is sentinel
     )
     assert observed[0][0] == "NV25"
-    assert observed[0][1]["workers"] == 8
+    assert observed[0][1]["workers"] == workers
     assert observed[0][1]["max_retries"] == 2
 
 

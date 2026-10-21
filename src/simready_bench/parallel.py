@@ -15,8 +15,8 @@ _held_roots = ContextVar("simready_coordinator_roots", default=())
 
 
 def validate_workers(workers):
-    if type(workers) is not int or not 1 <= workers <= 16:
-        raise ValueError("Workers must be an integer between 1 and 16")
+    if type(workers) is not int or workers < 1:
+        raise ValueError("Workers must be a positive integer")
     return workers
 
 
