@@ -42,7 +42,7 @@ validator = [
   "MaterialX==1.39.5",
 ]
 daytona = ["daytona==0.225.0"]
-publish = ["huggingface-hub==1.33.0", "matplotlib==3.11.2"]
+publish = ["huggingface-hub==1.33.0", "matplotlib==3.11.2", "pyarrow==26.0.0"]
 test = ["pytest==9.1.1"]
 
 [tool.setuptools]

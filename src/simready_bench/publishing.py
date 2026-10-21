@@ -12,7 +12,6 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import tempfile
-from urllib.parse import quote
 
 import yaml
 
@@ -33,7 +32,8 @@ from .reporting import (
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}\Z")
 _PROFILE = {"id": "Robotics-Prop", "version": "4.0.0"}
 _MAX_JSON = 128 * 1024**2
-_VIEWER_SCHEMA = "simreadybench-viewer-index/v2"
+_VIEWER_SCHEMA = "simreadybench-viewer-index/v3"
+_CSV_VIEWER_SCHEMA = "simreadybench-viewer-index/v2"
 _LEGACY_VIEWER_SCHEMA = "simreadybench-viewer-index/v1"
 _VIEWER_AXES = (
     "by_model", "by_harness", "by_skills", "by_reference_set",
@@ -67,6 +67,38 @@ def _viewer_features(columns):
 
 def _viewer_schema_digest(columns):
     return hashlib.sha256(json.dumps(_viewer_features(columns), sort_keys=True).encode()).hexdigest()
+
+
+def _viewer_parquet(records, columns):
+    """Store image bytes and explicitly typed nullable measurements together."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    features = _viewer_features(columns)
+    types = {"int64": pa.int64(), "float64": pa.float64(), "string": pa.string(),
+             "image": pa.struct([("bytes", pa.binary()), ("path", pa.string())])}
+    metadata = {feature["name"]: (
+        {"_type": "Image"} if feature["dtype"] == "image" else
+        {"_type": "Value", "dtype": feature["dtype"]}
+    ) for feature in features}
+    schema = pa.schema([(feature["name"], types[feature["dtype"]]) for feature in features],
+                       metadata={b"huggingface": json.dumps({"info": {"features": metadata}}).encode()})
+    converted = []
+    for record in records:
+        current = {}
+        for feature in features:
+            name, dtype = feature["name"], feature["dtype"]
+            value = record.get(name, "")
+            if dtype in ("int64", "float64"):
+                value = None if value == "" else int(value) if dtype == "int64" else float(value)
+                if value is not None and not math.isfinite(value):
+                    raise ValueError("Viewer measurements must be finite or missing")
+            current[name] = value
+        converted.append(current)
+    stream = pa.BufferOutputStream()
+    pq.write_table(pa.Table.from_pylist(converted, schema=schema), stream, compression="zstd",
+                   row_group_size=100, write_page_index=True)
+    return stream.getvalue().to_pybytes()
 
 
 class PublicationError(RuntimeError):
@@ -508,9 +540,10 @@ def _viewer_index(value):
         "columns": _viewer_columns([]), "schema_sha256": _viewer_schema_digest(_viewer_columns([])),
     }
     legacy = isinstance(index, dict) and index.get("schema") == _LEGACY_VIEWER_SCHEMA
+    extension = ".parquet" if isinstance(index, dict) and index.get("schema") == _VIEWER_SCHEMA else ".csv"
     keys = {"schema", "runs", "splits"} | (set() if legacy else {"columns", "schema_sha256"})
     if (
-        not isinstance(index, dict) or index.get("schema") not in (_VIEWER_SCHEMA, _LEGACY_VIEWER_SCHEMA)
+        not isinstance(index, dict) or index.get("schema") not in (_VIEWER_SCHEMA, _CSV_VIEWER_SCHEMA, _LEGACY_VIEWER_SCHEMA)
         or set(index) != keys
         or not isinstance(index.get("runs"), dict)
         or not isinstance(index.get("splits"), dict)
@@ -542,7 +575,7 @@ def _viewer_index(value):
         if (
             set(run) != ({"scores", "groups"} if legacy else {"scores", "viewer_scores", "groups"})
             or run.get("scores") != "runs/" + run_id + "/scores.csv"
-            or not legacy and run.get("viewer_scores") != "viewer/" + run_id + "/scores.csv"
+            or not legacy and run.get("viewer_scores") != "viewer/" + run_id + "/scores" + extension
             or not isinstance(run.get("groups"), dict)
             or set(run["groups"]) != set(_VIEWER_AXES)
         ):
@@ -557,7 +590,7 @@ def _viewer_index(value):
                     or group.get("split") not in index["splits"][axis].values()
                     or group.get("path") not in (
                         run["scores"] if legacy else run["viewer_scores"],
-                        "viewer/" + run_id + "/" + axis + "/" + str(group.get("split")) + ".csv",
+                        "viewer/" + run_id + "/" + axis + "/" + str(group.get("split")) + extension,
                     )
                 ):
                     raise ValueError("A viewer group must use its owned score source")
@@ -622,8 +655,8 @@ def _manifest_reasoning(row, manifest):
     return generation.get("reasoning_effort")
 
 
-def _viewer_captures(row, run_id, repo_id):
-    """Select a shared camera from the published comparison captures."""
+def _viewer_captures(row, run_id, image_reader):
+    """Embed a shared camera from the published comparison captures."""
     captures = {role: {} for role in ("reference", "candidate")}
     for item in row.get("images", []):
         view = str(item.get("view", "")).lower().split(" / ")
@@ -636,23 +669,36 @@ def _viewer_captures(row, run_id, repo_id):
     if not available:
         available = set(captures["reference"]) | set(captures["candidate"])
     camera = next((view for view in ("isometric", "front", "side", "top") if view in available), "")
-    result = {"reference_image": "", "candidate_image": "", "capture_view": camera}
-    if camera and (not isinstance(repo_id, str) or not re.fullmatch(r"[\w.-]+/[\w.-]+", repo_id)):
-        raise ValueError("A dataset repository identifier is required for viewer images")
+    result = {"reference_image": None, "candidate_image": None, "capture_view": camera}
+    if camera and not callable(image_reader):
+        raise ValueError("An image reader is required to embed viewer captures")
     for role in captures:
         item = captures[role].get(camera)
         if item:
             path = _relative(item["path"])
             if path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
                 raise ValueError("Unsupported viewer capture format")
-            result[role + "_image"] = (
-                "hf://datasets/" + repo_id + "@main/"
-                + quote("runs/" + run_id + "/evidence/" + path.as_posix(), safe="/")
-            )
+            raw = image_reader("runs/" + run_id + "/evidence/" + path.as_posix())
+            if not isinstance(raw, bytes) or not raw or len(raw) > 32 * 1024**2:
+                raise ValueError("Viewer captures require non-empty image bytes no larger than 32 MiB")
+            if ("bytes" in item and item["bytes"] != len(raw)
+                or "sha256" in item and item["sha256"] != hashlib.sha256(raw).hexdigest()):
+                raise ValueError("A viewer capture differs from its published evidence")
+            from PIL import Image
+
+            try:
+                with Image.open(io.BytesIO(raw)) as image:
+                    expected = {".png": "PNG", ".jpg": "JPEG", ".jpeg": "JPEG", ".webp": "WEBP"}
+                    if image.format != expected[path.suffix.lower()]:
+                        raise ValueError("A viewer capture format differs from its file extension")
+                    image.verify()
+            except OSError as error:
+                raise ValueError("A viewer capture must contain a valid image") from error
+            result[role + "_image"] = {"bytes": raw, "path": path.name}
     return result
 
 
-def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None):
+def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None, image_reader=None):
     """Normalise one run to the shared viewer schema without changing its source.
 
     Schema expansion with retained runs requires ``build_viewer_dataset`` so
@@ -702,7 +748,7 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None)
         for field in ("requested_model", "harness_id", "skill_set_id", "asset_id"):
             if field in record and record[field] != str(row.get(field) or ""):
                 raise ValueError("A viewer score row changes its public factor identity")
-        record.update(_viewer_captures(row, run_id, repo_id))
+        record.update(_viewer_captures(row, run_id, image_reader))
         factors = {
             "by_model": row.get("requested_model"),
             "by_harness": row.get("harness_id"),
@@ -716,15 +762,11 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None)
             identity = json.dumps(value, ensure_ascii=True, sort_keys=True)
             grouped[axis].setdefault(identity, []).append(record)
     score_path = "runs/" + run_id + "/scores.csv"
-    viewer_path = "viewer/" + run_id + "/scores.csv"
+    viewer_path = "viewer/" + run_id + "/scores.parquet"
     groups, shards = {}, {}
 
     def encoded(selected):
-        stream = io.StringIO(newline="")
-        writer = csv.DictWriter(stream, fieldnames=canonical, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(selected)
-        return stream.getvalue().encode("utf-8")
+        return _viewer_parquet(selected, canonical)
 
     shards[viewer_path] = encoded(records)
     for axis, values in grouped.items():
@@ -733,19 +775,20 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None)
             split = _viewer_split(index, axis, json.loads(identity))
             path = viewer_path
             if len(values) > 1:
-                path = "viewer/" + run_id + "/" + axis + "/" + split + ".csv"
+                path = "viewer/" + run_id + "/" + axis + "/" + split + ".parquet"
                 shards[path] = encoded(records)
             groups[axis].append({"split": split, "path": path})
     index["runs"][run_id] = {"scores": score_path, "viewer_scores": viewer_path, "groups": groups}
     return index, shards
 
 
-def build_viewer_dataset(sources, *, index=None, repo_id=None):
+def build_viewer_dataset(sources, *, index=None, repo_id=None, image_reader=None):
     """Build schema-compatible viewer files from all retained raw run sources.
 
     ``sources`` maps run identifiers to ``(public_readout, score_csv)`` pairs.
     The returned files are confined to ``viewer/``. Original run artefacts and
-    measurements are read only, including during v1 index migration.
+    measurements are read only, including during index migration. ``image_reader``
+    returns the bytes of a capture from its repository-relative evidence path.
     """
     previous = _viewer_index(index)
     if not isinstance(sources, dict) or not set(previous["runs"]) <= sources.keys():
@@ -767,7 +810,8 @@ def build_viewer_dataset(sources, *, index=None, repo_id=None):
     }
     shards = {}
     for run_id, (readout, raw) in sorted(sources.items()):
-        updated, current = build_viewer_update(run_id, readout, raw, index=updated, repo_id=repo_id)
+        updated, current = build_viewer_update(run_id, readout, raw, index=updated,
+                                             repo_id=repo_id, image_reader=image_reader)
         shards.update(current)
     return updated, shards
 
@@ -803,7 +847,7 @@ def render_viewer_card(existing, index):
         if name in index["runs"] and _data_paths(original.get("data_files")) == [index["runs"][name]["scores"]]:
             continue
         if name in managed:
-            if metadata.get("simreadybench_viewer") not in (1, 2):
+            if metadata.get("simreadybench_viewer") not in (1, 2, 3):
                 raise ValueError("A managed viewer name conflicts with an existing manual configuration")
             continue
         config = deepcopy(original)
@@ -823,7 +867,7 @@ def render_viewer_card(existing, index):
             generated.append({"config_name": axis, "features": _viewer_features(index["columns"]), "data_files": [
                 {"split": split, "path": sorted(paths)} for split, paths in sorted(groups.items())
             ]})
-    metadata.update(configs=generated + configs, simreadybench_viewer=2)
+    metadata.update(configs=generated + configs, simreadybench_viewer=3)
     return "---\n" + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False) + "---\n" + body
 
 
@@ -992,7 +1036,16 @@ class HuggingFacePublisher:
             rows.append(row)
         return sorted(rows, key=lambda row: self.expected[row["condition_id"]])
 
-    def _viewer_update(self, existing, public, score_csv, revision):
+    def _viewer_update(self, existing, public, score_csv, revision, stage):
+        def image_reader(name):
+            target = stage.joinpath(*_relative(name).parts)
+            if target.is_file():
+                return target.read_bytes()
+            retained = self._download(name, revision)
+            if retained is None:
+                raise ValueError("A retained viewer capture requires its published evidence")
+            return retained.read_bytes()
+
         retained = self._download("viewer-index.json", revision)
         index = _viewer_index(_json(retained) if retained else None)
         retained_ids = set(index["runs"])
@@ -1010,7 +1063,8 @@ class HuggingFacePublisher:
                     legacy_ids.add(run_id)
         if index["schema"] == _VIEWER_SCHEMA and not legacy_ids:
             try:
-                return build_viewer_update(self.run_id, public, score_csv, index=index, repo_id=self.repo_id)
+                return build_viewer_update(self.run_id, public, score_csv, index=index,
+                                           repo_id=self.repo_id, image_reader=image_reader)
             except ViewerRebuildRequired:
                 pass
         sources = {self.run_id: (public, score_csv)}
@@ -1020,7 +1074,7 @@ class HuggingFacePublisher:
             if readout is None or scores is None:
                 raise ValueError("A retained viewer run requires its original score table and readout")
             sources[run_id] = (_json(readout), scores.read_bytes())
-        return build_viewer_dataset(sources, index=index, repo_id=self.repo_id)
+        return build_viewer_dataset(sources, index=index, repo_id=self.repo_id, image_reader=image_reader)
 
     def __call__(self, report, *, final=False):
         source = Path(
@@ -1089,7 +1143,7 @@ class HuggingFacePublisher:
                 )
                 card = self._download("README.md", info.sha)
                 existing = card.read_text(encoding="utf-8") if card else ""
-                index, shards = self._viewer_update(existing, public, (run_stage / "scores.csv").read_bytes(), info.sha)
+                index, shards = self._viewer_update(existing, public, (run_stage / "scores.csv").read_bytes(), info.sha, stage)
                 for name, raw in shards.items():
                     target = stage.joinpath(*_relative(name).parts)
                     target.parent.mkdir(parents=True, exist_ok=True)
