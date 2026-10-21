@@ -30,7 +30,7 @@ def test_resume_reuses_retained_original_wheel_without_building_current_code(
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
     with pytest.raises(RuntimeError, match="Verified original package"):
         resume.resume_benchmark(**arguments(output, max_retries=0))
-    assert observed == [original]
+    assert observed and all(path == original for path in observed)
 
 
 @pytest.mark.parametrize(

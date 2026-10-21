@@ -895,7 +895,7 @@ def _collect_live_reports(
     _notify_report(on_report, report, record, save=save)
 
 
-def _monitor_executor(sandbox, record, output, *, save, on_report=None):
+def _monitor_executor(sandbox, record, output, *, save, on_report=None, stop_requested=None):
     """Observe the original session or trusted controller status without restarting it."""
     from simready_bench.controller_runner import forward_telemetry
 
@@ -905,6 +905,10 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
     guarded = health.get("schema") == EXECUTOR_HEALTH_SCHEMA
     last_activity = record.get("last_activity_at", time.time())
     while True:
+        if stop_requested is not None and stop_requested():
+            _stop_stalled_executor(sandbox, record, output,
+                reason="inference_transport_circuit_open", save=save)
+            return
         observed = False
         command_id = record.get("command_id")
         if command_id:
@@ -1423,7 +1427,7 @@ def _lost_executor_result(manifest, output, record, *, on_report, save):
     return {**result, "report": report, "deployment": record}
 
 
-def reconnect_daytona(manifest, *, policy, output_dir, client=None, on_report=None):
+def reconnect_daytona(manifest, *, policy, output_dir, client=None, on_report=None, stop_requested=None):
     """Monitor and collect the saved executor without allocating or restarting work."""
     from daytona.common.errors import DaytonaNotFoundError
 
@@ -1523,7 +1527,7 @@ def reconnect_daytona(manifest, *, policy, output_dir, client=None, on_report=No
         )
     try:
         if record.get("collection") != "completed":
-            _monitor_executor(sandbox, record, output, save=save, on_report=on_report)
+            _monitor_executor(sandbox, record, output, save=save, on_report=on_report, stop_requested=stop_requested)
             _collect_executor(sandbox, record, output, clean=clean, save=save)
         else:
             controller = output / "daytona-executor/controller-status.json"
@@ -1569,6 +1573,7 @@ def run_daytona(
     cpu_snapshot=None,
     runtime_images=None,
     on_report=None,
+    stop_requested=None,
 ):
     """Run the full matrix remotely, retain its report and remove the executor."""
     from daytona import (
@@ -1891,7 +1896,7 @@ def run_daytona(
             status="running", session_name="simready-benchmark", command_id=child.cmd_id
         )
         save()
-        _monitor_executor(sandbox, record, output, save=save, on_report=on_report)
+        _monitor_executor(sandbox, record, output, save=save, on_report=on_report, stop_requested=stop_requested)
         collect()
         result = _collected_result(manifest, output, record, clean=clean)
         if record["status"] != "completed":

@@ -54,6 +54,15 @@ def test_stalled_running_controller_is_stopped_before_collection(monkeypatch, tm
     assert proof["sandbox_id"] == record["sandbox_id"]
 
 
+def test_open_circuit_stops_the_owned_worker_before_further_observation(monkeypatch, tmp_path):
+    sandbox, record, commands, _ = monitor_fixture(monkeypatch, tmp_path, stale=False)
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None,
+        stop_requested=lambda: True)
+    assert record['termination_reason'] == 'inference_transport_circuit_open'
+    assert record['terminal_confirmed'] is True
+    assert any('docker kill' in command for command in commands)
+
+
 def test_stale_running_status_cannot_hide_a_dead_controller(monkeypatch, tmp_path):
     sandbox, record, commands, _ = monitor_fixture(monkeypatch, tmp_path, running=False, exit_code=137)
     daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)

@@ -135,6 +135,9 @@ def frozen_wheel(output, supplied=None):
         digest = _read(path).get("wheel_sha256")
         if digest is not None:
             remember(digest)
+    if (output / 'executor-repair.json').exists():
+        from .executor_repair import repaired_wheel
+        return repaired_wheel(output, hashes, supplied)
     if len(hashes) > 1:
         raise ValueError("Saved executions have conflicting evaluator wheel identities")
     expected = next(iter(hashes), None)

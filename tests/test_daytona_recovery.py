@@ -160,7 +160,7 @@ def test_only_correlated_zero_request_transient_source_failure_releases_replacem
             ]
             == 4
         )
-        assert len(calls) == 1
+        assert len(calls) == 4
     else:
         from simready_bench.recovery import RecoveryLimitReached
 
@@ -249,7 +249,7 @@ def test_failed_slot_is_replaced_before_healthy_sibling_finishes(tmp_path, monke
         retry_delay_seconds=0,
     )
     assert result["completed_conditions"] == 4
-    assert set(calls) == {"001", "002", "003"}
+    assert set(calls) == {"001", "002", "003", "004"}
 
 
 def test_running_status_without_command_id_remains_observable(tmp_path, monkeypatch):

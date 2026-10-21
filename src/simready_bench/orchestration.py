@@ -509,6 +509,11 @@ def coordinate_daytona(
         pool = _Observers()
         _live_observers[str(output)] = pool
     interrupted = False
+    from simready_bench.execution_health import ExecutionHealth
+    health = ExecutionHealth(output)
+    stop_event = threading.Event()
+    if health.opened:
+        stop_event.set()
 
     def get_client():
         nonlocal client
@@ -540,6 +545,7 @@ def coordinate_daytona(
                 output_dir=batch,
                 client=get_client(),
                 on_report=callback,
+                stop_requested=stop_event.is_set,
             )
         selected_policy = _read(batch / "operator.json")
         return run_daytona(
@@ -553,6 +559,7 @@ def coordinate_daytona(
             cpu_snapshot=cpu_snapshot,
             runtime_images=runtime_images,
             on_report=callback,
+            stop_requested=stop_event.is_set,
         )
 
     try:
@@ -584,6 +591,14 @@ def coordinate_daytona(
                         batch.name, list(condition_plan(selected))
                     )
             index.backfill(batches)
+            observations = []
+            for batch in batches:
+                for _, _, report in report_sources(batch):
+                    observations.extend({'attempt_id': batch.name + '/' + row['condition_id'],
+                        'status': row.get('status')} for row in report.get('results', []))
+            if health.observe(observations, active=bool(futures)):
+                stop_event.set()
+                state['health_circuit'] = dict(health.state)
             for batch, selected in batches.items():
                 if batch in finished:
                     continue
@@ -671,6 +686,8 @@ def coordinate_daytona(
                     break
                 if batch in finished or batch in active:
                     continue
+                if stop_event.is_set() and not (batch / "daytona-delivery.json").exists():
+                    continue
                 if time.time() < state["not_before"].get(batch.name, 0):
                     continue
                 if not (batch / "daytona-delivery.json").exists():
@@ -685,7 +702,7 @@ def coordinate_daytona(
                 for identity in pending
                 if time.time() >= state["condition_not_before"].get(identity, 0)
             }
-            if ready and available and dispatch_pending:
+            if ready and available and dispatch_pending and not stop_event.is_set():
                 requests, dollars = _remaining(policy, manifest)
                 budget = manifest["defaults"]["budgets"]
                 capacity = requests // budget["inference_requests"]
@@ -711,7 +728,7 @@ def coordinate_daytona(
                             len(admitted_attempts.get(identity, ())),
                             identity,
                         ),
-                    )[:capacity]
+                    )[:min(capacity, available)]
                 )
                 selected = copy.deepcopy(manifest)
                 selected["reconstruction_selection"] = {
@@ -744,7 +761,7 @@ def coordinate_daytona(
             save("running")
             report = index.aggregate()
             if not futures:
-                if not pending or not dispatch_pending:
+                if not pending or not dispatch_pending or stop_event.is_set():
                     break
                 time.sleep(min(1, maximum_retry_delay_seconds))
                 continue
@@ -777,6 +794,11 @@ def coordinate_daytona(
             },
             "exhausted_conditions": copy.deepcopy(state["blocked_conditions"]),
         }
+        if health.opened:
+            save("infrastructure_circuit_open")
+            error = RecoveryLimitReached("Execution health circuit open: " + health.state['reason'])
+            error.result = result
+            raise error
         if index.publication_pending:
             error = DaytonaObservationError(
                 "Retained results await publication, so resume without repeating authoring"

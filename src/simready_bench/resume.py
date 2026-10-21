@@ -411,6 +411,7 @@ def _executor_terminal_proof(batch, delivery):
         or proof["controller_exit"] != delivery.get("controller_exit")
         or proof.get("reason") not in {
             "executor_stalled", "executor_deadline_exceeded", "controller_exited",
+            "inference_transport_circuit_open",
         }
         or proof["reason"] != delivery.get("termination_reason")
         or proof.get("all_containers_stopped") is not True

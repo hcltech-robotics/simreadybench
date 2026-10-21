@@ -29,10 +29,14 @@ class _Peer(asyncio.Protocol):
         if self.front.transport is None or self.front.closed:
             transport.close()
         else:
+            if self.front.pending:
+                transport.write(self.front.pending)
+                self.front.pending.clear()
             self.front.transport.resume_reading()
 
     def data_received(self, data):
         if not self.front.closed:
+            self.front.touch()
             self.front.transport.write(data)
 
     def pause_writing(self):
@@ -54,8 +58,17 @@ class _Front(asyncio.Protocol):
         self.peer = None
         self.task = None
         self.closed = False
+        self.pending = bytearray()
+        self.timer = None
+        self.touch()
+
+    def touch(self):
+        if self.closed:
+            return
+        if self.timer is not None:
+            self.timer.cancel()
         self.timer = asyncio.get_running_loop().call_later(
-            server.connection_timeout, self.finish
+            self.server.connection_timeout, self.finish
         )
 
     def connection_made(self, transport):
@@ -76,8 +89,15 @@ class _Front(asyncio.Protocol):
             self.finish()
 
     def data_received(self, data):
-        if self.peer and self.peer.transport and not self.closed:
+        if self.closed:
+            return
+        self.touch()
+        if self.peer and self.peer.transport:
             self.peer.transport.write(data)
+        elif len(self.pending) + len(data) <= 262144:
+            # TCP may deliver an already queued read after pause_reading().
+            # Retain that bounded first packet until the Unix peer connects.
+            self.pending.extend(data)
         else:
             self.finish()
 
@@ -99,6 +119,7 @@ class _Front(asyncio.Protocol):
 
     def abort(self):
         self.closed = True
+        self.pending.clear()
         if self.transport:
             self.transport.abort()
         if self.peer and self.peer.transport:
@@ -111,6 +132,7 @@ class _Front(asyncio.Protocol):
         if self.closed:
             return
         self.closed = True
+        self.pending.clear()
         self.timer.cancel()
         if self.transport:
             self.transport.close()
@@ -141,7 +163,7 @@ class RelayServer:
         ):
             raise ValueError("Valid fixed loopback relay limits required")
         if not 0 < connection_timeout <= 3600:
-            raise ValueError("Bounded relay lifetime required")
+            raise ValueError("Bounded relay idle timeout required")
         self.port = port
         self.max_connections = max_connections
         self.connection_timeout = connection_timeout
