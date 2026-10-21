@@ -169,6 +169,28 @@ def test_unknown_or_unpinned_routes_never_qualify():
     )
 
 
+def test_glm_flash_reserves_full_context_and_pins_its_provider():
+    from simready_bench.benchmark import native_run_allowance
+    from simready_bench.engine.hf_pricing import (
+        hf_upper_cost_micro_usd, validate_catalog_route,
+    )
+
+    model = "zai-org/GLM-5.3-Flash:baseten"
+    doc = catalog()
+    row = doc["data"][0]
+    row["id"] = "zai-org/GLM-5.3-Flash"
+    provider = row["providers"][0]
+    provider.update(provider="baseten", context_length=1048576,
+                    pricing={"input": 0.15, "output": 0.50})
+    assert validate_catalog_route(doc, model).model == model
+    assert hf_upper_cost_micro_usd(model, 8192, native_output_limits=True) == 161383
+    assert native_run_allowance(model, provider="huggingface", conditions=3,
+                                authoring_turns=64, max_output_tokens=8192) == 30.985536
+    provider["provider"] = "deepinfra"
+    with pytest.raises(cost.CostDenied, match="hf_pricing_route_unavailable"):
+        validate_catalog_route(doc, model)
+
+
 def test_context_evidence_stale_or_rebound_is_rejected(tmp_path):
     cfg = config()
     payload = {"model": MODEL, "messages": [], "max_tokens": 4096}
