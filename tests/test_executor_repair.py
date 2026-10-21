@@ -8,6 +8,45 @@ from simready_bench.executor_repair import approve_executor_repair
 from simready_bench.recovery import frozen_wheel
 
 
+def test_appended_repair_retains_and_verifies_every_previous_approval(tmp_path):
+    original = wheel(tmp_path / 'original.whl')
+    first = wheel(tmp_path / 'first.whl', transport=b'first repair')
+    second = wheel(tmp_path / 'second.whl', transport=b'second repair')
+    approve_executor_repair(tmp_path, original, first, reason='First verified repair')
+    approval = (tmp_path / 'executor-repair.json').read_bytes()
+    approve_executor_repair(tmp_path, original, second, reason='Second verified repair', append=True)
+    assert (tmp_path / 'executor-repair.json').read_bytes() == approval
+    for number, path in enumerate((original, first, second)):
+        (tmp_path / f'parallel-plan-{number}.json').write_text(json.dumps({
+            'wheel_sha256': hashlib.sha256(path.read_bytes()).hexdigest()}))
+    assert frozen_wheel(tmp_path, original) == second
+    assert frozen_wheel(tmp_path, first) == second
+    first.write_bytes(b'changed previous runtime')
+    with pytest.raises(ValueError):
+        frozen_wheel(tmp_path)
+
+
+def test_pricing_retry_repair_cannot_change_pins_or_validation():
+    from simready_bench.executor_repair import _pricing_fetch_only
+    from simready_bench.engine import hf_pricing
+    import inspect
+
+    current = inspect.getsource(hf_pricing)
+    start = current.index('async def fetch_hf_route(')
+    helper = current.index('async def _fetch_hf_route_once(')
+    original = (current[:start].replace('import asyncio\n', '')
+                + current[helper:].replace('async def _fetch_hf_route_once(', 'async def fetch_hf_route(', 1))
+    original = original.replace('    duration = min(20, deadline_at - time.time())',
+        '    if model not in HF_PRICING:\n        _deny("hf_cost_model_not_authorized")\n'
+        '    duration = min(20, deadline_at - time.time())', 1)
+    _pricing_fetch_only(original.encode(), current.encode())
+    for changed in (current.replace('"0.20"', '"0.01"'),
+                    current.replace('route["status"] != "live"', 'False'),
+                    current.replace('allow_redirects=False', 'allow_redirects=True')):
+        with pytest.raises(ValueError, match='protected HF pricing'):
+            _pricing_fetch_only(original.encode(), changed.encode())
+
+
 def wheel(path, *, transport=b'original', evaluator=b'frozen evaluator'):
     with zipfile.ZipFile(path, 'w') as archive:
         archive.writestr('simready_bench/engine/actor_relay.py', transport)

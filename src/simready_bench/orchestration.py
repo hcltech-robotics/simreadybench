@@ -495,6 +495,9 @@ def coordinate_daytona(
 
     validate_recovery(max_retries, retry_delay_seconds, maximum_retry_delay_seconds)
     output = Path(os.path.abspath(output_dir))
+    from simready_bench.execution_health import ExecutionHealth
+    health = ExecutionHealth(output)
+    health.require_dispatch(allowed_pending, workers)
     expected = condition_plan(manifest)
     index = ReportIndex(output, manifest, on_report)
     client = None
@@ -543,8 +546,6 @@ def coordinate_daytona(
         pool = _Observers()
         _live_observers[str(output)] = pool
     interrupted = False
-    from simready_bench.execution_health import ExecutionHealth
-    health = ExecutionHealth(output)
     stop_event = threading.Event()
     if health.opened:
         stop_event.set()
