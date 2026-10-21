@@ -62,6 +62,56 @@ def _executor_relay_state(sandbox):
     return counts, failure
 
 
+_GATEWAY_FAILURE_PROBE = '''import json,pathlib,sqlite3
+count=0
+failure=None
+for path in pathlib.Path('/dev/shm/bench').rglob('inference-gateway.sqlite3'):
+    count+=1
+    if count>128:
+        raise ValueError('Too many gateway databases')
+    with sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=1) as db:
+        row=db.execute("""SELECT substr(record,1,65537) FROM requests
+            WHERE (json_extract(record,'$.status')='transport_failed'
+                AND json_extract(record,'$.error_code') IN
+                    ('upstream_stream_incomplete','upstream_transport_error'))
+                OR (json_extract(record,'$.status')='completed'
+                    AND json_extract(record,'$.upstream_status')>=400)
+            ORDER BY rowid LIMIT 1""").fetchone()
+    if row:
+        if len(row[0])>65536:
+            raise ValueError('Gateway failure record exceeds its size limit')
+        record=json.loads(row[0])
+        failure={key:record[key] for key in ('gateway_request_id','status',
+            'error_code','upstream_status','observed_upstream_status',
+            'upstream_condition_requests','partial_response_bytes',
+            'observed_provider_finish_reasons','observed_provider_response_statuses')
+            if key in record}
+        break
+print(json.dumps({'databases':count,'failure':failure},ensure_ascii=True))
+'''
+
+
+def _executor_gateway_failure(sandbox, *, generation_requests):
+    """Read final transport outcomes from controller-owned gateway databases."""
+    raw = _executor_command(
+        sandbox,
+        "docker exec -i simready-benchmark-controller python - <<'PY'\n"
+        + _GATEWAY_FAILURE_PROBE + "PY",
+        clean=lambda _: "Gateway observation failed", timeout=20,
+    )
+    if len(raw) > 65536:
+        raise ValueError("The gateway observation exceeds its size limit")
+    value = json.loads(raw)
+    if type(value.get("databases")) is not int or not 0 <= value["databases"] <= 128:
+        raise ValueError("Invalid gateway database count")
+    if generation_requests and not value["databases"]:
+        raise ValueError("An admitted generation has no observable gateway database")
+    failure = value.get("failure")
+    if failure is not None and not isinstance(failure, dict):
+        raise ValueError("Invalid gateway failure observation")
+    return failure
+
+
 def _stop_stalled_executor(sandbox, record, output, *, reason, save, exit_code=137):
     """Stop the owned executor before collecting a stalled attempt and retrying."""
     _executor_command(
@@ -992,15 +1042,35 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None, stop_req
                     if transport_failure is not None:
                         record["provider_transport_failure"] = transport_failure
                         save()
+                    if activity != record.get("activity_counters"):
+                        record.update(activity_counters=activity, last_activity_at=time.time())
+                        last_activity = record["last_activity_at"]
+                        save()
+                try:
+                    gateway_failure = _executor_gateway_failure(
+                        sandbox, generation_requests=record.get("activity_counters", [0])[0],
+                    )
+                except Exception as error:
+                    record["gateway_observation_failures"] = record.get("gateway_observation_failures", 0) + 1
+                    record["gateway_observation_error"] = type(error).__name__
+                    save()
+                    if record["gateway_observation_failures"] >= 12:
+                        _stop_stalled_executor(
+                            sandbox, record, output, reason="executor_stalled", save=save,
+                        )
+                        return
+                else:
+                    record["gateway_observation_failures"] = 0
+                    record.pop("gateway_observation_error", None)
+                    if gateway_failure is not None:
+                        record["gateway_transport_failure"] = gateway_failure
+                        save()
                         _stop_stalled_executor(
                             sandbox, record, output,
                             reason="inference_transport_circuit_open", save=save,
                         )
                         return
-                    if activity != record.get("activity_counters"):
-                        record.update(activity_counters=activity, last_activity_at=time.time())
-                        last_activity = record["last_activity_at"]
-                        save()
+                    save()
                 try:
                     state = json.loads(_executor_command(sandbox, "docker inspect --format '{{json .State}}' simready-benchmark-controller", clean=str))
                     if state.get("Status") in ("exited", "dead") and state.get("Running") is False and type(state.get("ExitCode")) is int:

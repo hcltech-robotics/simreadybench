@@ -1,5 +1,7 @@
 """Bound detached or stalled cloud workers without replacing live ownership."""
 import json
+from pathlib import Path
+import sqlite3
 from types import SimpleNamespace
 
 import pytest
@@ -8,7 +10,7 @@ from simready_bench import daytona
 
 
 def monitor_fixture(monkeypatch, tmp_path, *, stale=True, running=True, exit_code=0,
-                    relay_events=()):
+                    relay_events=(), gateway_failure=None):
     clock = [10000.0]
     record = {
         "sandbox_id": "saved-sandbox", "run_id": "saved-run",
@@ -21,6 +23,8 @@ def monitor_fixture(monkeypatch, tmp_path, *, stale=True, running=True, exit_cod
 
     def execute(command, **kwargs):
         commands.append(command)
+        if "inference-gateway.sqlite3" in command:
+            return SimpleNamespace(exit_code=0, result=json.dumps({"databases": 1, "failure": gateway_failure}))
         if "docker inspect" in command:
             return SimpleNamespace(exit_code=0, result=json.dumps({"Running": running, "Status": "running" if running else "exited", "ExitCode": exit_code}))
         return SimpleNamespace(exit_code=0, result="simready-containers-stopped")
@@ -74,6 +78,7 @@ def test_truncated_provider_stream_stops_live_worker_for_native_collection(monke
     }
     sandbox, record, commands, _ = monitor_fixture(
         monkeypatch, tmp_path, stale=False, relay_events=[failure],
+        gateway_failure={"status": "transport_failed", "error_code": "upstream_stream_incomplete"},
     )
     record["condition_retry_counts"] = {"saved-condition": 2}
     daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
@@ -85,6 +90,31 @@ def test_truncated_provider_stream_stops_live_worker_for_native_collection(monke
     assert record["activity_counters"] == [1, 0]
     assert any("docker kill" in command for command in commands)
     assert (tmp_path / "executor-terminal-proof.json").is_file()
+
+
+def test_clean_provider_eof_is_stopped_from_authoritative_gateway_failure(monkeypatch, tmp_path):
+    sandbox, record, commands, _ = monitor_fixture(
+        monkeypatch, tmp_path, stale=False, relay_events=[{"status": "completed"}],
+        gateway_failure={"status": "transport_failed", "error_code": "upstream_stream_incomplete"},
+    )
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert record["gateway_transport_failure"]["error_code"] == "upstream_stream_incomplete"
+    assert record["termination_reason"] == "inference_transport_circuit_open"
+    assert any("docker kill" in command for command in commands)
+
+
+def test_relay_disconnect_after_terminal_gateway_response_is_not_failure(monkeypatch, tmp_path):
+    sandbox, record, commands, _ = monitor_fixture(
+        monkeypatch, tmp_path, stale=False,
+        relay_events=[{"status": "transport_error", "error_type": "IncompleteRead"}],
+    )
+    outcomes = iter([None, 0])
+    sandbox.process.get_session_command = lambda *a, **k: SimpleNamespace(exit_code=next(outcomes))
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert record["controller_exit"] == 0
+    assert record["provider_transport_failure"]["error_type"] == "IncompleteRead"
+    assert "gateway_transport_failure" not in record
+    assert not any("docker kill" in command for command in commands)
 
 
 @pytest.mark.parametrize("status", ["admitted", "completed", "retryable_rejection", "client_disconnected"])
@@ -105,12 +135,56 @@ def test_failed_transport_stop_is_not_swallowed_as_an_observation_error(monkeypa
     sandbox, record, _, _ = monitor_fixture(
         monkeypatch, tmp_path, stale=False,
         relay_events=[{"status": "transport_error", "error_type": "IncompleteRead"}],
+        gateway_failure={"status": "transport_failed", "error_code": "upstream_transport_error"},
     )
-    sandbox.process.exec = lambda *a, **k: SimpleNamespace(exit_code=1, result="stop failed")
+    original = sandbox.process.exec
+    sandbox.process.exec = lambda command, **k: (
+        SimpleNamespace(exit_code=1, result="stop failed") if "docker kill" in command
+        else original(command, **k)
+    )
     with pytest.raises(RuntimeError, match="stop failed"):
         daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
     assert record["provider_transport_failure"]["error_type"] == "IncompleteRead"
     assert not record.get("terminal_confirmed")
+
+
+def test_gateway_observation_failure_has_a_finite_persisted_limit(monkeypatch, tmp_path):
+    sandbox, record, commands, _ = monitor_fixture(monkeypatch, tmp_path, stale=False)
+    original = sandbox.process.exec
+    sandbox.process.exec = lambda command, **k: (
+        SimpleNamespace(exit_code=1, result="unavailable") if "inference-gateway.sqlite3" in command
+        else original(command, **k)
+    )
+    record["gateway_observation_failures"] = 11
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert record["gateway_observation_failures"] == 12
+    assert record["termination_reason"] == "executor_stalled"
+    assert record["gateway_observation_error"] == "RuntimeError"
+    assert any("docker kill" in command for command in commands)
+
+
+@pytest.mark.parametrize("record,failed", [
+    ({"status": "transport_failed", "error_code": "upstream_stream_incomplete"}, True),
+    ({"status": "transport_failed", "error_code": "upstream_transport_error"}, True),
+    ({"status": "completed", "upstream_status": 413}, True),
+    ({"status": "completed", "upstream_status": 502}, True),
+    ({"status": "completed", "upstream_status": 200, "provider_finish_reasons": ["stop"]}, False),
+    ({"status": "cancelled", "observed_upstream_status": 200}, False),
+    ({"status": "transport_failed", "error_code": "inference_budget_exhausted"}, False),
+    ({"status": "admitted"}, False),
+])
+def test_gateway_probe_uses_terminal_transport_outcomes_only(monkeypatch, tmp_path, capsys, record, failed):
+    database = tmp_path / "inference-gateway.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE requests (record TEXT)")
+        connection.execute("INSERT INTO requests VALUES (?)", (json.dumps(record),))
+    monkeypatch.setattr(Path, "rglob", lambda self, pattern: iter([database]))
+    exec(daytona._GATEWAY_FAILURE_PROBE, {})
+    observed = json.loads(capsys.readouterr().out)
+    assert observed["databases"] == 1
+    assert (observed["failure"] is not None) is failed
+    if failed:
+        assert observed["failure"]["status"] == record["status"]
 
 
 def test_stale_running_status_cannot_hide_a_dead_controller(monkeypatch, tmp_path):
