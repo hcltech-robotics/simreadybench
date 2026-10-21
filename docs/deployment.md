@@ -14,7 +14,7 @@ simready-bench setup daytona --output ../simreadybench-runtime.json
 
 Setup imports the immutable public container image recorded in the installed release and saves its actor, verifier and CPU image identities together with the organisation snapshot name. Its default name includes the runtime version. A matching active snapshot is reused when setup is repeated. Use `--snapshot NAME` to choose a different name if an existing snapshot belongs to another runtime.
 
-The import uses two CPUs, 12 GiB of memory and 10 GiB of disk by default. Each actor has a 4 GiB memory limit. Four concurrent executors use 48 GiB of sandbox memory in total. `--cpu`, `--memory` and `--disk` select resources when creating a new snapshot, while `--timeout` selects its import timeout in seconds. Setup rejects an existing snapshot whose resources are below the requested values, so use a new `--snapshot NAME` when increasing memory. Use `--release-manifest PATH` to select another published release manifest with its pinned public image and matching internal image identities.
+The import uses two CPUs, 8 GiB of memory and 10 GiB of disk by default. Each actor has a 4 GiB memory limit. Eight concurrent executors use 64 GiB of sandbox memory in total. `--cpu`, `--memory` and `--disk` select resources when creating a new snapshot, while `--timeout` selects its import timeout in seconds. Setup rejects an existing snapshot whose resources are below the requested values, so use a new `--snapshot NAME` when increasing memory. Use `--release-manifest PATH` to select another published release manifest with its pinned public image and matching internal image identities.
 
 An operator policy can set `runtime.container_resources` with explicit `cpus` and `memory_mb` values for the actor. Daytona passes these bounds to the executor without changing the controller, validation or rendering limits.
 
@@ -24,7 +24,7 @@ The snapshot contains Docker, actor and verifier images, the validator environme
 simready-bench benchmark nvidia-25 \
   --model gpt-6.1-sol --harness pi --deploy daytona --repetitions 4 \
   --runtime-images ../simreadybench-runtime.json \
-  --authoring-turns 64 --workers 4 --supervise --output-dir ../simreadybench-results
+  --authoring-turns 64 --workers 8 --supervise --output-dir ../simreadybench-results
 ```
 
 The benchmark installs its package in each executor, executes the reconstruction tasks and collects their reports before deleting the executor.

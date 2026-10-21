@@ -100,7 +100,7 @@ def _save_mapping(target, mapping):
         temporary.unlink(missing_ok=True)
 
 
-def setup_daytona(*, output, release_manifest=None, snapshot=None, cpu=2, memory=12, disk=10, timeout=600):
+def setup_daytona(*, output, release_manifest=None, snapshot=None, cpu=2, memory=8, disk=10, timeout=600):
     """Import or reuse a matching active snapshot and save its runtime mapping."""
     release = load_release(release_manifest)
     name = snapshot or "simready-bench-cpu-" + release["version"].replace("+", "-")

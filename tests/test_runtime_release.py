@@ -100,8 +100,8 @@ def test_setup_imports_pinned_outer_image_and_writes_loadable_mapping(tmp_path, 
     assert load_images(output) == {**release()["images"], "snapshot": first["snapshot"]}
     params, timeout = service.created[0]
     assert params.image == release()["snapshot_image"]
-    assert (params.resources.cpu, params.resources.memory, params.resources.disk) == (2, 12, 10)
-    assert first["resources"] == {"cpu": 2, "memory": 12, "disk": 10}
+    assert (params.resources.cpu, params.resources.memory, params.resources.disk) == (2, 8, 10)
+    assert first["resources"] == {"cpu": 2, "memory": 8, "disk": 10}
     assert timeout == 600
     original = output.read_bytes()
     again = runtime.setup_daytona(output=output, release_manifest=source)
@@ -203,7 +203,7 @@ def test_setup_refuses_reuse_of_an_undersized_snapshot(tmp_path, service, resour
     name = "simready-bench-cpu-1.0.0"
     selected = SimpleNamespace(
         id="old-snapshot", name=name, image_name=release()["snapshot_image"],
-        state="active", cpu=2, mem=12, disk=10,
+        state="active", cpu=2, mem=8, disk=10,
     )
     setattr(selected, resource, available)
     service.values[name] = selected
@@ -283,7 +283,7 @@ def test_setup_cli_dispatches_without_requiring_a_model_or_benchmark(monkeypatch
     ]) == 0
     assert calls[0]["release_manifest"] == Path("release.json")
     assert calls[0]["snapshot"] == "team-runtime"
-    assert calls[0]["memory"] == 12
+    assert calls[0]["memory"] == 8
     assert "Snapshot ready: team-runtime" in capsys.readouterr().out
 
 
