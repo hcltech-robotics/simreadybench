@@ -303,6 +303,22 @@ def test_partial_publication_keeps_only_scientific_completed_readouts(publicatio
     assert (report / "original/asset.usda").is_file()
 
 
+def test_publication_retains_reconstructed_usage_provenance(publication):
+    manifest, _, hub, row, save = publication
+    value = row()
+    value["inference_cost_kind"] = "pricing-derived inference cost"
+    value["usage_reconstruction"] = {
+        "schema": "simreadybench-usage-reconstruction/v1",
+        "canonical_run_id": "model-evaluation",
+        "gateway_records_sha256": "a" * 64,
+        "pricing_derived_cost_complete": True,
+    }
+    HuggingFacePublisher("team/results", "model-evaluation", manifest, api=hub)(save([value]))
+    actual = json.loads(hub.files["runs/model-evaluation/results.json"])["results"][0]
+    assert actual["inference_cost_kind"] == value["inference_cost_kind"]
+    assert actual["usage_reconstruction"] == value["usage_reconstruction"]
+
+
 def test_usage_columns_reach_published_json_csv_and_main_table(publication):
     import csv
     import io

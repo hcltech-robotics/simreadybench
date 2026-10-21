@@ -277,7 +277,7 @@ def _section(board):
                 "",
                 "### Efficiency",
                 "",
-                "Efficiency is the mean fidelity divided by mean resource use per eligible reconstruction. Token efficiency uses total input and output tokens, while time efficiency uses elapsed reconstruction time, including model requests, tools and evaluation. Each ratio uses the same eligible reconstructions for its score and resource means, with joint asset-cluster bootstrap intervals.",
+                "Efficiency is the mean fidelity divided by mean resource use per eligible reconstruction. Token efficiency uses total input and output tokens, while time efficiency uses elapsed reconstruction time, including model requests, tools and evaluation. Cost efficiency uses pricing-derived inference cost in USD, with compute cost reported separately. Each ratio uses the same eligible reconstructions for its score and resource means, with joint asset-cluster bootstrap intervals.",
                 "",
                 "| Configuration | Formal points/1M tokens | Visual points/1M tokens | Kinematic points/1M tokens |",
                 "| --- | ---: | ---: | ---: |",
@@ -325,12 +325,35 @@ def _section(board):
                 "",
                 "![Formal, visual and kinematic fidelity points per elapsed minute with 95% confidence intervals.](media/leaderboard-time-efficiency.png)",
                 "",
+                "| Configuration | Formal points/USD inference | Visual points/USD inference | Kinematic points/USD inference |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
+        for entry in ordered:
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        _condition(entry),
+                        *(
+                            _efficiency(entry, name, "per_inference_usd")
+                            for name in ("formal", "visual", "kinematic")
+                        ),
+                    ]
+                )
+                + " |"
+            )
+        lines.extend(
+            [
+                "",
+                "![Formal, visual and kinematic fidelity points per USD of pricing-derived inference cost with 95% confidence intervals.](media/leaderboard-inference-cost-efficiency.png)",
+                "",
                 "### Resource use",
                 "",
                 "Means per reconstruction across all 100 attempts. Partial measurement coverage is shown in place of a mean. Full precision and eligible-attempt coverage are retained in [leaderboard.json](leaderboard.json).",
                 "",
-                "| Configuration | Total tokens | Elapsed minutes | Model requests | Cost (USD) |",
-                "| --- | ---: | ---: | ---: | ---: |",
+                "| Configuration | Total tokens | Elapsed minutes | Model requests | Pricing-derived inference cost (USD) | Compute cost (USD) | Total cost (USD) |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         for entry in ordered:
@@ -342,6 +365,8 @@ def _section(board):
                         _usage(entry, "total_tokens"),
                         _usage(entry, "elapsed_seconds", 60),
                         _usage(entry, "inference_calls_used"),
+                        _usage(entry, "inference_cost_usd"),
+                        _usage(entry, "compute_cost_usd"),
                         _usage(entry, "total_cost_usd"),
                     ]
                 )

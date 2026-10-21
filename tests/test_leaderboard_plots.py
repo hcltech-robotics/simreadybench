@@ -34,6 +34,10 @@ def board():
                             "value": 10,
                             "confidence_interval": {"lower": 8, "upper": 13},
                         },
+                        "per_inference_usd": {
+                            "value": 100,
+                            "confidence_interval": {"lower": 80, "upper": 130},
+                        },
                     }
                     for name in ("formal", "visual", "kinematic")
                 },
@@ -48,6 +52,7 @@ def test_figures_are_real_pngs_with_stable_publication_paths():
         "media/leaderboard-scores.png",
         "media/leaderboard-token-efficiency.png",
         "media/leaderboard-time-efficiency.png",
+        "media/leaderboard-inference-cost-efficiency.png",
     }
     for content in figures.values():
         with Image.open(BytesIO(content)) as image:
@@ -73,4 +78,4 @@ def test_old_entries_and_missing_metrics_do_not_invent_resource_values():
         "status": "not_applicable",
     }
     figures = render_leaderboard_plots(legacy)
-    assert len(figures) == 3
+    assert len(figures) == 4

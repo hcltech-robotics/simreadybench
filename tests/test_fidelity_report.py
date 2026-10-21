@@ -4,6 +4,76 @@ import pytest
 from simready_bench.reporting import export_report
 
 
+def test_usage_falls_back_from_null_and_preserves_recorded_totals():
+    from simready_bench.reporting import usage_columns
+
+    values = usage_columns({
+        "input_tokens": None,
+        "output_tokens": 0,
+        "total_tokens": 900,
+        "total_cost_usd": 7.5,
+        "statistics": {
+            "input_tokens": 120,
+            "output_tokens": 50,
+            "inference_cost_usd": 3,
+        },
+    })
+    assert values["input_tokens"] == 120
+    assert values["output_tokens"] == 0
+    assert values["total_tokens"] == 900
+    assert values["inference_cost_usd"] == 3
+    assert values["compute_cost_usd"] is None
+    assert values["total_cost_usd"] == 7.5
+    unavailable = usage_columns({"input_tokens": 120, "inference_cost_usd": 3})
+    assert unavailable["total_tokens"] is None
+    assert unavailable["total_cost_usd"] is None
+
+
+def test_export_retains_usage_statistics_and_reconstruction_provenance(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    provenance = {
+        "schema": "usage-reconstruction/v1",
+        "run_id": "retained-run",
+        "source_sha256": "a" * 64,
+        "cached_tokens": 100,
+    }
+    report = export_report(
+        work,
+        tmp_path / "report",
+        results={
+            "schema": "simready-bench-matrix-result-v1",
+            "results": [{
+                "condition_id": "retained",
+                "input_tokens": None,
+                "inference_cost_usd": None,
+                "usage_reconstruction": provenance,
+                "inference_cost_kind": "pricing-derived inference cost",
+                "statistics": {
+                    "input_tokens": 120,
+                    "output_tokens": 30,
+                    "total_tokens": 150,
+                    "inference_cost_usd": 0.25,
+                    "model_request_seconds": 5,
+                },
+            }],
+        },
+    )
+    row = json.loads(Path(report["results"]).read_text())["results"][0]
+    assert row["input_tokens"] == 120
+    assert row["output_tokens"] == 30
+    assert row["total_tokens"] == 150
+    assert row["inference_cost_usd"] == 0.25
+    assert row["compute_cost_usd"] is None
+    assert row["total_cost_usd"] is None
+    assert row["model_request_seconds"] == 5
+    assert row["usage_reconstruction"] == provenance
+    assert row["inference_cost_kind"] == "pricing-derived inference cost"
+    scores = list(csv.DictReader(Path(report["scores"]).open()))
+    assert scores[0]["input_tokens"] == "120"
+    assert scores[0]["inference_cost_usd"] == "0.25"
+
+
 def test_missing_candidate_surface_distances_remain_unmeasured(tmp_path):
     work = tmp_path / "work"
     work.mkdir()

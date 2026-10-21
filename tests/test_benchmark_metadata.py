@@ -212,6 +212,7 @@ def test_intervals_efficiency_and_resource_coverage_are_readable():
         "formal": {
             "per_million_tokens": {"value": 117.12, "confidence_interval": interval},
             "per_elapsed_minute": {"value": 3.14},
+            "per_inference_usd": {"value": 12.5},
         }
     }
     item["usage"] = {
@@ -230,6 +231,9 @@ def test_intervals_efficiency_and_resource_coverage_are_readable():
     assert "media/leaderboard-scores.png" in rendered
     assert "media/leaderboard-token-efficiency.png" in rendered
     assert "media/leaderboard-time-efficiency.png" in rendered
+    assert "media/leaderboard-inference-cost-efficiency.png" in rendered
+    assert "Pricing-derived inference cost (USD) | Compute cost (USD) | Total cost (USD)" in rendered
+    assert "12.50" in rendered
 
 
 def test_publication_bundle_includes_the_figures_referenced_by_the_card(monkeypatch):
@@ -237,6 +241,7 @@ def test_publication_bundle_includes_the_figures_referenced_by_the_card(monkeypa
         "media/leaderboard-scores.png": b"scores",
         "media/leaderboard-token-efficiency.png": b"tokens",
         "media/leaderboard-time-efficiency.png": b"time",
+        "media/leaderboard-inference-cost-efficiency.png": b"cost",
     }
     authoritative = board(entry())
     original = deepcopy(authoritative)

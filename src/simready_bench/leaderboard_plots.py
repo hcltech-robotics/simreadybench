@@ -21,6 +21,12 @@ PLOTS = (
         "Fidelity points per elapsed minute",
         "per_elapsed_minute",
     ),
+    (
+        "inference-cost-efficiency",
+        "Pricing-derived inference cost efficiency",
+        "Fidelity points per USD of pricing-derived inference cost",
+        "per_inference_usd",
+    ),
 )
 
 

@@ -15,7 +15,11 @@ def measurements(values=(10, 20, 30)):
         for repetition in range(4):
             rows.append({"asset_id": str(asset), "repetition": repetition})
             parts.append({"eligible": 1, "score_percent": value})
-            usage.append({"total_tokens": value * 1000, "elapsed_seconds": value * 2})
+            usage.append({
+                "total_tokens": value * 1000,
+                "elapsed_seconds": value * 2,
+                "inference_cost_usd": value / 100,
+            })
     return (
         rows,
         {"formal": parts},
@@ -40,9 +44,13 @@ def test_asset_clusters_preserve_all_repetitions_and_pair_resource_ratios():
     assert interval["upper"] == 30
     assert composites["formal"]["score"] == 20
     assert data[2] == {"formal": {"score": 20}}
-    for name, expected in (("per_million_tokens", 1000), ("per_elapsed_minute", 30)):
+    for name, expected in (
+        ("per_million_tokens", 1000),
+        ("per_elapsed_minute", 30),
+        ("per_inference_usd", 100),
+    ):
         metric = efficiency["formal"][name]
-        assert metric["value"] == expected
+        assert metric["value"] == pytest.approx(expected)
         assert metric["confidence_interval"]["lower"] == pytest.approx(expected)
         assert metric["confidence_interval"]["upper"] == pytest.approx(expected)
         assert metric["eligible_attempts"] == metric["measured_attempts"] == 12
@@ -94,6 +102,26 @@ def test_missing_resource_keeps_coverage_and_unknown_efficiency():
     assert efficiency["formal"]["per_elapsed_minute"]["value"] == 30
 
 
+def test_inference_cost_efficiency_excludes_compute_and_requires_complete_coverage():
+    data = measurements()
+    for usage in data[3]:
+        usage["compute_cost_usd"] = None
+        usage["total_cost_usd"] = None
+    _, efficiency = summary(data)
+    cost = efficiency["formal"]["per_inference_usd"]
+    assert cost["value"] == pytest.approx(100)
+    assert cost["denominator_mean"] == pytest.approx(0.2)
+    assert "pricing-derived inference cost" in cost["unit"]
+    data[3][0]["inference_cost_usd"] = None
+    _, efficiency = summary(data)
+    cost = efficiency["formal"]["per_inference_usd"]
+    assert cost["value"] is None
+    assert cost["confidence_interval"] is None
+    assert cost["measured_attempts"] == 11
+    assert cost["denominator_mean"] is None
+    assert efficiency["formal"]["per_million_tokens"]["value"] == 1000
+
+
 @pytest.mark.parametrize("score", [None, float("nan")])
 def test_missing_score_never_gets_a_confidence_interval_or_efficiency(score):
     data = measurements()
@@ -117,7 +145,7 @@ def test_single_cluster_has_no_claimed_sampling_interval():
 def test_zero_resource_means_do_not_make_infinite_efficiency():
     data = measurements()
     for usage in data[3]:
-        usage.update(total_tokens=0, elapsed_seconds=0)
+        usage.update(total_tokens=0, elapsed_seconds=0, inference_cost_usd=0)
     _, efficiency = summary(data)
     for metric in efficiency["formal"].values():
         assert metric["value"] is None

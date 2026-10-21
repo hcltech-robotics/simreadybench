@@ -431,6 +431,8 @@ def _stage_row(row, source, stage):
             "seed",
             "scoring_policy_id",
             "official_conformance_passed",
+            "inference_cost_kind",
+            "usage_reconstruction",
         )
         if key in row
     }

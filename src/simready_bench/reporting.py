@@ -131,18 +131,18 @@ def usage_columns(condition):
     statistics = condition.get("statistics")
     statistics = statistics if isinstance(statistics, dict) else {}
     values = {
-        field: _usage_number(field, condition.get(field, statistics.get(field)))
+        field: _usage_number(
+            field,
+            condition[field] if condition.get(field) is not None else statistics.get(field),
+        )
         for field in USAGE_FIELDS
     }
     for target, parts in (
         ("total_tokens", ("input_tokens", "output_tokens")),
         ("total_cost_usd", ("inference_cost_usd", "compute_cost_usd")),
     ):
-        values[target] = (
-            _usage_number(target, sum(values[part] for part in parts))
-            if all(values[part] is not None for part in parts)
-            else None
-        )
+        if values[target] is None and all(values[part] is not None for part in parts):
+            values[target] = _usage_number(target, sum(values[part] for part in parts))
     return values
 
 
@@ -266,7 +266,12 @@ def _statistics(condition):
         else None,
         "compute_cost_usd": condition.get("compute_cost_usd"),
     }
-    return requests, {**summary, **usage_columns({**condition, "statistics": summary})}
+    retained = condition.get("statistics")
+    retained = dict(retained) if isinstance(retained, dict) else {}
+    for field, value in summary.items():
+        if retained.get(field) is None:
+            retained[field] = value
+    return requests, {**retained, **usage_columns({**condition, "statistics": retained})}
 
 
 def compact_report(value):
@@ -309,6 +314,8 @@ def compact_report(value):
         "validation_calls_used",
         "elapsed_seconds",
         "inference_cost_usd",
+        "inference_cost_kind",
+        "usage_reconstruction",
         "scoring_policy_id",
         "official_conformance_passed",
         "fidelity_status",
@@ -391,13 +398,7 @@ def compact_report(value):
         if isinstance(statistics, dict):
             row["statistics"] = {
                 key: statistics[key]
-                for key in (
-                    "input_tokens",
-                    "output_tokens",
-                    "model_request_seconds",
-                    "model_request_errors",
-                    "compute_cost_usd",
-                )
+                for key in USAGE_FIELDS
                 if key in statistics
             }
         row.update(usage_columns(row))
@@ -1298,6 +1299,8 @@ def export_report(work_dir, output_dir, *, results=None):
                 "validation_calls_used",
                 "elapsed_seconds",
                 "inference_cost_usd",
+                "inference_cost_kind",
+                "usage_reconstruction",
                 "actor_stop_receipt",
                 "actor_stop_audit",
                 "optional_score",

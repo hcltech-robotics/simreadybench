@@ -102,6 +102,12 @@ def statistical_summaries(rows, *, parts, summaries, usage_rows):
                 60,
                 "fidelity points per elapsed minute",
             ),
+            (
+                "per_inference_usd",
+                "inference_cost_usd",
+                1,
+                "fidelity points per USD of pricing-derived inference cost",
+            ),
         ):
             values = [usage_rows[index].get(resource) for index in selected]
             measured = sum(_number(value) and value >= 0 for value in values)
