@@ -8,6 +8,7 @@ Public rate metadata is revalidated before every admission, without credentials.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import asdict, dataclass
 from decimal import Decimal, InvalidOperation, ROUND_CEILING
 import hashlib
@@ -116,9 +117,31 @@ def validate_catalog_route(catalog, model):
 
 
 async def fetch_hf_route(model, *, deadline_at):
-    """One bounded, public metadata GET; no retries, auth, redirects or inference."""
+    """Retry transient catalogue loss within two minutes and the caller deadline."""
+    from simready_bench.engine.request_cost import CostDenied
+
     if model not in HF_PRICING:
         _deny("hf_cost_model_not_authorized")
+    if not math.isfinite(deadline_at) or deadline_at <= time.time():
+        _deny("hf_pricing_deadline_exceeded")
+    deadline_at = min(deadline_at, time.time() + 120)
+    for attempt in range(5):
+        try:
+            return await _fetch_hf_route_once(model, deadline_at=deadline_at)
+        except CostDenied as error:
+            if error.code not in {
+                "hf_pricing_route_unavailable",
+                "hf_pricing_metadata_unavailable",
+            } or attempt == 4:
+                raise
+            delay = 5 * 2**attempt
+            if time.time() + delay >= deadline_at:
+                raise
+            await asyncio.sleep(delay)
+
+
+async def _fetch_hf_route_once(model, *, deadline_at):
+    """Validate fresh public metadata without auth, redirects or inference."""
     duration = min(20, deadline_at - time.time())
     if not math.isfinite(duration) or duration <= 0:
         _deny("hf_pricing_deadline_exceeded")
