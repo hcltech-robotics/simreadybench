@@ -614,6 +614,76 @@ def complete_trial_result(result, job_result, *, normal_stop):
     return result
 
 
+def _condition_failure(condition, root, exc):
+    result = {
+        "schema": "simready-bench-condition-result-v1",
+        "condition_id": condition["condition_id"],
+        "asset_id": condition["asset_id"],
+        "harness_id": condition["harness_id"],
+        "model_id": condition["model_id"],
+        "requested_model": condition.get("model", {}).get("model_id"),
+        "skill_set_id": condition["skill_set_id"],
+        "status": "condition_error"
+        if isinstance(exc, ConditionExecutionError)
+        else "infrastructure_error",
+        "error_type": type(exc).__name__,
+        "official_reward": None,
+        "diagnostic_reward": None,
+        "evaluation": None,
+        "model_quality_evidence": False,
+        "harbor_trace_paths": [
+            str(path)
+            for directory in (
+                root,
+                root.parent / "native-jobs"
+                / ("simready-bench-" + condition["condition_id"][-12:]),
+            )
+            for path in directory.rglob("*")
+            if path.is_file()
+            and (path.suffix in (".jsonl", ".log") or path.name == "trajectory.json")
+        ],
+        "repetition": condition.get("repetition", 0),
+        "seed": condition.get("seed"),
+    }
+    if isinstance(exc, ConditionExecutionError):
+        result.update(
+            error_code=exc.code,
+            error_message=str(exc),
+            failure_scope="condition",
+            automatic_retry=False,
+        )
+    return result
+
+
+def _retain_failed_submission(result, root, controller, bridge, submission):
+    if len(bridge._episodes) != 1:
+        return
+    episode_id, environment = next(iter(bridge._episodes.items()))
+    snapshot = environment.final_snapshot
+    if not environment.actor_stopped or snapshot is None:
+        return
+    episode = controller.get_episode(episode_id)
+    if episode.status != "closed":
+        return
+    result.update(
+        trial_id=episode_id,
+        termination_reason=episode.termination_reason,
+        snapshot_sha256=snapshot.sha256,
+        actor_stopped=True,
+        actor_stop_audit=environment._actor_stop_audit,
+        inference_calls_used=episode.inference_calls_used,
+        validation_calls_used=episode.validation_calls_used,
+        preview_calls_used=episode.preview_calls_used,
+    )
+    if bridge.completed_actor_stop(environment):
+        result["actor_stop_receipt"] = asdict(bridge._controlled_receipts[episode_id])
+    if snapshot.valid:
+        (root / "artifacts").mkdir(mode=448, exist_ok=True)
+        result["submission"] = submission or export_submission(
+            snapshot, root / "artifacts/submission"
+        )
+
+
 async def _condition(condition, prepared, resolved, root, controller):
     from harbor.job import Job
     from harbor.models.job.config import JobConfig
@@ -703,6 +773,8 @@ async def _condition(condition, prepared, resolved, root, controller):
     )
     bridge.install()
     watch = None
+    failed_result = None
+    submission = None
     started = time.monotonic()
 
     async def guard():
@@ -877,18 +949,38 @@ async def _condition(condition, prepared, resolved, root, controller):
         complete_trial_result(result, native_result, normal_stop=normal_stop)
         write_json(root / "result.json", result)
         return result
+    except BaseException as exc:
+        failed_result = _condition_failure(condition, root, exc)
+        if isinstance(exc, Exception):
+            return failed_result
+        raise
     finally:
         if watch is not None:
             watch.cancel()
             await asyncio.gather(watch, return_exceptions=True)
         for eid, env in list(bridge._episodes.items()):
-            if not env.actor_stopped:
+            if not env.actor_stopped or env.final_snapshot is None:
                 try:
                     await bridge.request_stop(eid, "cancelled")
                 except Exception:
                     pass
-        await services.close()
-        bridge.uninstall()
+        if failed_result is not None:
+            try:
+                _retain_failed_submission(
+                    failed_result, root, controller, bridge, submission
+                )
+            except Exception as exc:
+                failed_result["candidate_collection_error_type"] = type(exc).__name__
+        try:
+            await services.close()
+        except Exception as exc:
+            if failed_result is None:
+                raise
+            failed_result["cleanup_error_type"] = type(exc).__name__
+        finally:
+            bridge.uninstall()
+            if failed_result is not None:
+                write_json(root / "result.json", failed_result)
 
 
 def _write_progress(root, resolved, results, allowance):
@@ -1000,45 +1092,7 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None)
                     c, prepared[c["condition_id"]], resolved, trialroot, controller
                 )
             except Exception as exc:
-                result = {
-                    "schema": "simready-bench-condition-result-v1",
-                    "condition_id": c["condition_id"],
-                    "asset_id": c["asset_id"],
-                    "harness_id": c["harness_id"],
-                    "model_id": c["model_id"],
-                    "requested_model": c.get("model", {}).get("model_id"),
-                    "skill_set_id": c["skill_set_id"],
-                    "status": "condition_error"
-                    if isinstance(exc, ConditionExecutionError)
-                    else "infrastructure_error",
-                    "error_type": type(exc).__name__,
-                    "official_reward": None,
-                    "diagnostic_reward": None,
-                    "harbor_trace_paths": [
-                        str(p)
-                        for directory in (
-                            trialroot,
-                            root
-                            / "native-jobs"
-                            / ("simready-bench-" + c["condition_id"][-12:]),
-                        )
-                        for p in directory.rglob("*")
-                        if p.is_file()
-                        and (
-                            p.suffix in (".jsonl", ".log")
-                            or p.name == "trajectory.json"
-                        )
-                    ],
-                    "repetition": c.get("repetition", 0),
-                    "seed": c.get("seed"),
-                }
-                if isinstance(exc, ConditionExecutionError):
-                    result.update(
-                        error_code=exc.code,
-                        error_message=str(exc),
-                        failure_scope="condition",
-                        automatic_retry=False,
-                    )
+                result = _condition_failure(c, trialroot, exc)
                 ledger.complete(c["condition_id"], result)
                 results.append(result)
                 progress = _write_progress(root, resolved, results, ledger.records())
