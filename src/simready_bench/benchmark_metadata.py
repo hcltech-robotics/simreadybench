@@ -4,6 +4,7 @@ from html import escape
 from importlib.resources import files
 import json
 import math
+import re
 from urllib.parse import urlsplit
 
 import yaml
@@ -45,7 +46,36 @@ def _score(entry, name):
         or not 0 <= score <= 100
     ):
         raise ValueError("A leaderboard composite must be a percent score or null")
-    return str(score)
+    return _estimate(score, summary.get("confidence_interval"))
+
+
+def _estimate(value, interval=None):
+    rendered = f"{value:.2f}"
+    if interval is None:
+        return rendered
+    if (
+        isinstance(interval, dict)
+        and interval.get("level") == 0.95
+        and "lower" in interval
+        and "upper" in interval
+        and interval["lower"] is None
+        and interval["upper"] is None
+    ):
+        return rendered
+    if (
+        not isinstance(interval, dict)
+        or interval.get("level") != 0.95
+        or any(
+            type(interval.get(bound)) not in (int, float)
+            or not math.isfinite(interval[bound])
+            for bound in ("lower", "upper")
+        )
+        or interval["lower"] > interval["upper"]
+    ):
+        raise ValueError(
+            "A leaderboard confidence interval must have ordered 95% bounds"
+        )
+    return rendered + f" [{interval['lower']:.2f}, {interval['upper']:.2f}]"
 
 
 def _skills(entry):
@@ -91,6 +121,88 @@ def _order(entry):
     )
 
 
+def _condition(entry):
+    return "<br>".join(
+        (
+            _cell(entry.get("model")),
+            _cell(entry.get("reasoning_effort"))
+            + " reasoning, "
+            + _cell(entry.get("harness"))
+            + ", skills: "
+            + _skills(entry),
+            _cell(entry.get("authoring_protocol")),
+        )
+    )
+
+
+def _usage(entry, name, scale=1, suffix=""):
+    metric = (entry.get("usage") or {}).get(name) or {}
+    value = metric.get("mean")
+    measured, total = metric.get("measured_attempts"), metric.get("total_attempts")
+    if (
+        type(value) in (int, float)
+        and math.isfinite(value)
+        and value >= 0
+        and type(total) is int
+        and total > 0
+        and measured == total
+    ):
+        return f"{value / scale:,.2f}" + suffix
+    if type(measured) is int and type(total) is int and total > 0:
+        return f"unknown ({measured}/{total} measured)"
+    return "unknown"
+
+
+def _efficiency(entry, name, metric):
+    summary = ((entry.get("efficiency") or {}).get(name) or {}).get(metric) or {}
+    value = summary.get("value")
+    if value is None:
+        measured = summary.get("measured_attempts")
+        eligible = summary.get("eligible_attempts")
+        if (
+            type(measured) is int
+            and type(eligible) is int
+            and 0 <= measured <= eligible
+            and eligible > 0
+        ):
+            return f"unknown ({measured}/{eligible} measured)"
+        return (
+            "N/A"
+            if (entry.get("composite_scores") or {}).get(name, {}).get("status")
+            == "not_applicable"
+            else "unknown"
+        )
+    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+        raise ValueError(
+            "A leaderboard efficiency must be a non-negative value or null"
+        )
+    return _estimate(value, summary.get("confidence_interval"))
+
+
+def _success(entry, name):
+    summary = (entry.get("success") or {}).get(name) or {}
+    passed, measured, total = (
+        summary.get(key) for key in ("passed", "measured", "total")
+    )
+    percent = summary.get("percent")
+    counts_valid = (
+        all(type(value) is int for value in (passed, measured, total))
+        and 0 <= passed <= measured <= total
+        and total > 0
+    )
+    if percent is None:
+        return f"unknown ({measured}/{total} measured)" if counts_valid else "unknown"
+    if (
+        type(percent) not in (int, float)
+        or not math.isfinite(percent)
+        or not 0 <= percent <= 100
+        or not counts_valid
+        or measured != total
+    ):
+        raise ValueError("A leaderboard success rate requires a measured percentage")
+    return f"{percent:.2f}% ({passed}/{total})"
+
+
 def _section(board):
     if (
         not isinstance(board, dict)
@@ -106,33 +218,153 @@ def _section(board):
     else:
         lines.extend(
             [
-                "Each row is one complete reference set. Rows are grouped by authoring protocol, with independent fidelity scores and no combined ranking. Full values, measurement coverage, usage and source revisions are retained in [leaderboard.json](leaderboard.json).",
+                "Each entry contains 100 reconstructions: four attempts for each of the 25 NV25 assets. Formal, visual and kinematic fidelity are independent scores on a 0-100 scale, with no combined ranking. Values are means [95% confidence interval].",
                 "",
-                "| Model | Harness | Skills | Reasoning | Protocol | Reference set | Profile | Formal (%) | Visual (%) | Kinematic (%) | Source |",
-                "| --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | --- |",
             ]
         )
-        for entry in sorted(board["entries"], key=_order):
+        ordered = sorted(board["entries"], key=_order)
+        group = None
+        for entry in ordered:
             profile = entry.get("profile") or {}
             if not isinstance(profile, dict):
                 raise ValueError("A leaderboard profile must be an object")
+            identity = tuple(
+                json.dumps(entry.get(field), sort_keys=True, ensure_ascii=True)
+                for field in ("authoring_protocol", "reference_revision", "profile")
+            )
+            if identity != group:
+                if group is not None:
+                    lines.append("")
+                group = identity
+                lines.extend(
+                    [
+                        "**"
+                        + _cell(entry.get("reference_set"))
+                        + ", "
+                        + _cell(profile.get("id"))
+                        + " "
+                        + _cell(profile.get("version"))
+                        + "**. Protocol: `"
+                        + _cell(entry.get("authoring_protocol"))
+                        + "`. Reference revision: `"
+                        + _cell(entry.get("reference_revision"))
+                        + "`.",
+                        "",
+                        "| Model | Reasoning | Harness | Skills | Formal (%) | Visual (%) | Kinematic (%) | Results |",
+                        "| --- | --- | --- | --- | ---: | ---: | ---: | --- |",
+                    ]
+                )
             cells = [
                 _cell(entry.get("model")),
+                _cell(entry.get("reasoning_effort")),
                 _cell(entry.get("harness")),
                 _skills(entry),
-                _cell(entry.get("reasoning_effort")),
-                _cell(entry.get("authoring_protocol")),
-                _cell(entry.get("reference_set"))
-                + " ("
-                + _cell(entry.get("reference_count"))
-                + " assets x "
-                + _cell(entry.get("repetitions"))
-                + ")",
-                _cell(profile.get("id")) + " " + _cell(profile.get("version")),
                 *(_score(entry, name) for name in ("formal", "visual", "kinematic")),
                 _source(entry),
             ]
             lines.append("| " + " | ".join(cells) + " |")
+        lines.extend(
+            [
+                "",
+                "Confidence intervals use 10,000 asset-cluster bootstrap samples, retaining the four reconstructions of each sampled asset together. N/A excludes references without eligible criteria. Unknown measurements remain unknown. [Scores, coverage and source revisions](leaderboard.json).",
+                "",
+                "![Formal, visual and kinematic fidelity means with 95% confidence intervals.](media/leaderboard-scores.png)",
+                "",
+                "### Efficiency",
+                "",
+                "Efficiency is the mean fidelity divided by mean resource use per eligible reconstruction. Token efficiency uses total input and output tokens, while time efficiency uses elapsed reconstruction time, including model requests, tools and evaluation. Each ratio uses the same eligible reconstructions for its score and resource means, with joint asset-cluster bootstrap intervals.",
+                "",
+                "| Configuration | Formal points/1M tokens | Visual points/1M tokens | Kinematic points/1M tokens |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
+        for entry in ordered:
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        _condition(entry),
+                        *(
+                            _efficiency(entry, name, "per_million_tokens")
+                            for name in ("formal", "visual", "kinematic")
+                        ),
+                    ]
+                )
+                + " |"
+            )
+        lines.extend(
+            [
+                "",
+                "![Formal, visual and kinematic fidelity points per million tokens with 95% confidence intervals.](media/leaderboard-token-efficiency.png)",
+                "",
+                "| Configuration | Formal points/minute | Visual points/minute | Kinematic points/minute |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
+        for entry in ordered:
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        _condition(entry),
+                        *(
+                            _efficiency(entry, name, "per_elapsed_minute")
+                            for name in ("formal", "visual", "kinematic")
+                        ),
+                    ]
+                )
+                + " |"
+            )
+        lines.extend(
+            [
+                "",
+                "![Formal, visual and kinematic fidelity points per elapsed minute with 95% confidence intervals.](media/leaderboard-time-efficiency.png)",
+                "",
+                "### Resource use",
+                "",
+                "Means per reconstruction across all 100 attempts. Partial measurement coverage is shown in place of a mean. Full precision and eligible-attempt coverage are retained in [leaderboard.json](leaderboard.json).",
+                "",
+                "| Configuration | Total tokens | Elapsed minutes | Model requests | Cost (USD) |",
+                "| --- | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for entry in ordered:
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        _condition(entry),
+                        _usage(entry, "total_tokens"),
+                        _usage(entry, "elapsed_seconds", 60),
+                        _usage(entry, "inference_calls_used"),
+                        _usage(entry, "total_cost_usd"),
+                    ]
+                )
+                + " |"
+            )
+        lines.extend(
+            [
+                "",
+                "### Strict conformance",
+                "",
+                "A strict pass satisfies all 46 mandatory SimReady requirements. The four-attempt rate is the fraction of assets with at least one strict pass among their four reconstructions.",
+                "",
+                "| Configuration | Strict pass per reconstruction | At least one strict pass in four |",
+                "| --- | ---: | ---: |",
+            ]
+        )
+        for entry in ordered:
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        _condition(entry),
+                        _success(entry, "mandatory_pass_per_attempt"),
+                        _success(entry, "mandatory_pass_within_four"),
+                    ]
+                )
+                + " |"
+            )
     lines.extend(["", _END])
     return "\n".join(lines)
 
@@ -159,9 +391,15 @@ def render_benchmark_card(existing_card, board):
         start, end = body.index(_START), body.index(_END)
         if end < start:
             raise ValueError("The managed leaderboard section has invalid markers")
-        body = body[:start] + section + body[end + len(_END) :]
+        body = body[:start].rstrip() + "\n\n" + body[end + len(_END) :].lstrip()
+    # The academic header and introductory paragraph precede the first manual
+    # second-level section. Keep them intact and place results before the guide.
+    first_section = re.search(r"(?m)^##[ \t]+", body)
+    if first_section:
+        at = first_section.start()
+        body = body[:at].rstrip() + "\n\n" + section + "\n\n" + body[at:]
     else:
-        body += ("\n" if body.endswith("\n") else "\n\n") + section + "\n"
+        body = body.rstrip() + "\n\n" + section + "\n"
     return (
         "---\n"
         + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False)
@@ -172,7 +410,10 @@ def render_benchmark_card(existing_card, board):
 
 def build_benchmark_metadata(existing_card, board):
     """Build card and descriptor bytes without changing the authoritative board."""
+    from simready_bench.leaderboard_plots import render_leaderboard_plots
+
     return {
         "README.md": render_benchmark_card(existing_card, board).encode("utf-8"),
         "eval.yaml": benchmark_descriptor(),
+        **render_leaderboard_plots(board),
     }

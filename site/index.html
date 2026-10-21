@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="SimReadyBench evaluates AI-generated OpenUSD assets for simulation readiness, visual fidelity and joint motion. Compare models, agent harnesses and skills.">
-  <meta name="author" content="Chris von Csefalvay and Tamas Foldi">
+  <meta name="author" content="Chris von Csefalvay, Pranav Doma, Achyuthan Unni Krishnan and Tamas Foldi">
   <meta name="robots" content="max-image-preview:large">
   <meta property="og:title" content="SimReadyBench: OpenUSD Asset Generation Benchmark">
   <meta property="og:description" content="SimReadyBench evaluates AI-generated OpenUSD assets for simulation readiness, visual fidelity and joint motion. Compare models, agent harnesses and skills.">
@@ -63,6 +63,8 @@
         "mainEntityOfPage": {"@id": "https://hcltech-robotics.github.io/simreadybench/#webpage"},
         "author": [
           {"@type":"Person","name":"Chris von Csefalvay","url":"https://chrisvoncsefalvay.com","affiliation":{"@type":"Organization","name":"HCLTech"}},
+          {"@type":"Person","name":"Pranav Doma","affiliation":{"@type":"Organization","name":"HCLTech"}},
+          {"@type":"Person","name":"Achyuthan Unni Krishnan","affiliation":{"@type":"Organization","name":"HCLTech"}},
           {"@type":"Person","name":"Tamas Foldi","url":"https://github.com/tfoldi","affiliation":{"@type":"Organization","name":"HCLTech"}}
         ],
         "programmingLanguage": "Python",
@@ -83,7 +85,9 @@
               <h1 class="title is-1 publication-title">SimReadyBench</h1>
               <h2 class="subtitle is-3 publication-subtitle">A benchmark for simulation-ready OpenUSD asset reconstruction</h2>
               <div class="is-size-5 publication-authors">
-                <span class="author-block"><a href="https://chrisvoncsefalvay.com">Chris von Csefalvay</a><sup>1</sup> and</span>
+                <span class="author-block"><a href="https://chrisvoncsefalvay.com">Chris von Csefalvay</a><sup>1</sup>,</span>
+                <span class="author-block">Pranav Doma<sup>1</sup>,</span>
+                <span class="author-block">Achyuthan Unni Krishnan<sup>1</sup> and</span>
                 <span class="author-block">Tamas Foldi<sup>1</sup></span>
               </div>
               <div class="is-size-5 publication-authors">
@@ -120,10 +124,26 @@
       </div>
     </section>
 
-    <section class="section" id="paper">
-      <div class="container is-max-desktop content">
-        <h2 class="title is-3">Paper</h2>
-        <p id="paper-status">The paper is coming soon.</p>
+    <section class="section" id="leaderboard">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column">
+            <h2 class="title is-3">Leaderboard</h2>
+            <div class="content has-text-left">
+              <p>The NV25 public reference set contains 25 NVIDIA SimReady assets. Each entry reports formal, visual and kinematic fidelity across 100 reconstructions, with links to the per-asset measurements, generated USDs and captures.</p>
+              <div class="table-container leaderboard-scroll" id="leaderboard-table-region" tabindex="0" role="region" aria-label="Model performance leaderboard" hidden>
+                <table class="table is-fullwidth leaderboard-table">
+                  <caption id="leaderboard-caption">NV25 public reference set, four reconstructions per asset</caption>
+                  <thead><tr><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Harness</th><th scope="col">Skills</th><th scope="col">Formal fidelity</th><th scope="col">Visual fidelity</th><th scope="col">Kinematic fidelity</th><th scope="col">Requests</th><th scope="col">Time</th><th scope="col">Tokens</th><th scope="col">Cost</th><th scope="col">Results</th></tr></thead>
+                  <tbody id="leaderboard-body"></tbody>
+                </table>
+              </div>
+              <p id="leaderboard-status" class="table-note" aria-live="polite" hidden></p>
+              <p><a id="leaderboard-archive" class="button is-normal is-rounded is-dark" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">View leaderboard on Hugging Face</a></p>
+              <p class="table-note">Scores are means on a 0-100 scale with 95% confidence intervals from 10,000 asset-cluster bootstrap samples, retaining each asset's four reconstructions together. Requests, time, tokens and costs are means per reconstruction across all 100 attempts. A usage mean is shown only when every attempt has a measurement, with partial coverage shown otherwise. Costs are in USD. Counts sum passed requirements or earned fidelity credit over all eligible criteria, so their pooled fraction can differ from the mean score. Fidelity reference coverage is the mean across eligible reconstructions and is reported separately from the number of criteria measured. N/A means that no reference criteria apply, while an unmeasured result retains its missing score and any known bounds. <a href="#measures">Score definitions</a></p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -249,33 +269,17 @@ simready-bench benchmark nvidia-25 \
       </div>
     </section>
 
-    <section class="section" id="leaderboard">
-      <div class="container is-max-desktop">
-        <div class="columns is-centered has-text-centered">
-          <div class="column">
-            <h2 class="title is-3">Leaderboard</h2>
-            <div class="content has-text-left">
-              <p>The NV25 public reference set contains 25 NVIDIA SimReady assets. Each entry reports formal, visual and kinematic fidelity across 100 reconstructions, with links to the per-asset measurements, generated USDs and captures.</p>
-              <div class="table-container leaderboard-scroll" id="leaderboard-table-region" tabindex="0" role="region" aria-label="Model performance leaderboard" hidden>
-                <table class="table is-fullwidth leaderboard-table">
-                  <caption id="leaderboard-caption">NV25 public reference set, four reconstructions per asset</caption>
-                  <thead><tr><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Harness</th><th scope="col">Skills</th><th scope="col">Formal fidelity</th><th scope="col">Visual fidelity</th><th scope="col">Kinematic fidelity</th><th scope="col">Requests</th><th scope="col">Time</th><th scope="col">Tokens</th><th scope="col">Cost</th><th scope="col">Results</th></tr></thead>
-                  <tbody id="leaderboard-body"></tbody>
-                </table>
-              </div>
-              <p id="leaderboard-status" class="table-note" aria-live="polite" hidden></p>
-              <p><a id="leaderboard-archive" class="button is-normal is-rounded is-dark" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">View leaderboard on Hugging Face</a></p>
-              <p class="table-note">Scores are means on a 0-100 scale. Requests, time, tokens and costs are means per reconstruction across all 100 attempts. A usage mean is shown only when every attempt has a measurement, with partial coverage shown otherwise. Costs are in USD. Counts sum passed requirements or earned fidelity credit over all eligible criteria, so their pooled fraction can differ from the mean score. Fidelity reference coverage is the mean across eligible reconstructions and is reported separately from the number of criteria measured. N/A means that no reference criteria apply, while an unmeasured result retains its missing score and any known bounds. <a href="#measures">Score definitions</a></p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="section hero is-light" id="reference-sets">
       <div class="container is-max-desktop content">
         <h2 class="title is-3">Public reference sets</h2>
         <p>NV25 and NV100 are distinct public reference sets, separate from the withheld internal benchmark reference set. The packaged <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/src/simready_bench/resources/benchmarks/nvidia-25.json"><code>nvidia-25</code> manifest</a> defines the 25 assets in NV25. Its standard protocol uses four reconstructions per asset for each model, harness and skill configuration.</p>
+      </div>
+    </section>
+
+    <section class="section" id="paper">
+      <div class="container is-max-desktop content">
+        <h2 class="title is-3">Paper</h2>
+        <p id="paper-status">The paper is coming soon.</p>
       </div>
     </section>
 
@@ -286,7 +290,8 @@ simready-bench benchmark nvidia-25 \
         <pre><code>@software{voncsefalvay2026simreadybench,
   title = {SimReadyBench: Evaluating models, harnesses and skills
            for simulation-ready asset generation},
-  author = {von Csefalvay, Chris and Foldi, Tamas},
+  author = {von Csefalvay, Chris and Doma, Pranav and
+            Unni Krishnan, Achyuthan and Foldi, Tamas},
   year = {2026},
   url = {https://github.com/hcltech-robotics/simreadybench}
 }</code></pre>

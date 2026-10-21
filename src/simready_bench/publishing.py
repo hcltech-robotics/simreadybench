@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import tempfile
+from urllib.parse import quote
 
 import yaml
 
@@ -39,6 +40,8 @@ _VIEWER_AXES = (
     "by_protocol", "by_reasoning", "by_asset",
 )
 _SPLIT = re.compile(r"[a-z0-9][a-z0-9_]{0,95}\Z")
+_VIEWER_IMAGES = ("reference_image", "candidate_image")
+_VIEWER_CAPTURE_FIELDS = (*_VIEWER_IMAGES, "capture_view")
 
 
 class ViewerRebuildRequired(ValueError):
@@ -47,12 +50,15 @@ class ViewerRebuildRequired(ValueError):
 
 def _viewer_columns(columns):
     names = set(columns) | set(USAGE_FIELDS)
-    return [name for name in SCORE_FIELDS if name in names] + sorted(names - set(SCORE_FIELDS))
+    return ([name for name in _VIEWER_CAPTURE_FIELDS if name in names]
+            + [name for name in SCORE_FIELDS if name in names]
+            + sorted(names - set(SCORE_FIELDS) - set(_VIEWER_CAPTURE_FIELDS)))
 
 
 def _viewer_features(columns):
     labels = {"condition_id", "asset_id", "requested_model", "harness_id", "skill_set_id", "status"}
     return [{"name": name, "dtype": (
+        "image" if name in _VIEWER_IMAGES else
         "int64" if name == "repetition" else
         "float64" if name in SCORE_FIELDS and name not in labels and not name.endswith("_status") else
         "string"
@@ -616,7 +622,37 @@ def _manifest_reasoning(row, manifest):
     return generation.get("reasoning_effort")
 
 
-def build_viewer_update(run_id, readout, score_csv, *, index=None):
+def _viewer_captures(row, run_id, repo_id):
+    """Select a shared camera from the published comparison captures."""
+    captures = {role: {} for role in ("reference", "candidate")}
+    for item in row.get("images", []):
+        view = str(item.get("view", "")).lower().split(" / ")
+        if len(view) == 2 and view[0] in captures and view[1] in ("isometric", "front", "side", "top"):
+            # Duplicate labels would make the selected pair ambiguous.
+            if view[1] in captures[view[0]]:
+                raise ValueError("Comparison captures require distinct role and camera labels")
+            captures[view[0]][view[1]] = item
+    available = set(captures["reference"]) & set(captures["candidate"])
+    if not available:
+        available = set(captures["reference"]) | set(captures["candidate"])
+    camera = next((view for view in ("isometric", "front", "side", "top") if view in available), "")
+    result = {"reference_image": "", "candidate_image": "", "capture_view": camera}
+    if camera and (not isinstance(repo_id, str) or not re.fullmatch(r"[\w.-]+/[\w.-]+", repo_id)):
+        raise ValueError("A dataset repository identifier is required for viewer images")
+    for role in captures:
+        item = captures[role].get(camera)
+        if item:
+            path = _relative(item["path"])
+            if path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+                raise ValueError("Unsupported viewer capture format")
+            result[role + "_image"] = (
+                "https://huggingface.co/datasets/" + repo_id + "/resolve/main/"
+                + quote("runs/" + run_id + "/evidence/" + path.as_posix(), safe="/")
+            )
+    return result
+
+
+def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None):
     """Normalise one run to the shared viewer schema without changing its source.
 
     Schema expansion with retained runs requires ``build_viewer_dataset`` so
@@ -635,7 +671,9 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None):
     columns = reader.fieldnames
     if not columns or len(columns) != len(set(columns)) or "condition_id" not in columns:
         raise ValueError("A score table requires distinct columns and condition identities")
-    canonical = _viewer_columns([*index.get("columns", []), *columns])
+    if set(columns) & set(_VIEWER_CAPTURE_FIELDS):
+        raise ValueError("Capture columns are derived from the published comparison evidence")
+    canonical = _viewer_columns([*index.get("columns", []), *columns, *_VIEWER_CAPTURE_FIELDS])
     if set(index["runs"]) - {run_id} and (
         index["schema"] != _VIEWER_SCHEMA or canonical != index["columns"]
     ):
@@ -664,6 +702,7 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None):
         for field in ("requested_model", "harness_id", "skill_set_id", "asset_id"):
             if field in record and record[field] != str(row.get(field) or ""):
                 raise ValueError("A viewer score row changes its public factor identity")
+        record.update(_viewer_captures(row, run_id, repo_id))
         factors = {
             "by_model": row.get("requested_model"),
             "by_harness": row.get("harness_id"),
@@ -701,7 +740,7 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None):
     return index, shards
 
 
-def build_viewer_dataset(sources, *, index=None):
+def build_viewer_dataset(sources, *, index=None, repo_id=None):
     """Build schema-compatible viewer files from all retained raw run sources.
 
     ``sources`` maps run identifiers to ``(public_readout, score_csv)`` pairs.
@@ -721,14 +760,14 @@ def build_viewer_dataset(sources, *, index=None):
         if not fields or len(fields) != len(set(fields)) or "condition_id" not in fields:
             raise ValueError("A score table requires distinct columns and condition identities")
         columns.extend(fields)
-    columns = _viewer_columns(columns)
+    columns = _viewer_columns([*columns, *_VIEWER_CAPTURE_FIELDS])
     updated = {
         "schema": _VIEWER_SCHEMA, "runs": {}, "splits": deepcopy(previous["splits"]),
         "columns": columns, "schema_sha256": _viewer_schema_digest(columns),
     }
     shards = {}
     for run_id, (readout, raw) in sorted(sources.items()):
-        updated, current = build_viewer_update(run_id, readout, raw, index=updated)
+        updated, current = build_viewer_update(run_id, readout, raw, index=updated, repo_id=repo_id)
         shards.update(current)
     return updated, shards
 
@@ -971,7 +1010,7 @@ class HuggingFacePublisher:
                     legacy_ids.add(run_id)
         if index["schema"] == _VIEWER_SCHEMA and not legacy_ids:
             try:
-                return build_viewer_update(self.run_id, public, score_csv, index=index)
+                return build_viewer_update(self.run_id, public, score_csv, index=index, repo_id=self.repo_id)
             except ViewerRebuildRequired:
                 pass
         sources = {self.run_id: (public, score_csv)}
@@ -981,7 +1020,7 @@ class HuggingFacePublisher:
             if readout is None or scores is None:
                 raise ValueError("A retained viewer run requires its original score table and readout")
             sources[run_id] = (_json(readout), scores.read_bytes())
-        return build_viewer_dataset(sources, index=index)
+        return build_viewer_dataset(sources, index=index, repo_id=self.repo_id)
 
     def __call__(self, report, *, final=False):
         source = Path(
@@ -1069,7 +1108,9 @@ class HuggingFacePublisher:
                     board["entries"] = [item for item in board["entries"] if item.get("results_url") != url] + [entry]
                 _write_json(stage / "leaderboard.json", board)
                 for name, raw in build_benchmark_metadata(render_viewer_card(existing, index), board).items():
-                    (stage / name).write_bytes(raw)
+                    target = stage.joinpath(*_relative(name).parts)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(raw)
                 latest = self.api.repo_info(self.repo_id, repo_type="dataset")
                 if latest.private != info.private:
                     raise PublicationError("The dataset visibility changed during publication", retryable=False)

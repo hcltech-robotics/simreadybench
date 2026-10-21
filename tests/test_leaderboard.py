@@ -347,6 +347,7 @@ assert.match(text(cells[4]), /4,000\/4,600 credit/);
 assert.match(text(cells[5]), /^0\.00.*0\/100 credit.*100\/100 measured/);
 assert.match(text(cells[6]), /^Not measured.*Reference coverage not measured.*100 with eligibility not measured/);
 assert.match(text(vm.runInContext('metricCell(inputEntry.fidelity.joints)', context)), /^N\/A.*No eligible reference criteria/);
+assert.match(text(vm.runInContext('metricCell({score:50,confidence_interval:{level:0.95,lower:40,upper:60}})', context)), /95% CI \[40\.00, 60\.00\]/);
 for (const index of [7, 8, 9, 10]) assert.match(text(cells[index]), /^Not measured/);
 delete inputEntry.usage;
 assert.equal(vm.runInContext('isCompleteEntry(inputEntry)', context), true);

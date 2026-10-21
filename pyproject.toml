@@ -10,6 +10,8 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 authors = [
   {name = "Chris von Csefalvay"},
+  {name = "Pranav Doma"},
+  {name = "Achyuthan Unni Krishnan"},
   {name = "Tamas Foldi"},
 ]
 dependencies = [
@@ -40,7 +42,7 @@ validator = [
   "MaterialX==1.39.5",
 ]
 daytona = ["daytona==0.225.0"]
-publish = ["huggingface-hub==1.33.0"]
+publish = ["huggingface-hub==1.33.0", "matplotlib==3.11.2"]
 test = ["pytest==9.1.1"]
 
 [tool.setuptools]

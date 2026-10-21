@@ -10,6 +10,7 @@ from simready_bench.composites import (
     scores as composite_scores,
 )
 from simready_bench.reporting import USAGE_FIELDS, usage_columns
+from simready_bench.leaderboard_statistics import statistical_summaries, success_summary
 
 
 COMPONENTS = ("shape", "rigid_parts", "joints", "materials")
@@ -97,7 +98,9 @@ def _fidelity_summary(parts):
         "status": (
             "not_applicable"
             if inapplicable == len(parts)
-            else "measured" if score is not None else "unknown"
+            else "measured"
+            if score is not None
+            else "unknown"
         ),
         "earned": credit,
         "eligible": total,
@@ -107,12 +110,16 @@ def _fidelity_summary(parts):
             if counts_known
             and coverage
             and all(_number(value) and 0 <= value <= 1 for value in coverage)
-            else 0 if inapplicable == len(parts) else None
+            else 0
+            if inapplicable == len(parts)
+            else None
         ),
         "measurement_coverage": (
             100 * measured / total
             if measured is not None and total
-            else 0 if total == 0 else None
+            else 0
+            if total == 0
+            else None
         ),
         "eligible_attempts": len(eligible),
         "measured_attempts": measured_attempts,
@@ -420,6 +427,19 @@ def leaderboard_entry(result, *, manifest, results_url):
             "measured_attempts": sum(value is not None for value in values),
             "total_attempts": len(rows),
         }
+    composite_parts = {name: [] for name in COMPOSITE_NAMES}
+    for row in rows:
+        for name, part in composite_scores(row).items():
+            if name in composite_parts:
+                composite_parts[name].append(part)
+    composites, efficiency = statistical_summaries(
+        rows,
+        parts=composite_parts,
+        summaries={
+            name: _fidelity_summary(parts) for name, parts in composite_parts.items()
+        },
+        usage_rows=usage_rows,
+    )
     return {
         "reference_set": "NV25",
         "reference_revision": reference["source"]["revision"],
@@ -449,10 +469,9 @@ def leaderboard_entry(result, *, manifest, results_url):
             optional=True,
         ),
         "fidelity": fidelity,
-        "composite_scores": {
-            name: _fidelity_summary([composite_scores(row)[name] for row in rows])
-            for name in COMPOSITE_NAMES
-        },
+        "composite_scores": composites,
+        "efficiency": efficiency,
+        "success": success_summary(rows),
         "profile": manifest["scoring"]["profile"],
         "results_url": results_url,
     }

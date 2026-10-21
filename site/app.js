@@ -30,6 +30,11 @@ function countLabel(value) {
 function metricCell(metric = {}) {
   const inapplicable = metric.status === "not_applicable";
   const cell = textCell(isScore(metric.score) ? metric.score.toFixed(2) : inapplicable ? "N/A" : "Not measured", "metric-value");
+  const interval = metric.confidence_interval;
+  if (isScore(metric.score) && interval?.level === 0.95
+      && isScore(interval.lower) && isScore(interval.upper) && interval.lower <= interval.upper) {
+    metricDetail(cell, `95% CI [${interval.lower.toFixed(2)}, ${interval.upper.toFixed(2)}]`);
+  }
   if (inapplicable) {
     metricDetail(cell, "No eligible reference criteria");
     return cell;

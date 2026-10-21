@@ -551,7 +551,9 @@ def test_canonical_leaderboard_is_added_only_after_all_25_by_four_complete(publi
     entry = json.loads(hub.files["leaderboard.json"])["entries"][0]
     assert entry["completed_attempts"] == 100
     assert entry["model"] == "another-model"
-    assert "| another-model | pi | none | high | authoring-64-native-output-v1 |" in hub.files["README.md"].decode()
+    card = hub.files["README.md"].decode()
+    assert "| another-model | high | pi | none |" in card
+    assert "authoring-64-native-output-v1" in card
     original = deepcopy(hub.files)
     publisher(save(rows), final=True)
     assert hub.files == original
@@ -632,6 +634,38 @@ def test_viewer_split_collisions_never_rename_existing_groups():
     assert first["runs"].keys() == {"first"}
     repeated, _ = build_viewer_update("second", changed, raw.replace("model/a", "model-a"), index=index)
     assert repeated == index
+
+
+def test_viewer_images_select_a_shared_camera_and_keep_missing_captures_null():
+    readout, raw, _ = viewer_fixture()
+    first = readout["results"][0]
+    first["images"] = [
+        {"view": "reference / isometric", "path": "asset-a/reconstruction-1/reference-iso.png"},
+        {"view": "reference / front", "path": "asset-a/reconstruction-1/reference-front.png"},
+        {"view": "candidate / front", "path": "asset-a/reconstruction-1/candidate-front.png"},
+        {"view": "matched reference / reconstruction contact sheet", "path": "sheet.png"},
+    ]
+    before = deepcopy(readout)
+    index, shards = build_viewer_dataset({"paired": (readout, raw)}, repo_id="team/results")
+    records = list(csv.DictReader(io.StringIO(shards["viewer/paired/scores.csv"].decode())))
+    assert records[0]["capture_view"] == "front"
+    base = "https://huggingface.co/datasets/team/results/resolve/main/runs/paired/evidence/"
+    assert records[0]["reference_image"] == base + "asset-a/reconstruction-1/reference-front.png"
+    assert records[0]["candidate_image"] == base + "asset-a/reconstruction-1/candidate-front.png"
+    assert all(record["reference_image"] == record["candidate_image"] == record["capture_view"] == "" for record in records[1:])
+    assert readout == before
+    config = yaml.safe_load(render_viewer_card("# Card\n", index).split("---\n", 2)[1])["configs"][0]
+    assert config["features"][:3] == [
+        {"name": "reference_image", "dtype": "image"},
+        {"name": "candidate_image", "dtype": "image"},
+        {"name": "capture_view", "dtype": "string"},
+    ]
+    assert all(next(csv.reader(io.StringIO(content.decode())))[:3] == ["reference_image", "candidate_image", "capture_view"] for content in shards.values())
+    with pytest.raises(ValueError, match="repository identifier"):
+        build_viewer_update("paired", readout, raw)
+    first["images"][1]["path"] = "../outside.png"
+    with pytest.raises(ValueError, match="inside its readout"):
+        build_viewer_update("paired", readout, raw, repo_id="team/results")
 
 
 def test_reference_and_unknown_reasoning_do_not_guess_scientific_identity():
@@ -946,8 +980,9 @@ def test_complete_set_publication_replays_keep_prior_and_concurrent_entries(
     assert attempted == ["head-0", "head-1"]
     card = hub.files["README.md"].decode()
     assert card.count("<!-- simreadybench-leaderboard:start -->") == 1
-    assert "| earlier-model | opencode | none | unknown | authoring-32-native-output-v1 |" in card
-    assert "| another-model | pi | none | high | authoring-64-native-output-v1 |" in card
+    assert "| earlier-model | unknown | opencode | none |" in card
+    assert "| another-model | high | pi | none |" in card
+    assert "authoring-32-native-output-v1" in card and "authoring-64-native-output-v1" in card
     if fault == "conflict":
         assert len(entries) == 3
         assert "External scientific note." in card

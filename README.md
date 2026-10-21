@@ -2,7 +2,8 @@
   <h1>SimReadyBench</h1>
   <p><strong>A benchmark for simulation-ready asset reconstruction</strong></p>
   <p>
-    <a href="https://chrisvoncsefalvay.com">Chris von Csefalvay</a> and
+    <a href="https://chrisvoncsefalvay.com">Chris von Csefalvay</a>,
+    Pranav Doma, Achyuthan Unni Krishnan and
     <a href="https://github.com/tfoldi">Tamas Foldi</a>
   </p>
   <p><a href="https://www.hcltech.com/">Robotics Intelligence CoE, HCLTech, Santa Clara, CA</a></p>
@@ -119,6 +120,8 @@ Formal fidelity is `95 x passed/46`, with five additional points when all 46 man
 
 Fidelity evaluation normalises units and the up-axis, then aligns the reconstruction with one whole-object yaw and translation. Object scale and relative part transforms are preserved, with no scale fitting or independent part fitting. Reference and reconstruction captures share the same aligned cameras. The [scoring guide](docs/evaluation.md) gives the diagrams, formulas and full measurement definitions.
 
+The [leaderboard](https://huggingface.co/datasets/hcltech-robotics/simreadybench) reports complete NV25 sets with 95% confidence intervals, token and elapsed-time efficiency and strict pass rates. Tables and plots update automatically when a complete set is published. The dataset viewer shows paired reference and candidate images, with subsets for models, harnesses, skills, protocols and assets. The [statistics guide](docs/leaderboard.md) defines the intervals and efficiency denominators.
+
 ## Authors and citation
 
-Chris von Csefalvay and Tamas Foldi, HCLTech. Cite the software using [CITATION.cff](CITATION.cff). The code is licensed under [MIT](LICENSE), and the reference assets use the [NVIDIA SimReady Assets licence](https://huggingface.co/datasets/nvidia/simready-assets).
+Chris von Csefalvay, Pranav Doma, Achyuthan Unni Krishnan and Tamas Foldi, HCLTech. Cite the software using [CITATION.cff](CITATION.cff). The code is licensed under [MIT](LICENSE), and the reference assets use the [NVIDIA SimReady Assets licence](https://huggingface.co/datasets/nvidia/simready-assets).
