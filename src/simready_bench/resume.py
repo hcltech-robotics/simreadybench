@@ -9,6 +9,8 @@ import json
 import math
 import os
 import sqlite3
+import stat
+import time
 from dataclasses import asdict
 from decimal import Decimal
 from pathlib import Path
@@ -213,6 +215,70 @@ def _file_receipt(root, receipt):
     )
 
 
+def _canonical_invalid_score(row):
+    """Recognise the pinned measured zero for an attempted invalid package."""
+    from simready_bench.engine.scoring import score_validation
+    from simready_bench.engine.verifier import scoring_policy
+    from simready_bench.reporting import compact_report
+
+    if (
+        not isinstance(row.get("trial_id"), str)
+        or not row["trial_id"]
+        or type(row.get("inference_calls_used")) is not int
+        or row["inference_calls_used"] <= 0
+    ):
+        return False
+    primary = row.get("simready")
+    expected = compact_report(
+        {
+            "schema": "simready-bench-portable-report-v1",
+            "results": [
+                {
+                    "simready": score_validation(
+                        None, scoring_policy(), candidate_invalid=True
+                    )
+                }
+            ],
+        }
+    )["results"][0]["simready"]
+    return (
+        row.get("simready_reward") == 0
+        and primary == expected
+        and all(
+            type(primary.get(key)) is int
+            for key in (
+                "passed_count",
+                "failed_count",
+                "unknown_count",
+                "applicable_count",
+                "profile_mandatory_count",
+                "completion_bonus",
+            )
+        )
+        and all(
+            type(primary.get(key)) in (int, float)
+            for key in (
+                "score_percent",
+                "score_fraction",
+                "score_lower_bound",
+                "score_upper_bound",
+                "base_credit_percent",
+                "profile_coverage_fraction",
+            )
+        )
+    )
+
+
+def _invalid_without_submission(row):
+    return (
+        row.get("candidate")
+        == {"status": "unavailable", "reason": "no_frozen_authored_submission"}
+        and row.get("snapshot_sha256") is None
+        and row.get("nvidia_validator_report_file") is None
+        and _canonical_invalid_score(row)
+    )
+
+
 def _completed(attempt, row):
     score = row.get("simready_reward")
     if (
@@ -222,19 +288,42 @@ def _completed(attempt, row):
         or not 0 <= score <= 100
     ):
         return False
-    candidate = row.get("candidate") or {}
-    if candidate.get("status") != "available" or candidate.get(
-        "snapshot_sha256"
-    ) != row.get("snapshot_sha256"):
-        return False
-    if not _file_receipt(attempt, row.get("nvidia_validator_report_file")):
-        return False
     for kind in ("images", "traces"):
         receipts = row.get(kind, [])
         if not isinstance(receipts, list) or any(
             not _file_receipt(attempt / "evidence", receipt) for receipt in receipts
         ):
             return False
+    if _invalid_without_submission(row):
+        return True
+    candidate = row.get("candidate") or {}
+    if candidate.get("status") != "available" or candidate.get(
+        "snapshot_sha256"
+    ) != row.get("snapshot_sha256"):
+        return False
+    validator = row.get("nvidia_validator_report_file")
+    if validator is None:
+        members = candidate.get("files")
+        if (
+            not _canonical_invalid_score(row)
+            or not isinstance(members, list)
+            or not members
+            or any(not isinstance(member, dict) for member in members)
+        ):
+            return False
+        hashes = [
+            row.get("snapshot_sha256"), candidate.get("manifest_sha256"),
+            *[member.get("sha256") for member in members],
+        ]
+        if any(
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+            for value in hashes
+        ):
+            return False
+    elif not _file_receipt(attempt, validator):
+        return False
     for key in ("entrypoint", "manifest"):
         if not isinstance(candidate.get(key), str) or not _file_receipt(
             attempt, {"path": candidate[key]}
@@ -273,6 +362,63 @@ def _daytona_client():
     return Daytona()
 
 
+def _executor_terminal_proof(batch, delivery):
+    expected = delivery.get("executor_terminal_proof_sha256")
+    if expected is None:
+        return None
+    path = batch / "executor-terminal-proof.json"
+    health = delivery.get("health_policy") or {}
+    try:
+        details = path.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        raise ValueError("The trusted executor terminal proof is missing") from None
+    if (
+        path.resolve() != path
+        or path.parent != batch
+        or not stat.S_ISREG(details.st_mode)
+        or details.st_nlink != 1
+        or details.st_uid != os.getuid()
+        or stat.S_IMODE(details.st_mode) & 0o077
+        or details.st_size > 16 * 1024
+        or not isinstance(expected, str)
+        or len(expected) != 64
+        or health.get("schema") != "simready-bench-executor-health-v1"
+        or delivery.get("terminal_confirmed") is not True
+    ):
+        raise ValueError("A private bound executor terminal proof is required")
+    with path.open("rb") as stream:
+        raw = stream.read(16 * 1024 + 1)
+    if len(raw) > 16 * 1024 or hashlib.sha256(raw).hexdigest() != expected:
+        raise ValueError("The executor terminal proof hash changed")
+    proof = json.loads(raw)
+    if (
+        not isinstance(proof, dict)
+        or set(proof) != {
+            "schema", "sandbox_id", "run_id", "observed_at", "controller_exit",
+            "reason", "all_containers_stopped",
+        }
+        or proof.get("schema") != "simready-bench-executor-terminal-v1"
+        or not isinstance(proof.get("sandbox_id"), str)
+        or not proof["sandbox_id"]
+        or proof["sandbox_id"] != delivery.get("sandbox_id")
+        or not isinstance(proof.get("run_id"), str)
+        or not proof["run_id"]
+        or proof["run_id"] != delivery.get("run_id")
+        or type(proof.get("observed_at")) not in (int, float)
+        or not math.isfinite(proof["observed_at"])
+        or not 0 < proof["observed_at"] <= time.time() + 60
+        or type(proof.get("controller_exit")) is not int
+        or proof["controller_exit"] != delivery.get("controller_exit")
+        or proof.get("reason") not in {
+            "executor_stalled", "executor_deadline_exceeded", "controller_exited",
+        }
+        or proof["reason"] != delivery.get("termination_reason")
+        or proof.get("all_containers_stopped") is not True
+    ):
+        raise ValueError("The executor terminal proof differs from its delivery")
+    return proof
+
+
 def _retire(batch, reports, *, policy, manifest, client):
     from daytona.common.errors import DaytonaNotFoundError
     from simready_bench.local import ParentAuthorityLedger
@@ -280,6 +426,21 @@ def _retire(batch, reports, *, policy, manifest, client):
 
     delivery_path = batch / "daytona-delivery.json"
     delivery = _read(delivery_path)
+    missing = delivery.get("missing_executor_proof") or {}
+    health = delivery.get("health_policy") or {}
+    lost = (
+        delivery.get("collection") == "lost"
+        and delivery.get("terminal_confirmed") is True
+        and delivery.get("cleanup_confirmed") is True
+        and health.get("schema") == "simready-bench-executor-health-v1"
+        and type(health.get("orphan_stop_minutes")) is int
+        and health["orphan_stop_minutes"] > 0
+        and missing.get("schema") == "simready-bench-daytona-not-found-v1"
+        and missing.get("sandbox_id") == delivery.get("sandbox_id")
+        and type(missing.get("observed_at")) in (int, float)
+        and math.isfinite(missing["observed_at"])
+        and missing["observed_at"] > 0
+    )
     cold = (
         delivery.get("phase") == "cold_bootstrap_retired"
         and delivery.get("collection") == "not_started"
@@ -288,14 +449,19 @@ def _retire(batch, reports, *, policy, manifest, client):
         and delivery.get("cleanup_confirmed") is True
         and (batch / "retirement.json").is_file()
     )
-    if (delivery.get("collection") != "completed" and not cold) or not delivery.get(
+    if (delivery.get("collection") != "completed" and not cold and not lost) or not delivery.get(
         "sandbox_id"
     ):
         raise ValueError("Collect the previous executor before resuming")
     terminal_path = batch / "daytona-executor/controller-status.json"
-    terminal = _read(terminal_path) if not cold else {"status": "failed"}
+    terminal = (
+        _read(terminal_path) if terminal_path.is_file() else {}
+    ) if not cold and not lost else {"status": "failed"}
+    external_terminal = None
     if terminal.get("status") not in ("completed", "failed", "incomplete"):
-        raise ValueError("The previous executor has not reached a terminal state")
+        external_terminal = _executor_terminal_proof(batch, delivery)
+        if external_terminal is None:
+            raise ValueError("The previous executor has not reached a terminal state")
     try:
         client.get(delivery["sandbox_id"])
     except DaytonaNotFoundError:
@@ -344,6 +510,35 @@ def _retire(batch, reports, *, policy, manifest, client):
             or proof.get("executor_deleted") is not True
         ):
             raise ValueError("A saved retirement differs from its immutable authority")
+        return proof
+    if lost:
+        admitted = sorted(condition_plan(_read(batch / "experiment.json")))
+        proof = {
+            "sandbox_id": delivery["sandbox_id"],
+            "executor_deleted": True,
+            "delivery_sha256": hashlib.sha256(delivery_path.read_bytes()).hexdigest(),
+            "terminal_sha256": None,
+            "authority_sha256": None,
+            "reports": {
+                str(Path(report["results"]).relative_to(batch)): hashlib.sha256(
+                    Path(report["results"]).read_bytes()
+                ).hexdigest()
+                for _, report, _ in reports
+            },
+            "requests": held[1],
+            "maximum_spend_usd": held[2],
+            "admitted_conditions": admitted,
+            "unreported_admitted_conditions": admitted,
+            "missing_executor_proof": missing,
+            "usage_status": "unavailable_full_original_ceiling_charged",
+        }
+        authority.retire(
+            allocation_id=allocation,
+            requests=held[1],
+            maximum_spend_usd=held[2],
+            proof_sha256=_digest(proof),
+        )
+        _write(proof_path, proof)
         return proof
     ledger_path = batch / "daytona-executor/authority/parent-allowances.sqlite3"
     if (
@@ -454,6 +649,10 @@ def _retire(batch, reports, *, policy, manifest, client):
         (Decimal(entry[3]) for entry in issued), Decimal(0)
     ) > Decimal(held[2]):
         raise ValueError("Collected condition allocations exceed their parent")
+    if external_terminal is not None and not issued:
+        charged_requests, charged_usd = held[1], Decimal(held[2])
+        admitted = set(condition_plan(_read(batch / "experiment.json")))
+        unreported = set(admitted)
     proof = {
         "sandbox_id": delivery["sandbox_id"],
         "executor_deleted": True,
@@ -472,6 +671,11 @@ def _retire(batch, reports, *, policy, manifest, client):
         "unreported_admitted_conditions": sorted(unreported),
         "admission_plans": plans,
     }
+    if external_terminal is not None:
+        proof["executor_terminal_proof"] = external_terminal
+        proof["executor_terminal_proof_sha256"] = delivery[
+            "executor_terminal_proof_sha256"
+        ]
     transport = terminal.get("source_transport_exhaustion")
     retryable = (
         isinstance(transport, dict)
@@ -485,7 +689,9 @@ def _retire(batch, reports, *, policy, manifest, client):
         and isinstance(transport.get("exception_class"), str)
     )
     if not issued and terminal.get("status") != "completed":
-        if retryable:
+        if external_terminal is not None:
+            pass
+        elif retryable:
             relay_path = batch / "daytona-executor/relay-ledger.json"
             if (
                 relay_path.resolve() != relay_path
@@ -559,6 +765,16 @@ def _remaining(policy, manifest):
     return parent.maximum_requests - sum(row[0] for row in rows), Decimal(
         str(parent.maximum_spend_usd)
     ) - sum((Decimal(row[1]) for row in rows), Decimal(0))
+
+
+def _condition_rejections(output):
+    return {
+        row["condition_id"]
+        for batch in _batches(Path(output))
+        for _, _, report in _reports(batch)
+        for row in report["results"]
+        if row.get("status") == "condition_error"
+    }
 
 
 @coordinated_resume
@@ -636,11 +852,13 @@ def resume_benchmark(
     maximum_waves = (max_retries + 1) * (1 + len(expected) * (max_retries + 1))
     while True:
         attempts, completed = attempted_conditions(output)
+        rejected = _condition_rejections(output)
         state["condition_attempts"] = attempts
         eligible = {
             identity
             for identity in expected
-            if identity not in completed and attempts.get(identity, 0) <= max_retries
+            if identity not in completed | rejected
+            and attempts.get(identity, 0) <= max_retries
         }
         exhausted = set(expected) - completed - eligible
         if state.get("not_before") is not None or (
@@ -694,6 +912,7 @@ def resume_benchmark(
             record_state(state_path, state, "completed", not_before=None)
             return result
         next_attempts, next_completed = attempted_conditions(output)
+        rejected = _condition_rejections(output)
         state["condition_attempts"] = next_attempts
         progressed = any(
             next_attempts.get(identity, 0) > attempts.get(identity, 0)
@@ -704,7 +923,7 @@ def resume_benchmark(
         remaining = {
             identity
             for identity in expected
-            if identity not in next_completed
+            if identity not in next_completed | rejected
             and next_attempts.get(identity, 0) <= max_retries
         }
         if (
@@ -865,7 +1084,7 @@ def _resume_once(
     import threading
 
     expected = condition_plan(original)
-    reports, sources, complete = [], {}, set()
+    reports, sources, complete, rejected = [], {}, set(), set()
     publication_lock = threading.RLock()
     published_reports = {}
 
@@ -988,10 +1207,12 @@ def _resume_once(
                     sources[identifier] = str(Path(report["results"]).absolute())
                 if valid:
                     complete.add(identifier)
+                if row.get("status") == "condition_error":
+                    rejected.add(identifier)
             reports.append((attempt, report))
     selection = {asset["id"]: [] for asset in original["assets"]}
     for identifier, condition in expected.items():
-        if identifier not in complete and (
+        if identifier not in complete | rejected and (
             _allowed_pending is None or identifier in _allowed_pending
         ):
             selection[condition["asset_id"]].append(condition["repetition"])

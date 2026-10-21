@@ -116,6 +116,21 @@ def test_cloud_policy_retains_assets_grant_and_native_64_limits(tmp_path, monkey
     assert validate_policy(value, base_dir=tmp_path)["providers"] == original
 
 
+@pytest.mark.parametrize("seconds", [1800, 3900, 86400])
+def test_cloud_policy_accepts_valid_executor_stall_interval(tmp_path, seconds):
+    value = policy.init_daytona_policy(**arguments(tmp_path))
+    value["runtime"]["executor_stall_seconds"] = seconds
+    assert validate_policy(value, base_dir=tmp_path)["runtime"]["executor_stall_seconds"] == seconds
+
+
+@pytest.mark.parametrize("seconds", [True, 0, 1799, 86401, float("inf")])
+def test_cloud_policy_rejects_invalid_executor_stall_interval(tmp_path, seconds):
+    value = policy.init_daytona_policy(**arguments(tmp_path))
+    value["runtime"]["executor_stall_seconds"] = seconds
+    with pytest.raises(ValueError, match="executor stall seconds"):
+        validate_policy(value, base_dir=tmp_path)
+
+
 @pytest.mark.parametrize("turns,conditions", [(1, 1), (16, 3), (128, 10000)])
 def test_custom_turns_and_matrix_preserve_existing_grant(tmp_path, turns, conditions):
     options = arguments(tmp_path, authoring_turns=turns, conditions=conditions)

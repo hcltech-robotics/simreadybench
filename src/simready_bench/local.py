@@ -542,15 +542,40 @@ def _native_failure(job_result, *, normal_stop=False):
     }
 
 
+def _controlled_final_stream_cancel(records, *, normal_stop):
+    """Keep the frozen candidate score after one verified stop interrupts a stream."""
+    if not normal_stop or not records:
+        return False
+    row = records[-1]
+    return (
+        row.get("status") == "cancelled"
+        and sum(record.get("status") == "cancelled" for record in records) == 1
+        and row.get("observed_upstream_status") == 200
+        and row.get("upstream_status") in (None, 200)
+        and row.get("error_code") is None
+        and not (
+            (
+                set(row.get("provider_response_statuses", ()))
+                | set(row.get("observed_provider_response_statuses", ()))
+            )
+            & {"failed", "cancelled"}
+        )
+    )
+
+
 def reconstruction_status(evaluation, records, *, normal_stop=False):
+    final_stream_cancel = _controlled_final_stream_cancel(
+        records, normal_stop=normal_stop
+    )
     successful = False
-    for row in records:
+    for index, row in enumerate(records):
         if row.get("status") == "completed" and row.get("upstream_status") == 200:
             if set(row.get("provider_response_statuses", ())) & {"failed", "cancelled"}:
                 return "infrastructure_error"
             successful = True
         elif not (
-            normal_stop
+            final_stream_cancel and index == len(records) - 1
+            or normal_stop
             and row.get("error_code")
             in {
                 "episode_admission_closed",
@@ -582,7 +607,6 @@ def complete_trial_result(result, job_result, *, normal_stop):
     result["status"] = status
     if status != "completed":
         result.update(
-            evaluation=None,
             official_reward=None,
             diagnostic_reward=None,
             model_quality_evidence=False,
@@ -1020,18 +1044,12 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None)
                 progress = _write_progress(root, resolved, results, ledger.records())
                 if on_progress is not None:
                     on_progress(root, progress)
-                if isinstance(exc, ConditionExecutionError):
-                    continue
-                raise
+                continue
             ledger.complete(c["condition_id"], result)
             results.append(result)
             progress = _write_progress(root, resolved, results, ledger.records())
             if on_progress is not None:
                 on_progress(root, progress)
-            if result.get("status") != "completed":
-                raise RuntimeError(
-                    "Reconstruction stopped because its provider or evaluator did not complete"
-                )
         summary = {
             "schema": "simready-bench-matrix-result-v1",
             "configuration_sha256": resolved["configuration_sha256"],

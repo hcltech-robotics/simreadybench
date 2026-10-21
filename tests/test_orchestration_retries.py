@@ -86,7 +86,7 @@ def test_unstarted_tail_membership_does_not_consume_transport_retries(
 
     monkeypatch.setattr(daytona, "run_daytona", execute)
     with pytest.raises(
-        recovery.RecoveryLimitReached, match="Admitted incomplete"
+        recovery.RecoveryLimitReached, match="Condition infrastructure retries"
     ) as caught:
         orchestration.coordinate_daytona(
             selected,
@@ -96,11 +96,16 @@ def test_unstarted_tail_membership_does_not_consume_transport_retries(
             wheel=wheel,
             cpu_snapshot=None,
             runtime_images=DEFAULT_IMAGES,
+            max_retries=0,
         )
     assert dispatched == [{tail_id}]
     assert caught.value.result["completed_conditions"] == 1
     state = json.loads((output / "coordinator-state.json").read_text())
-    assert state["blocked_conditions"] == {}
+    assert set(state["blocked_conditions"]) == {identity for identity, _ in conditions[:3]}
+    assert all(
+        item["reason"] == "condition_infrastructure_retries_exhausted"
+        for item in state["blocked_conditions"].values()
+    )
     assert all(tail_id in state["dispatches"][batch] for batch in ("005", "009", "010"))
 
 

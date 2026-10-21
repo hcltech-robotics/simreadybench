@@ -64,7 +64,7 @@ def main(argv=None):
         choices=range(11),
         default=2,
         metavar="0..10",
-        help="Automatic retries for failed reconstructions",
+        help="Retries for infrastructure failures per reconstruction (default: 2)",
     )
     command.add_argument("--retry-delay-seconds", type=float, default=5)
     command.add_argument("--maximum-retry-delay-seconds", type=float, default=60)
@@ -83,6 +83,7 @@ def main(argv=None):
     command.add_argument("--policy", type=Path)
     command.add_argument("--assets-root", type=Path)
     command.add_argument("--runtime-images", type=Path)
+    command.add_argument("--wheel", type=Path, help="Frozen Daytona executor wheel")
     command.add_argument("--cpu-snapshot")
     command.add_argument(
         "--hf-repo", help="Hugging Face dataset receiving completed reconstructions"
@@ -148,6 +149,7 @@ def main(argv=None):
             "policy",
             "assets_root",
             "runtime_images",
+            "wheel",
             "cpu_snapshot",
             "hf_repo",
             "hf_run",

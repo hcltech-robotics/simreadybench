@@ -290,8 +290,22 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
             if purpose == "":
                 visual = mat
         if visual:
-            shader = visual.ComputeSurfaceSource()[0]
-            if shader or visual.ComputeSurfaceSource("mdl")[0]:
+            from simready_bench.engine.nvidia_compat import (
+                relationship_at_material_surface,
+            )
+
+            malformed_surface = relationship_at_material_surface(visual.GetPrim())
+            if malformed_surface:
+                warning(
+                    prim,
+                    "Visual material surface is authored as a relationship; universal appearance unavailable",
+                )
+            shader = None if malformed_surface else visual.ComputeSurfaceSource()[0]
+            mdl_output = visual.GetPrim().GetAttribute("outputs:mdl:surface")
+            mdl_readable = not malformed_surface or bool(
+                mdl_output and mdl_output.GetConnections()
+            )
+            if shader or mdl_readable and visual.ComputeSurfaceSource("mdl")[0]:
                 result["visual:assignment"] = True
             if shader and shader.GetIdAttr().Get() == "UsdPreviewSurface":
                 result["visual:assignment"] = True
@@ -311,7 +325,7 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
                         value = float(value) if value.ndim == 0 else value.tolist()
                     if value is not None:
                         result["visual:" + name] = value
-            else:
+            elif not malformed_surface:
                 warning(
                     prim,
                     "Visual material has no supported universal UsdPreviewSurface; visual properties N/A",

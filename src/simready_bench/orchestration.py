@@ -82,6 +82,12 @@ def _completed_digest(row):
     ).hexdigest()
 
 
+def _closed_condition(row):
+    from simready_bench.resume import _unrun
+
+    return row.get("status") != "infrastructure_error" and not _unrun(row)
+
+
 class ReportIndex:
     """Publish cumulative reports without coupling publication to execution."""
 
@@ -110,7 +116,7 @@ class ReportIndex:
         self._load_index()
 
     def _load_index(self):
-        from simready_bench.resume import _digest, _read, _unrun
+        from simready_bench.resume import _digest, _read
 
         directory = self.output / ".coordinator-reports"
         path = directory / "index.json"
@@ -145,7 +151,7 @@ class ReportIndex:
                         raise ValueError("Retained completed measurements disagree")
                     self.completed_sources.setdefault(identity, key)
                     self.completed_measurements[identity] = digest
-                if not _unrun(row):
+                if _closed_condition(row):
                     self.closed.add(identity)
         self.source_completed = saved.get("source_completed", {})
         self.source_fingerprints = saved.get("source_fingerprints", {})
@@ -204,7 +210,7 @@ class ReportIndex:
         return value
 
     def add(self, batch, report, *, defer=False):
-        from simready_bench.resume import _read, _unrun, condition_plan
+        from simready_bench.resume import _read, condition_plan
 
         if self.detached:
             return self.result
@@ -277,7 +283,7 @@ class ReportIndex:
                 identity = row["condition_id"]
                 if row.get("status") == "completed":
                     self.completed_sources.setdefault(identity, key)
-                if not _unrun(row):
+                if _closed_condition(row):
                     self.closed.add(identity)
             self._save_index()
             if not defer and not self.backfilling:
@@ -285,8 +291,6 @@ class ReportIndex:
 
     def retain_baseline(self):
         """Keep the previous full readout as a fallback for unindexed sources."""
-        from simready_bench.resume import _unrun
-
         current = self.output / "results.json"
         directory = self.output / ".coordinator-reports"
         paths = sorted(
@@ -330,7 +334,7 @@ class ReportIndex:
                         )
                     self.completed_sources.setdefault(identity, key)
                     self.completed_measurements[identity] = digest
-                if not _unrun(row):
+                if _closed_condition(row):
                     self.closed.add(identity)
         if paths:
             self._save_index()
@@ -489,6 +493,9 @@ def coordinate_daytona(
     batches, finished, futures = {}, set(), {}
     blocked = set()
     transport_failures = {}
+    admitted_attempts = {}
+    state.setdefault("condition_retry_counts", {})
+    state.setdefault("condition_not_before", {})
     state["blocked_conditions"] = {}
     errors = []
     with _observer_guard:
@@ -511,7 +518,12 @@ def coordinate_daytona(
 
     def save(status):
         state.update(
-            status=status, active_batches=[batch.name for batch in futures.values()]
+            status=status,
+            active_batches=[batch.name for batch in futures.values()],
+            condition_attempts={
+                identity: sorted(attempts)
+                for identity, attempts in admitted_attempts.items()
+            },
         )
         _save(state_path, state)
 
@@ -580,7 +592,7 @@ def coordinate_daytona(
                 if (
                     delivery
                     and delivery.get("cleanup_confirmed")
-                    and delivery.get("collection") in ("completed", "not_started")
+                    and delivery.get("collection") in ("completed", "not_started", "lost")
                 ):
                     _retire(
                         batch,
@@ -590,8 +602,17 @@ def coordinate_daytona(
                         client=get_client(),
                     )
                     proof = _read(batch / "retirement.json")
-                    index.closed.update(proof.get("admitted_conditions", []))
                     index.closed.update(proof.get("terminal_unadmitted_conditions", []))
+                    for identity in proof.get("admitted_conditions", []):
+                        attempts = admitted_attempts.setdefault(identity, set())
+                        attempts.add(batch.name)
+                        count = len(attempts)
+                        if count > state["condition_retry_counts"].get(identity, 0):
+                            state["condition_retry_counts"][identity] = count
+                            state["condition_not_before"][identity] = time.time() + min(
+                                maximum_retry_delay_seconds,
+                                retry_delay_seconds * 2 ** min(count - 1, 10),
+                            )
                     if (
                         proof.get("requests") == 0
                         and not proof.get("admitted_conditions")
@@ -618,6 +639,19 @@ def coordinate_daytona(
             pending = set(expected) - index.closed - owned - blocked
             if allowed_pending is not None:
                 pending &= set(allowed_pending)
+            exhausted_admitted = {
+                identity
+                for identity in pending
+                if len(admitted_attempts.get(identity, ())) > max_retries
+            }
+            for identity in exhausted_admitted:
+                state["blocked_conditions"][identity] = {
+                    "reason": "condition_infrastructure_retries_exhausted",
+                    "failed_batches": sorted(admitted_attempts[identity]),
+                    "maximum_retries": max_retries,
+                }
+            blocked.update(exhausted_admitted)
+            pending -= exhausted_admitted
             exhausted = {
                 identity
                 for identity in pending
@@ -646,22 +680,44 @@ def coordinate_daytona(
                     save("dispatching")
                 futures[pool.submit(execute, batch)] = batch
                 available -= 1
-            if pending and available and dispatch_pending:
+            ready = {
+                identity
+                for identity in pending
+                if time.time() >= state["condition_not_before"].get(identity, 0)
+            }
+            if ready and available and dispatch_pending:
                 requests, dollars = _remaining(policy, manifest)
                 budget = manifest["defaults"]["budgets"]
-                if (
-                    len(pending) * budget["inference_requests"] > requests
-                    or Decimal(str(budget["maximum_spend_usd"])) * len(pending)
-                    > dollars
-                ):
-                    raise RecoveryBudgetExhausted(
-                        "Pending work exceeds the original unspent allowance"
+                capacity = requests // budget["inference_requests"]
+                condition_dollars = Decimal(str(budget["maximum_spend_usd"]))
+                if condition_dollars:
+                    capacity = min(
+                        capacity, int(Decimal(str(dollars)) // condition_dollars)
                     )
+                if capacity <= 0:
+                    for identity in ready:
+                        state["blocked_conditions"][identity] = {
+                            "reason": "project_allowance_exhausted",
+                            "failed_batches": sorted(admitted_attempts.get(identity, ())),
+                            "maximum_retries": max_retries,
+                        }
+                    blocked.update(ready)
+                    continue
+                ready = set(
+                    sorted(
+                        ready,
+                        key=lambda identity: (
+                            bool(admitted_attempts.get(identity)),
+                            len(admitted_attempts.get(identity, ())),
+                            identity,
+                        ),
+                    )[:capacity]
+                )
                 selected = copy.deepcopy(manifest)
                 selected["reconstruction_selection"] = {
                     asset["id"]: [] for asset in manifest["assets"]
                 }
-                for identity in pending:
+                for identity in ready:
                     row = expected[identity]
                     selected["reconstruction_selection"][row["asset_id"]].append(
                         row["repetition"]
@@ -715,6 +771,11 @@ def coordinate_daytona(
             **read_generated_report(report["results"]),
             "report": report,
             "dispatch_pending": dispatch_pending,
+            "condition_attempts": {
+                identity: sorted(attempts)
+                for identity, attempts in admitted_attempts.items()
+            },
+            "exhausted_conditions": copy.deepcopy(state["blocked_conditions"]),
         }
         if index.publication_pending:
             error = DaytonaObservationError(
@@ -728,17 +789,28 @@ def coordinate_daytona(
             else "incomplete"
         )
         if result["completed_conditions"] != len(expected) and dispatch_pending:
-            error = (
-                RecoveryLimitReached("Unadmitted work exhausted its transport retries")
-                if state["blocked_conditions"]
-                else (
-                    errors[0]
-                    if blocked and errors
-                    else RecoveryLimitReached(
-                        "Admitted incomplete attempts retain their original outcomes"
-                    )
+            if any(
+                item["reason"] == "project_allowance_exhausted"
+                for item in state["blocked_conditions"].values()
+            ):
+                error = RecoveryBudgetExhausted(
+                    "The original project allowance is exhausted"
                 )
-            )
+            elif state["blocked_conditions"]:
+                error = RecoveryLimitReached(
+                    "Condition infrastructure retries exhausted"
+                    if any(
+                        item["reason"] == "condition_infrastructure_retries_exhausted"
+                        for item in state["blocked_conditions"].values()
+                    )
+                    else "Unadmitted work exhausted its transport retries"
+                )
+            elif blocked and errors:
+                error = errors[0]
+            else:
+                error = RecoveryLimitReached(
+                    "Admitted incomplete attempts retain their original outcomes"
+                )
             error.result = result
             raise error
         return result
@@ -753,8 +825,14 @@ def coordinate_daytona(
             report = index.result
         if report is not None:
             error.result = {
+                **(getattr(error, "result", None) or {}),
                 **read_generated_report(report["results"]),
                 "report": report,
+                "condition_attempts": {
+                    identity: sorted(attempts)
+                    for identity, attempts in admitted_attempts.items()
+                },
+                "exhausted_conditions": copy.deepcopy(state["blocked_conditions"]),
             }
         save(
             "publication_pending"

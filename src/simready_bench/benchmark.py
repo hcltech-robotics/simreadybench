@@ -423,8 +423,11 @@ def compose_experiment(
 def _new_provider(
     kind, model, *, api_key_env, maximum_spend_usd, conditions,
     authoring_turns=DEFAULT_AUTHORING_TURNS,
+    maximum_attempts=1,
 ):
     authoring_protocol(authoring_turns)
+    if type(maximum_attempts) is not int or not 1 <= maximum_attempts <= 11:
+        raise ValueError("Maximum attempts must be between 1 and 11")
     from simready_bench.engine.hf_pricing import HF_PRICING
     from simready_bench.engine.request_cost import PRICING_BY_MODEL
 
@@ -452,9 +455,9 @@ def _new_provider(
             "upstream_origin": origin,
             "model": model,
             "expires_at": time.time() + max(
-                86400, conditions * (authoring_seconds(authoring_turns) + 2400)
+                86400, conditions * maximum_attempts * (authoring_seconds(authoring_turns) + 2400)
             ),
-            "maximum_requests": authoring_turns * conditions,
+            "maximum_requests": authoring_turns * conditions * maximum_attempts,
             "maximum_spend_usd": maximum_spend_usd,
             "pricing_status": "known" if known else "unknown",
             "external_spend_cap_verified": False,
@@ -518,6 +521,7 @@ def prepare_policy(
     deploy="local",
     runtime_images=None,
     authoring_turns=DEFAULT_AUTHORING_TURNS,
+    maximum_attempts=1,
 ):
     authoring_protocol(authoring_turns)
     validate_native_policy_limits(existing, authoring_turns=authoring_turns)
@@ -591,7 +595,7 @@ def prepare_policy(
     policy["limits"].update(
         maximum_spend_usd=maximum_spend_usd,
         maximum_condition_spend_usd=float(
-            (Decimal(str(maximum_spend_usd)) / conditions).quantize(
+            (Decimal(str(maximum_spend_usd)) / (conditions * maximum_attempts)).quantize(
                 Decimal("0.000001"), rounding=ROUND_DOWN
             )
         ),
@@ -1262,11 +1266,12 @@ def benchmark(
     if type(repetitions) is not int or not 1 <= repetitions <= 1000:
         raise ValueError("Repetitions must be between 1 and 1000")
     conditions = len(source["assets"]) * repetitions
+    maximum_attempts = max_retries + 1 if deploy == "daytona" else 1
     allowance_source = "explicit"
     if maximum_spend_usd is None:
         if original is None:
             maximum_spend_usd = native_run_allowance(
-                model, provider=provider_kind, conditions=conditions,
+                model, provider=provider_kind, conditions=conditions * maximum_attempts,
                 authoring_turns=authoring_turns,
             )
             allowance_source = "native-request-capacity"
@@ -1310,6 +1315,7 @@ def benchmark(
             maximum_spend_usd=maximum_spend_usd,
             conditions=conditions,
             authoring_turns=authoring_turns,
+            maximum_attempts=maximum_attempts,
         )
     elif api_key_env:
         connection["api_key_env"] = api_key_env
@@ -1326,7 +1332,8 @@ def benchmark(
             "source": allowance_source,
             "authoring_turns": authoring_turns,
             "conditions": conditions,
-            "maximum_requests": authoring_turns * conditions,
+            "maximum_requests": connection["project_budget"]["maximum_requests"],
+            "maximum_attempts_per_condition": maximum_attempts,
             "maximum_spend_usd": maximum_spend_usd,
         },
     )
@@ -1350,7 +1357,7 @@ def benchmark(
         harness=harness,
         skill_sets=selected_skills,
         repetitions=repetitions,
-        maximum_spend_usd=maximum_spend_usd,
+        maximum_spend_usd=float(Decimal(str(maximum_spend_usd)) / (maximum_attempts if original is None else 1)),
         authoring_turns=authoring_turns,
     )
     effective_policy = prepare_policy(
@@ -1362,6 +1369,7 @@ def benchmark(
         deploy=deploy,
         runtime_images=images,
         authoring_turns=authoring_turns,
+        maximum_attempts=maximum_attempts if original is None else 1,
     )
     if deploy == "local" and any(
         not asset.get("source_view") and not asset.get("input_views")

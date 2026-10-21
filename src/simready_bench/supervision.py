@@ -19,6 +19,8 @@ import time
 TEMPORARY_FAILURE = 75
 INITIAL_DELAY_SECONDS = 1
 MAXIMUM_DELAY_SECONDS = 60
+COORDINATOR_STALL_SECONDS = 600
+CHILD_POLL_SECONDS = 5
 _CRASH_SIGNALS = frozenset(
     value
     for name in ("SIGKILL", "SIGSEGV", "SIGBUS", "SIGABRT", "SIGILL", "SIGFPE")
@@ -157,6 +159,66 @@ def _retryable_returncode(code):
     return code == TEMPORARY_FAILURE or code < 0 and -code in _CRASH_SIGNALS
 
 
+def _coordinator_activity(output):
+    """Prefer main-loop heartbeats over activity from executor observer threads."""
+    journal = output / "coordinator-state.json"
+    paths = [journal]
+    if not journal.exists():
+        paths = [
+            output / name
+            for name in (
+                "run.json", "experiment.json", "operator.json", "runtime-images.json",
+                "allowance.json", "daytona-delivery.json",
+            )
+        ]
+        executions = output / "executions"
+        if executions.resolve() == executions and executions.is_dir():
+            for number, batch in enumerate(executions.iterdir()):
+                if number >= 512:
+                    break
+                if batch.name.isdecimal() and batch.resolve() == batch and batch.is_dir():
+                    paths.append(batch / "daytona-delivery.json")
+    activity = []
+    for path in paths:
+        try:
+            details = path.stat(follow_symlinks=False)
+        except FileNotFoundError:
+            continue
+        if (
+            path.resolve() != path
+            or not stat.S_ISREG(details.st_mode)
+            or details.st_nlink != 1
+            or details.st_size > 16 * 1024**2
+        ):
+            raise ValueError("A bounded regular coordinator heartbeat is required")
+        activity.append((str(path.relative_to(output)), details.st_mtime_ns, details.st_size))
+    return tuple(sorted(activity))
+
+
+def _stop_child(child):
+    child.terminate()
+    try:
+        child.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        child.kill()
+        child.wait(timeout=5)
+
+
+def _wait_for_coordinator(child, output):
+    activity = _coordinator_activity(output)
+    changed_at = time.monotonic()
+    while True:
+        try:
+            return child.wait(timeout=CHILD_POLL_SECONDS), False
+        except subprocess.TimeoutExpired:
+            current = _coordinator_activity(output)
+            if current != activity:
+                activity, changed_at = current, time.monotonic()
+            if time.monotonic() - changed_at >= COORDINATOR_STALL_SECONDS:
+                _stop_child(child)
+                return TEMPORARY_FAILURE, True
+
+
 def supervise(argv, *, output_dir, maximum_restarts=5):
     """Run one coordinator at a time and resume only its frozen Daytona manifest."""
     if sys.platform != "linux":
@@ -254,14 +316,15 @@ def supervise(argv, *, output_dir, maximum_restarts=5):
             )
             save(status="running", child_pid=child.pid)
             try:
-                code = child.wait()
+                code, stalled = _wait_for_coordinator(child, output)
+                if stalled:
+                    save(
+                        coordinator_stalls=state.get("coordinator_stalls", 0) + 1,
+                        last_restart_reason="coordinator_stalled",
+                        stalled_child_pid=child.pid,
+                    )
             except BaseException:
-                child.terminate()
-                try:
-                    child.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    child.kill()
-                    child.wait()
+                _stop_child(child)
                 raise
             state["child_pid"] = None
             if not _retryable_returncode(code):

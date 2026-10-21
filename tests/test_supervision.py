@@ -92,7 +92,7 @@ def test_manager_lock_does_not_precreate_benchmark_output(tmp_path, monkeypatch)
         def __init__(self, *args, **options):
             assert not output.exists()
 
-        def wait(self):
+        def wait(self, timeout=None):
             return 2
 
     monkeypatch.setattr(supervision.subprocess, "Popen", Child)
@@ -115,7 +115,7 @@ def test_failure_without_frozen_manifest_cannot_launch_another_child(
         def __init__(self, *args, **options):
             launches.append(args)
 
-        def wait(self):
+        def wait(self, timeout=None):
             return code
 
     monkeypatch.setattr(supervision.subprocess, "Popen", Child)
@@ -148,7 +148,7 @@ def test_consistent_but_changed_saved_manifest_cannot_be_restarted(tmp_path, mon
         def __init__(self, *args, **options):
             launches.append(args)
 
-        def wait(self):
+        def wait(self, timeout=None):
             return 75
 
     def sleep(seconds):
@@ -169,7 +169,7 @@ def fixture_command(tmp_path, *, mode, maximum_restarts=1):
     (package / "__init__.py").write_text("", encoding="ascii")
     shutil.copyfile(supervision.__file__, package / "supervision.py")
     (package / "__main__.py").write_text(
-        '''import hashlib,json,os,signal,sys,time
+        '''import hashlib,json,os,signal,sys,time,threading
 from pathlib import Path
 args=sys.argv[1:]
 output=Path(args[args.index('--output-dir')+1])
@@ -187,6 +187,23 @@ with (output.parent/'children.jsonl').open('a') as stream:
 mode=os.environ['FIXTURE_MODE']
 if mode=='incomplete': raise SystemExit(2)
 if mode=='always75': raise SystemExit(75)
+if mode in ('stale','bootstrap_stale','always_stale','healthy','bootstrap_active'):
+ if '--resume' not in args or mode=='always_stale':
+  if mode not in ('bootstrap_stale','bootstrap_active'):
+   (output/'coordinator-state.json').write_text(json.dumps({'status':'running'}))
+  def activity():
+   while True:
+    (output/'daytona-delivery.json').write_text(json.dumps({'at':time.time()}))
+    time.sleep(0.02)
+  if mode=='stale': threading.Thread(target=activity,daemon=True).start()
+  if mode in ('healthy','bootstrap_active'):
+   for counter in range(30):
+    name='coordinator-state.json' if mode=='healthy' else 'daytona-delivery.json'
+    (output/name).write_text(json.dumps({'counter':counter}))
+    time.sleep(0.02)
+   raise SystemExit(0)
+  time.sleep(300)
+ raise SystemExit(0)
 if '--resume' not in args:
  if mode=='signal': os.kill(os.getpid(),signal.SIGKILL)
  if mode=='hold': time.sleep(300)
@@ -199,7 +216,11 @@ raise SystemExit(0)
     runner.write_text(
         '''import os,sys
 from pathlib import Path
+from simready_bench import supervision
 from simready_bench.supervision import SupervisorBusyError,supervise
+if os.environ.get('FIXTURE_STALL_SECONDS'):
+ supervision.COORDINATOR_STALL_SECONDS=float(os.environ['FIXTURE_STALL_SECONDS'])
+ supervision.CHILD_POLL_SECONDS=0.02
 try:
  code=supervise(sys.argv[1:],output_dir=Path(os.environ['FIXTURE_OUTPUT']),maximum_restarts=int(os.environ['FIXTURE_RESTARTS']))
 except SupervisorBusyError:
@@ -348,3 +369,46 @@ def test_manager_resume_rejects_changed_scientific_arguments(tmp_path, option, v
     assert again.returncode != 0
     assert "different benchmark command" in again.stderr
     assert len(records(output)) == 1
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Actual Linux coordinator subprocesses")
+@pytest.mark.parametrize("mode", ["stale", "bootstrap_stale"])
+def test_alive_stalled_coordinator_is_stopped_then_resumes_saved_manifest(tmp_path, mode):
+    command, environment, output = fixture_command(tmp_path, mode=mode)
+    environment["FIXTURE_STALL_SECONDS"] = "0.15"
+    result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    children = records(output)
+    assert len(children) == 2
+    assert children[1]["argv"] == [*children[0]["argv"], "--resume"]
+    assert not process_matches(children[0])
+    state = json.loads((tmp_path / ".benchmark-output.supervisor.json").read_text())
+    assert state["status"] == "completed" and state["restarts"] == 1
+    assert state["coordinator_stalls"] == 1
+    assert state["last_restart_reason"] == "coordinator_stalled"
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Actual Linux coordinator subprocesses")
+@pytest.mark.parametrize("mode", ["healthy", "bootstrap_active"])
+def test_main_loop_or_bootstrap_progress_prevents_false_stall_restart(tmp_path, mode):
+    command, environment, output = fixture_command(tmp_path, mode=mode)
+    environment["FIXTURE_STALL_SECONDS"] = "0.15"
+    result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    assert len(records(output)) == 1
+    state = json.loads((tmp_path / ".benchmark-output.supervisor.json").read_text())
+    assert state["status"] == "completed" and state["restarts"] == 0
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Actual Linux coordinator subprocesses")
+def test_repeated_alive_stalls_consume_the_same_durable_restart_limit(tmp_path):
+    command, environment, output = fixture_command(tmp_path, mode="always_stale")
+    environment["FIXTURE_STALL_SECONDS"] = "0.15"
+    result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 75, result.stderr
+    assert len(records(output)) == 2
+    state = json.loads((tmp_path / ".benchmark-output.supervisor.json").read_text())
+    assert state["status"] == "restart_exhausted" and state["restarts"] == 1
+    assert state["coordinator_stalls"] == 2
+    again = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=10)
+    assert again.returncode == 75 and len(records(output)) == 2

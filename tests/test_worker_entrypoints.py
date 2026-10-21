@@ -231,7 +231,7 @@ def test_fresh_failure_enters_saved_recovery_without_new_authority(
     assert [item[0] for item in observed] == ["initial", "recovery"]
     initial = observed[0][2]["policy"]["providers"]["selected"]["project_budget"]
     assert initial["maximum_spend_usd"] == 250
-    assert initial["maximum_requests"] == 6400
+    assert initial["maximum_requests"] == (19200 if deploy == "daytona" else 6400)
     options = observed[1][2]
     assert options["output_dir"] == output
     assert options["max_retries"] == 2 and options["_initial_failure"] is True

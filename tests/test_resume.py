@@ -324,6 +324,7 @@ def test_started_unscored_condition_keeps_its_full_ceiling(tmp_path, monkeypatch
             deploy="daytona",
             output_dir=output,
             resume=True,
+            max_retries=0,
         )
     assert len(dispatched) == 1
     assert caught.value.result["completed_conditions"] == 99

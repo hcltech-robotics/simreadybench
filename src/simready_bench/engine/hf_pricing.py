@@ -36,6 +36,7 @@ HF_PRICING = MappingProxyType(
         "Qwen/Qwen3.8-27B:deepinfra": HFPrice(262144, "0.20", "2.50"),
         "google/gemma-4-31B-it:novita": HFPrice(262144, "0.14", "0.40"),
         "meta-models/Muse-Glimmer-30B:deepinfra": HFPrice(131072, "0.30", "1.20"),
+        "meta-models/Muse-Spark-Open-816B-A42B:baseten": HFPrice(1048576, "1.25", "4.25"),
         "zai-org/GLM-4.6V-Flash:novita": HFPrice(131072, "0.30", "0.90"),
         "stepfun-ai/Step-3.7-Flash:deepinfra": HFPrice(262144, "0.20", "1.15"),
     }

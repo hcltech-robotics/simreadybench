@@ -134,11 +134,15 @@ def test_public_cli_freezes_full_turn_capacity_and_honours_explicit_cap(
     assert manifest["defaults"]["budgets"]["inference_requests"] == 64
     assert manifest["defaults"]["generation"]["max_output_tokens"] is None
     budget = options["policy"]["providers"]["selected"]["project_budget"]
-    assert budget["maximum_requests"] == 6400
-    assert budget["maximum_spend_usd"] == (41792 if explicit is None else explicit)
+    assert budget["maximum_requests"] == 19200
+    assert budget["maximum_spend_usd"] == (125376 if explicit is None else explicit)
     allowance = json.loads((output / "allowance.json").read_text())
     assert allowance["source"] == ("native-request-capacity" if explicit is None else "explicit")
     assert allowance["maximum_spend_usd"] == budget["maximum_spend_usd"]
+    assert allowance["maximum_attempts_per_condition"] == 3
+    assert allowance["maximum_requests"] == 19200
+    if explicit is None:
+        assert manifest["defaults"]["budgets"]["maximum_spend_usd"] == 417.92
     assert "private-fixture-key" not in (output / "operator.json").read_text()
 
 

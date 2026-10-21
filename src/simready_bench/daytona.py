@@ -25,6 +25,46 @@ from uuid import uuid4
 
 from .runtime_images import CPU_IMAGE, CPU_SNAPSHOT, DEFAULT_IMAGES
 
+EXECUTOR_HEALTH_SCHEMA = "simready-bench-executor-health-v1"
+ORPHAN_STOP_MINUTES = 10
+EXECUTOR_STALL_SECONDS = 3900
+
+
+def _health_policy(policy):
+    seconds = policy.get("runtime", {}).get("executor_stall_seconds", EXECUTOR_STALL_SECONDS)
+    if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 1800 <= seconds <= 86400:
+        raise ValueError("Executor stall seconds must be between 1800 and 86400")
+    return {"schema": EXECUTOR_HEALTH_SCHEMA, "stall_seconds": seconds, "orphan_stop_minutes": ORPHAN_STOP_MINUTES}
+
+
+def _executor_activity(sandbox):
+    """Read provider admissions from the relay rather than actor-controlled logs."""
+    raw = sandbox.fs.download_file("/run/simready-benchmark/ledger.json", 10)
+    if len(raw) > 32 * 1024**2:
+        raise ValueError("The executor activity ledger exceeds its size limit")
+    value = json.loads(raw)
+    counts = [value.get(name, 0) for name in ("generation_requests", "input_counter_requests")]
+    if any(type(number) is not int or number < 0 for number in counts):
+        raise ValueError("The executor activity counters are invalid")
+    return counts
+
+
+def _stop_stalled_executor(sandbox, record, output, *, reason, save, exit_code=137):
+    """Stop the owned executor before collecting a stalled attempt and retrying."""
+    _executor_command(
+        sandbox,
+        'set -eu; docker ps -q | xargs -r docker kill >/dev/null; test -z "$(docker ps -q)"; echo simready-containers-stopped',
+        clean=str, timeout=60,
+    )
+    proof = {"schema": "simready-bench-executor-terminal-v1", "sandbox_id": record["sandbox_id"],
+             "run_id": record["run_id"], "observed_at": time.time(), "controller_exit": exit_code,
+             "reason": reason, "all_containers_stopped": True}
+    proof_path = Path(output) / "executor-terminal-proof.json"
+    _json(proof_path, proof)
+    record.update(controller_exit=exit_code, controller_status="failed", terminal_confirmed=True,
+                  termination_reason=reason, executor_terminal_proof_sha256=hashlib.sha256(proof_path.read_bytes()).hexdigest())
+    save()
+
 
 def _actor_resources(value=None):
     """Retain explicit actor bounds across the executor boundary."""
@@ -857,6 +897,9 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
 
     failures = 0
     next_progress = time.monotonic()
+    health = record.get("health_policy", {})
+    guarded = health.get("schema") == EXECUTOR_HEALTH_SCHEMA
+    last_activity = record.get("last_activity_at", time.time())
     while True:
         observed = False
         command_id = record.get("command_id")
@@ -870,6 +913,11 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
                 observed = True
                 failures = 0
                 if command.exit_code is not None:
+                    if guarded and command.exit_code != 0:
+                        _stop_stalled_executor(
+                            sandbox, record, output, reason="controller_exited",
+                            exit_code=command.exit_code, save=save,
+                        )
                     record.update(
                         controller_exit=command.exit_code, terminal_confirmed=True
                     )
@@ -899,12 +947,34 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
         if not observed:
             failures += 1
         deadline = record.get("deadline_at")
+        if guarded and deadline is not None and time.time() >= deadline:
+            _stop_stalled_executor(sandbox, record, output, reason="executor_deadline_exceeded", save=save)
+            return
+        if guarded and failures >= 12:
+            _stop_stalled_executor(sandbox, record, output, reason="executor_stalled", save=save)
+            return
         if failures >= 12 or deadline is not None and time.time() >= deadline:
             raise DaytonaObservationError(
                 "The saved Daytona executor is not confirmed terminal. Resume monitoring with --resume."
             )
         if time.monotonic() >= next_progress:
             forward_telemetry(sandbox, output)
+            if guarded:
+                try:
+                    activity = _executor_activity(sandbox)
+                    if activity != record.get("activity_counters"):
+                        record.update(activity_counters=activity, last_activity_at=time.time())
+                        last_activity = record["last_activity_at"]
+                        save()
+                except Exception:
+                    pass
+                try:
+                    state = json.loads(_executor_command(sandbox, "docker inspect --format '{{json .State}}' simready-benchmark-controller", clean=str))
+                    if state.get("Status") in ("exited", "dead") and state.get("Running") is False and type(state.get("ExitCode")) is int:
+                        _stop_stalled_executor(sandbox, record, output, reason="controller_exited", exit_code=state["ExitCode"], save=save)
+                        return
+                except Exception:
+                    pass
             try:
                 try:
                     raw = sandbox.fs.download_file(
@@ -922,10 +992,14 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
                 )
                 _json(output / "daytona-progress.json", value)
                 previous = record.get("completed_conditions")
+                before = (previous, record.get("attempted_conditions"))
                 record.update(
                     completed_conditions=value.get("completed_conditions"),
                     attempted_conditions=value.get("attempted_conditions"),
                 )
+                if guarded and before != (record["completed_conditions"], record["attempted_conditions"]):
+                    last_activity = time.time()
+                    record["last_activity_at"] = last_activity
                 save()
                 if record["completed_conditions"] != previous:
                     print(
@@ -938,6 +1012,9 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None):
                     )
             except Exception:
                 pass
+            if guarded and time.time() - last_activity >= health["stall_seconds"]:
+                _stop_stalled_executor(sandbox, record, output, reason="executor_stalled", save=save)
+                return
             next_progress = time.monotonic() + 60
         time.sleep(10)
 
@@ -1301,6 +1378,44 @@ def _cold_retirement(client, sandbox, record, output, policy, manifest, *, save)
     }
 
 
+def _lost_executor_result(manifest, output, record, *, on_report, save):
+    from simready_bench.resume import condition_plan
+    from simready_bench.reporting import read_generated_report, render_html, write_scores
+
+    retained = set(record.get("collected_reconstruction_ids", []))
+    rows = [
+        {**values, "condition_id": identity, "status": "infrastructure_error",
+         "failure_stage": "executor", "error_type": "ExecutorLost",
+         "error_code": "executor_missing", "model_quality_evidence": False,
+         "requested_model": manifest["models"][0]["model_id"]}
+        for identity, values in condition_plan(manifest).items()
+        if identity not in retained
+    ]
+    destination = output / "attempts/lost-executor"
+    if (destination / "results.json").exists():
+        result = read_generated_report(destination / "results.json")
+        report = {"directory": str(destination), "results": str(destination / "results.json"),
+                  "html": str(destination / "report.html"), "scores": str(destination / "scores.csv")}
+    else:
+        result = {"schema": "simready-bench-portable-report-v1",
+                  "planned_conditions": record["planned_conditions"], "completed_conditions": 0,
+                  "attempted_conditions": len(rows), "results": rows}
+        if destination.parent.resolve() != destination.parent:
+            raise ValueError("A lost executor report must remain in its owned output")
+        destination.parent.mkdir(mode=0o700, exist_ok=True)
+        incoming = destination.with_name(".lost-executor-" + uuid4().hex)
+        incoming.mkdir(mode=0o700)
+        _json(incoming / "results.json", result)
+        write_scores(incoming / "scores.csv", rows)
+        (incoming / "report.html").write_text(render_html(result), encoding="utf-8")
+        incoming.rename(destination)
+        report = {"directory": str(destination), "results": str(destination / "results.json"),
+                  "html": str(destination / "report.html"), "scores": str(destination / "scores.csv")}
+    if not _notify_report(on_report, report, record, save=save, final=True):
+        raise DaytonaReportError({**result, "report": report, "deployment": record})
+    return {**result, "report": report, "deployment": record}
+
+
 def reconnect_daytona(manifest, *, policy, output_dir, client=None, on_report=None):
     """Monitor and collect the saved executor without allocating or restarting work."""
     from daytona.common.errors import DaytonaNotFoundError
@@ -1368,6 +1483,14 @@ def reconnect_daytona(manifest, *, policy, output_dir, client=None, on_report=No
                 "deployment": record,
             }
         if record.get("collection") != "completed":
+            if record.get("health_policy", {}).get("schema") == EXECUTOR_HEALTH_SCHEMA:
+                record.update(
+                    collection="lost", terminal_confirmed=True, cleanup_confirmed=True,
+                    status="failed", termination_reason="executor_missing",
+                    missing_executor_proof={"schema": "simready-bench-daytona-not-found-v1", "sandbox_id": record["sandbox_id"], "observed_at": time.time()},
+                )
+                save()
+                return _lost_executor_result(manifest, output, record, on_report=on_report, save=save)
             raise DaytonaObservationError(
                 "The previous executor is deleted but its output was not collected."
             )
@@ -1540,6 +1663,8 @@ def run_daytona(
         "planned_conditions": conditions,
         "deadline_at": deadline_at,
         "ttl_minutes": ttl_minutes,
+        "health_policy": _health_policy(policy),
+        "last_activity_at": time.time(),
         "wheel_sha256": hashlib.sha256(wheel_path.read_bytes()).hexdigest(),
     }
     clean = _redactor(policy, key, provider_key, marker)
@@ -1582,7 +1707,7 @@ def run_daytona(
                 snapshot=snapshot,
                 public=False,
                 ttl_minutes=ttl_minutes,
-                auto_stop_interval=0,
+                auto_stop_interval=ORPHAN_STOP_MINUTES,
                 auto_delete_interval=0,
                 ephemeral=True,
                 labels={"project": "simreadybench", "role": "benchmark-executor"},
@@ -1725,8 +1850,10 @@ def run_daytona(
         telemetry_env = [
             part for name in DAYTONA_TELEMETRY_ENV for part in ("--env", name)
         ]
+        controller_base = base.copy()
+        controller_base.remove("--rm")
         argv = [
-            *base,
+            *controller_base,
             *telemetry_env,
             "--name",
             "simready-benchmark-controller",

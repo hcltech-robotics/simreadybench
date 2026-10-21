@@ -162,7 +162,7 @@ def test_cli_dispatches_whole_reference_set_to_selected_executor(
     assert len(calls) == 1 and len(calls[0][0]["assets"]) == 25
     assert calls[0][0]["repetitions"] == 1
     provider = calls[0][1]["policy"]["providers"]["selected"]
-    assert provider["project_budget"]["maximum_requests"] == 1600
+    assert provider["project_budget"]["maximum_requests"] == (4800 if deploy == "daytona" else 1600)
     assert provider["project_budget"]["maximum_spend_usd"] == 250
     assert provider["api_key_env"] == "OPENAI_API_KEY"
     assert (

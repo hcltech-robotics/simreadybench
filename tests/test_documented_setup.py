@@ -50,7 +50,8 @@ def test_documented_reference_set_command_reaches_benchmark(
     assert captured["model"] == model and captured["harness"] == "pi"
     assert captured["deploy"] == deployment and captured["repetitions"] == 4
     assert captured["maximum_spend_usd"] is None
-    assert captured["authoring_turns"] == 64 and captured["workers"] == 4
+    assert captured["authoring_turns"] == 64
+    assert captured["workers"] == (8 if filename == "docs/deployment.md" else 4)
     expected = (
         "../simreadybench-hf-results"
         if filename == "docs/configuration.md"

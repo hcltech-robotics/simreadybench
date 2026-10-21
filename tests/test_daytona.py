@@ -501,6 +501,8 @@ def test_full_executor_reserves_before_create_exports_then_deletes(
 
         def create(self, params, timeout):
             assert 50 <= params.ttl_minutes <= 60
+            assert params.auto_stop_interval == 10
+            assert params.auto_delete_interval == 0 and params.ephemeral is True
             events.append(("create",))
             return sandbox
 
@@ -517,9 +519,7 @@ def test_full_executor_reserves_before_create_exports_then_deletes(
     monkeypatch.setattr("simready_bench.daytona.time.sleep", lambda seconds: None)
     wheel = build_wheel(tmp_path / "wheel")
     if observation_unknown:
-        from simready_bench.daytona import DaytonaObservationError
-
-        with pytest.raises(DaytonaObservationError):
+        with pytest.raises(RuntimeError, match="Daytona benchmark failed"):
             run_daytona(
                 manifest,
                 policy=policy,
@@ -528,14 +528,19 @@ def test_full_executor_reserves_before_create_exports_then_deletes(
                 skills_root=output / "skills",
                 wheel=wheel,
             )
-        assert events == [("reserve", 3200, 250), ("create",)]
+        assert events == [("reserve", 3200, 250), ("create",), ("delete", "owned-executor")]
         delivery = json.loads((output / "daytona-delivery.json").read_text())
         assert (
-            delivery["status"] == "unobserved"
-            and delivery["cleanup_confirmed"] is False
+            delivery["status"] == "failed"
+            and delivery["cleanup_confirmed"] is True
         )
         assert delivery["parent_allocation"]["status"] == "reserved"
-        assert delivery.get("collection") != "completed"
+        assert delivery["collection"] == "completed" and delivery["terminal_confirmed"]
+        assert delivery["termination_reason"] == "executor_stalled"
+        proof = json.loads((output / "executor-terminal-proof.json").read_text())
+        assert proof["sandbox_id"] == "owned-executor" and proof["all_containers_stopped"]
+        controller = next(command for command in commands if "simready_bench.controller_runner" in command)
+        assert "--rm" not in controller
         return
     publications = []
 

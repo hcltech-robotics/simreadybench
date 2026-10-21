@@ -496,3 +496,84 @@ def test_native_materials_are_sampled_lazily(tmp_path):
         count = len(calls)
         assert observed["materials"][1]["visual:assignment"] is True
         assert len(calls) == count
+
+
+def test_malformed_surface_retains_geometry_physics_and_kinematic_comparison(tmp_path):
+    source = tmp_path / "source.usda"
+    candidate = tmp_path / "candidate.usda"
+    write(source)
+    write(candidate)
+    stage = Usd.Stage.Open(str(candidate))
+    material = stage.GetPrimAtPath("/Looks/Renamable")
+    material.RemoveProperty("outputs:surface")
+    material.CreateRelationship("outputs:surface").SetTargets(
+        ["/Looks/Renamable/Surface.outputs:surface"]
+    )
+    stage.GetRootLayer().Save()
+    before = candidate.read_bytes()
+
+    reference, observed = observe(source), observe(candidate)
+    result = compare(reference, observed, settings({"samples": 128}))
+    assert result["status"] == "measured"
+    assert result["components"]["shape"]["score_percent"] == 100
+    assert result["components"]["joints"]["score_percent"] == 100
+    assert result["components"]["kinematics"]["score_percent"] == 100
+    features = result["components"]["materials"]["features"]
+    assert features["physics:staticFriction"]["earned"] == 128
+    assert features["visual:assignment"]["earned"] == 0
+    assert result["components"]["materials"]["appearance"]["score_percent"] == 0
+    assert any(
+        "surface is authored as a relationship" in row["reason"]
+        and row["geometry"] is False
+        for row in result["candidate_limitations"]
+    )
+    assert candidate.read_bytes() == before
+
+    unsupported_reference = compare(observed, observed, settings({"samples": 128}))
+    appearance = unsupported_reference["components"]["materials"]["appearance"]
+    assert appearance["status"] == "not_applicable"
+    assert appearance["score_percent"] is None
+
+
+def test_formal_zero_does_not_suppress_valid_usd_reference_comparison(tmp_path):
+    from simready_bench.composites import scores
+    from simready_bench.engine.scoring import pinned_profile, score_validation
+    from simready_bench.engine.verifier import scoring_policy
+    from test_validator_reward_v1 import official_report
+
+    source = tmp_path / "source.usda"
+    candidate = tmp_path / "candidate.usda"
+    write(source)
+    write(candidate)
+    formal = score_validation(
+        official_report(
+            failed=[row["code"] for row in pinned_profile()["mandatory_requirements"]]
+        ),
+        scoring_policy(),
+    )
+    assert formal["score_percent"] == 0
+    fidelity = compare(observe(source), observe(candidate), settings({"samples": 128}))
+    result = scores({"simready": formal, "fidelity": fidelity})
+    assert result["formal"]["score_percent"] == 0
+    assert result["formal"]["passed"] is False
+    assert result["visual"]["score_percent"] == 100
+    assert result["kinematic"]["score_percent"] == 100
+
+
+def test_malformed_universal_surface_preserves_connected_render_context(tmp_path):
+    candidate = tmp_path / "candidate.usda"
+    write(candidate)
+    stage = Usd.Stage.Open(str(candidate))
+    material = stage.GetPrimAtPath("/Looks/Renamable")
+    material.RemoveProperty("outputs:surface")
+    material.CreateRelationship("outputs:surface").SetTargets(
+        ["/Looks/Renamable/Surface.outputs:surface"]
+    )
+    material.CreateAttribute(
+        "outputs:mdl:surface", Sdf.ValueTypeNames.Token
+    ).SetConnections(["/Looks/Renamable/Surface.outputs:surface"])
+    stage.GetRootLayer().Save()
+    measured = observe(candidate)["materials"][0]
+    assert measured["visual:assignment"] is True
+    assert np.isclose(measured["physics:staticFriction"], 0.7)
+    assert "visual:diffuseColor" not in measured

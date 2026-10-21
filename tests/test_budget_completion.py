@@ -37,9 +37,9 @@ def docker_boundary(env, monkeypatch):
     monkeypatch.setattr(env, "_engine", engine)
 
 
-def evaluate_final(tmp_path, snapshot, *, unknown=False):
+def evaluate_final(tmp_path, snapshot, *, unknown=False, failed=()):
     def observe(current, **kwargs):
-        report = official_report()
+        report = official_report(failed=failed)
         if unknown:
             report["engine_dispatch_completed"] = False
         return {
@@ -178,7 +178,8 @@ def test_provider_failure_stays_unscored_despite_confirmed_stop(
                 normal_stop=bridge.completed_actor_stop(env),
             )
             assert result["status"] == "infrastructure_error"
-            assert result["evaluation"] is None and result["official_reward"] is None
+            assert result["evaluation"] is evaluation
+            assert result["official_reward"] is None
             assert result["model_quality_evidence"] is False
         finally:
             bridge.uninstall()
@@ -212,7 +213,8 @@ def test_unconfirmed_exit_and_unknown_evaluator_stay_unscored(
             }
             complete_trial_result(result, native_result(error), normal_stop=normal_stop)
             assert result["status"] == "infrastructure_error"
-            assert result["evaluation"] is None and result["official_reward"] is None
+            assert result["evaluation"] is not None
+            assert result["official_reward"] is None
         finally:
             bridge.uninstall()
 

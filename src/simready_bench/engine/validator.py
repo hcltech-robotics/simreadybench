@@ -366,6 +366,10 @@ def _run_profile(stage, inventory):
     """
     import simready.validate.api as sdk
     from usd_validation_nvidia import BaseRuleChecker, ProfileRegistry, ValidationEngine
+    from simready_bench.engine.nvidia_compat import (
+        compatibility_identity,
+        material_surface_connections,
+    )
 
     source_identity = _sdk_source_identity()
     profile = ProfileRegistry().find(PROFILE_ID, PROFILE_VERSION)
@@ -418,7 +422,8 @@ def _run_profile(stage, inventory):
 
             sys.setprofile(observe)
             try:
-                result = engine.validate(stage)
+                with material_surface_connections():
+                    result = engine.validate(stage)
             finally:
                 sys.setprofile(previous)
             if result is None:
@@ -470,6 +475,7 @@ def _run_profile(stage, inventory):
         "scope": _EXECUTION_SCOPE,
         "completed": True,
         "sdk_source_sha256": source_identity,
+        "compatibility_adapters": [compatibility_identity()],
         "buckets": bucket_reports,
         "requirements": rows,
         "optional_requirements": optional_rows,

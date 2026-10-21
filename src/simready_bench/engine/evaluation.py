@@ -42,15 +42,19 @@ class CandidateObserver:
         self.expected_hostname = expected_hostname
         self.enabled = execution_enabled
         package = Path(__file__).parent
+        from simready_bench.engine.nvidia_compat import compatibility_identity
+
         self.identity = {
             "kind": "NVIDIA_Robotics_Prop_validator",
             "python": str(self.python),
+            "compatibility_adapters": [compatibility_identity()],
             "sources": {
                 name: hashlib.sha256((package / name).read_bytes()).hexdigest()
                 for name in (
                     "evaluation.py",
                     "scoring.py",
                     "validator.py",
+                    "nvidia_compat.py",
                     "package_checks.py",
                     "snapshots.py",
                     "semantics.py",
