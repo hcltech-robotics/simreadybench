@@ -79,3 +79,32 @@ def test_old_entries_and_missing_metrics_do_not_invent_resource_values():
     }
     figures = render_leaderboard_plots(legacy)
     assert len(figures) == 4
+
+
+def test_partial_efficiency_points_show_small_asterisks_and_one_footnote(monkeypatch):
+    from matplotlib.figure import Figure
+
+    partial = board()
+    for name, measured, eligible in (("formal", 97, 100), ("visual", 97, 100), ("kinematic", 54, 55)):
+        partial["entries"][0]["efficiency"][name]["per_million_tokens"].update(
+            measured_attempts=measured, eligible_attempts=eligible,
+        )
+    captured = {}
+    original = Figure.savefig
+
+    def save(figure, *args, **kwargs):
+        captured[figure._suptitle.get_text()] = {
+            "text": [text.get_text() for text in figure.texts],
+            "annotations": [text.get_text() for axis in figure.axes for text in axis.texts],
+            "points": [float(line.get_xdata()[0]) for axis in figure.axes
+                       for line in axis.lines if line.get_marker() == "o"],
+        }
+        return original(figure, *args, **kwargs)
+
+    monkeypatch.setattr(Figure, "savefig", save)
+    render_leaderboard_plots(partial)
+    token = captured["Token efficiency with 95% confidence intervals"]
+    assert token["points"] == [1000, 1000, 1000]
+    assert token["annotations"] == ["*", "*", "*"]
+    assert token["text"].count("* Incomplete usage coverage.") == 1
+    assert "* Incomplete usage coverage." not in captured["Mean fidelity with 95% confidence intervals"]["text"]

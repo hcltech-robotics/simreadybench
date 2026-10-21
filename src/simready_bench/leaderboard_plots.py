@@ -68,8 +68,8 @@ def _label(entry):
 def render_leaderboard_plots(board):
     """Return deterministic PNG files for complete entries, skipping empty boards.
 
-    Each point represents a complete NV25 x4 condition. Error bars are its
-    95% asset-cluster percentile interval. A missing interval is not drawn.
+    Each entry is a complete NV25 x4 condition. Efficiency points use its
+    paired measured subset, with 95% asset-cluster percentile intervals.
     The corresponding machine-readable values remain in ``leaderboard.json``.
     """
     entries = [
@@ -113,6 +113,7 @@ def render_leaderboard_plots(board):
         )
         FigureCanvasAgg(figure)
         axes = figure.subplots(1, 3, sharey=True)
+        incomplete_usage = False
         for axis, name, group in zip(axes, METRICS, summaries):
             axis.set_title(name.capitalize(), fontsize=12, loc="left", pad=12)
             axis.set_yticks(range(len(entries)))
@@ -131,22 +132,6 @@ def render_leaderboard_plots(board):
                         if summary.get("status") == "not_applicable"
                         else "Not measured"
                     )
-                    measured, eligible = (
-                        summary.get("measured_attempts"),
-                        summary.get("eligible_attempts"),
-                    )
-                    if (
-                        label != "N/A"
-                        and type(measured) is int
-                        and type(eligible) is int
-                    ):
-                        label += (
-                            "\n"
-                            + str(measured)
-                            + "/"
-                            + str(eligible)
-                            + " eligible attempts measured"
-                        )
                     axis.text(
                         0.03,
                         y,
@@ -174,6 +159,11 @@ def render_leaderboard_plots(board):
                         linewidth=1.1,
                     )
                 axis.plot(value, y, "o", color="#173c54", markersize=5, clip_on=False)
+                measured, eligible = summary.get("measured_attempts"), summary.get("eligible_attempts")
+                if efficiency and type(measured) is int and type(eligible) is int and 0 < measured < eligible:
+                    axis.annotate("*", (value, y), xytext=(4, 4), textcoords="offset points",
+                                  fontsize=9, color="#173c54", annotation_clip=False)
+                    incomplete_usage = True
             axis.set_xlim(left=0)
             if efficiency is None:
                 axis.set_xlim(-2, 102)
@@ -185,6 +175,8 @@ def render_leaderboard_plots(board):
         figure.suptitle(
             title + " with 95% confidence intervals", fontsize=14, x=0.01, ha="left"
         )
+        if incomplete_usage:
+            figure.supxlabel("* Incomplete usage coverage.", fontsize=8, x=0.01, ha="left")
         buffer = BytesIO()
         figure.savefig(
             buffer, format="png", dpi=160, metadata={"Software": "SimReadyBench"}

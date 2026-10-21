@@ -216,7 +216,7 @@ def test_intervals_efficiency_and_resource_coverage_are_readable():
         }
     }
     item["usage"] = {
-        "total_tokens": {"mean": None, "measured_attempts": 97, "total_attempts": 100},
+        "total_tokens": {"mean": None, "measured_mean": 1234, "measured_attempts": 97, "total_attempts": 100},
         "elapsed_seconds": {
             "mean": 120,
             "measured_attempts": 100,
@@ -226,7 +226,9 @@ def test_intervals_efficiency_and_resource_coverage_are_readable():
     rendered = render_benchmark_card("# Results\n", board(item))
     assert "17.12 [10.12, 23.46]" in rendered
     assert "117.12 [10.12, 23.46]" in rendered
-    assert "unknown (97/100 measured) | 2.00" in rendered
+    assert "1,234.00* | 2.00" in rendered
+    assert rendered.count("\\* Incomplete usage coverage.") == 1
+    assert "97/100 measured" not in rendered
     assert "10,000 asset-cluster bootstrap" in rendered
     assert "media/leaderboard-scores.png" in rendered
     assert "media/leaderboard-token-efficiency.png" in rendered
@@ -313,7 +315,7 @@ def test_resource_tables_distinguish_protocols_and_show_eligible_coverage():
     items[0]["efficiency"] = {
         "formal": {
             "per_million_tokens": {
-                "value": None,
+                "value": 123.45,
                 "measured_attempts": 97,
                 "eligible_attempts": 100,
             }
@@ -322,7 +324,7 @@ def test_resource_tables_distinguish_protocols_and_show_eligible_coverage():
     items[1]["efficiency"] = {
         "kinematic": {
             "per_million_tokens": {
-                "value": None,
+                "value": 67.89,
                 "measured_attempts": 39,
                 "eligible_attempts": 40,
             }
@@ -331,8 +333,10 @@ def test_resource_tables_distinguish_protocols_and_show_eligible_coverage():
     rendered = render_benchmark_card("# Results\n", board(*items))
     for item in items:
         assert "<br>" + item["authoring_protocol"] + " |" in rendered
-    assert "unknown (97/100 measured)" in rendered
-    assert "unknown (39/40 measured)" in rendered
+    assert "123.45*" in rendered
+    assert "67.89*" in rendered
+    assert "97/100 measured" not in rendered
+    assert "39/40 measured" not in rendered
 
 
 def test_strict_success_rates_keep_zero_and_partial_measurement_coverage():

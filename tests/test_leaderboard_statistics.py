@@ -89,20 +89,23 @@ def test_reference_inapplicable_resources_are_excluded_from_each_metric():
     assert metric["denominator_mean"] == 25000
 
 
-def test_missing_resource_keeps_coverage_and_unknown_efficiency():
+def test_missing_resource_uses_paired_measured_subset_and_keeps_coverage():
     data = measurements()
     data[3][0]["total_tokens"] = None
     composites, efficiency = summary(data)
     assert composites["formal"]["confidence_interval"]["lower"] == 10
     token = efficiency["formal"]["per_million_tokens"]
     assert token["measured_attempts"] == 11
-    assert token["value"] is None
-    assert token["confidence_interval"] is None
-    assert token["denominator_mean"] is None
+    assert token["value"] == pytest.approx(1000)
+    assert token["confidence_interval"]["lower"] == pytest.approx(1000)
+    assert token["confidence_interval"]["upper"] == pytest.approx(1000)
+    assert token["denominator_mean"] == pytest.approx(230000 / 11)
+    assert token["paired_score_mean"] == pytest.approx(230 / 11)
+    assert token["usage_coverage_complete"] is False
     assert efficiency["formal"]["per_elapsed_minute"]["value"] == 30
 
 
-def test_inference_cost_efficiency_excludes_compute_and_requires_complete_coverage():
+def test_inference_cost_efficiency_excludes_compute_and_pairs_partial_coverage():
     data = measurements()
     for usage in data[3]:
         usage["compute_cost_usd"] = None
@@ -115,21 +118,42 @@ def test_inference_cost_efficiency_excludes_compute_and_requires_complete_covera
     data[3][0]["inference_cost_usd"] = None
     _, efficiency = summary(data)
     cost = efficiency["formal"]["per_inference_usd"]
-    assert cost["value"] is None
-    assert cost["confidence_interval"] is None
+    assert cost["value"] == pytest.approx(100)
+    assert cost["confidence_interval"]["lower"] == pytest.approx(100)
+    assert cost["confidence_interval"]["upper"] == pytest.approx(100)
     assert cost["measured_attempts"] == 11
-    assert cost["denominator_mean"] is None
+    assert cost["denominator_mean"] == pytest.approx(2.3 / 11)
     assert efficiency["formal"]["per_million_tokens"]["value"] == 1000
 
 
 @pytest.mark.parametrize("score", [None, float("nan")])
-def test_missing_score_never_gets_a_confidence_interval_or_efficiency(score):
+def test_missing_headline_score_stays_unknown_while_efficiency_uses_known_pairs(score):
     data = measurements()
     data[2]["formal"]["score"] = score
     data[1]["formal"][0]["score_percent"] = None
     composites, efficiency = summary(data)
     assert composites["formal"]["confidence_interval"] is None
-    assert all(metric["value"] is None for metric in efficiency["formal"].values())
+    assert efficiency["formal"]["per_million_tokens"]["value"] == pytest.approx(1000)
+    assert all(metric["measured_attempts"] == 11 for metric in efficiency["formal"].values())
+
+
+def test_partial_resource_ratio_and_bootstrap_exclude_unpaired_scores():
+    data = measurements((10, 20, 90))
+    for index, usage in enumerate(data[3]):
+        usage["total_tokens"] = 1000 if index not in (0, 8, 9, 10, 11) else None
+    composites, efficiency = summary(data)
+    metric = efficiency["formal"]["per_million_tokens"]
+    assert composites["formal"]["score"] == 40
+    assert composites["formal"]["confidence_interval"]["upper"] == 90
+    assert metric["value"] == pytest.approx(1_000_000 * (110 / 7) / 1000)
+    assert metric["paired_score_mean"] == pytest.approx(110 / 7)
+    assert metric["confidence_interval"]["lower"] == pytest.approx(10000)
+    assert metric["confidence_interval"]["upper"] == pytest.approx(20000)
+    assert metric["confidence_interval"]["asset_count"] == 2
+    assert metric["measured_attempts"] == 7
+    assert metric["eligible_attempts"] == 12
+    assert metric["measured_assets"] == 2
+    assert metric["eligible_assets"] == 3
 
 
 def test_single_cluster_has_no_claimed_sampling_interval():

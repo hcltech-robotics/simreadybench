@@ -107,6 +107,9 @@ def test_complete_set_aggregates_performance_and_preserves_inapplicable_componen
     assert entry["fidelity"]["joints"]["not_applicable_attempts"] == 100
     assert entry["usage"]["input_tokens"] == {
         "mean": None,
+        "total": None,
+        "measured_mean": None,
+        "measured_total": None,
         "measured_attempts": 0,
         "total_attempts": 100,
     }
@@ -154,11 +157,14 @@ def test_usage_means_cover_every_attempt_and_keep_units_separate():
     assert set(usage) == set(expected)
     for name, value in expected.items():
         assert usage[name]["mean"] == pytest.approx(value)
+        assert usage[name]["total"] == pytest.approx(value * 100)
+        assert usage[name]["measured_mean"] == pytest.approx(value)
+        assert usage[name]["measured_total"] == pytest.approx(value * 100)
         assert usage[name]["measured_attempts"] == 100
         assert usage[name]["total_attempts"] == 100
 
 
-def test_partial_usage_retains_coverage_without_averaging_known_attempts():
+def test_partial_usage_keeps_full_totals_null_and_reports_measured_subset():
     manifest, result = run()
     for index, row in enumerate(result["results"]):
         add_usage(row, index)
@@ -169,14 +175,17 @@ def test_partial_usage_retains_coverage_without_averaging_known_attempts():
         manifest=manifest,
         results_url="https://example.org/results",
     )["usage"]
-    for name in (
-        "inference_cost_usd",
-        "total_cost_usd",
-        "output_tokens",
-        "total_tokens",
+    for name, measured_total in (
+        ("inference_cost_usd", 4.95),
+        ("total_cost_usd", 7.425),
+        ("output_tokens", 49500),
+        ("total_tokens", 544500),
     ):
         assert usage[name] == {
             "mean": None,
+            "total": None,
+            "measured_mean": pytest.approx(measured_total / 99),
+            "measured_total": pytest.approx(measured_total),
             "measured_attempts": 99,
             "total_attempts": 100,
         }
@@ -195,7 +204,10 @@ def test_measured_zero_usage_remains_zero():
         results_url="https://example.org/results",
     )["usage"]
     for metric in usage.values():
-        assert metric == {"mean": 0, "measured_attempts": 100, "total_attempts": 100}
+        assert metric == {
+            "mean": 0, "total": 0, "measured_mean": 0, "measured_total": 0,
+            "measured_attempts": 100, "total_attempts": 100,
+        }
 
 
 def test_completed_invalid_candidates_are_measured_zero_results():

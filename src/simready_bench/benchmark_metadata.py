@@ -150,8 +150,12 @@ def _usage(entry, name, scale=1, suffix=""):
         and measured == total
     ):
         return f"{value / scale:,.2f}" + suffix
-    if type(measured) is int and type(total) is int and total > 0:
-        return f"unknown ({measured}/{total} measured)"
+    value = metric.get("measured_mean")
+    if (
+        type(value) in (int, float) and math.isfinite(value) and value >= 0
+        and type(measured) is int and type(total) is int and 0 < measured < total
+    ):
+        return f"{value / scale:,.2f}" + suffix + "*"
     return "unknown"
 
 
@@ -159,15 +163,6 @@ def _efficiency(entry, name, metric):
     summary = ((entry.get("efficiency") or {}).get(name) or {}).get(metric) or {}
     value = summary.get("value")
     if value is None:
-        measured = summary.get("measured_attempts")
-        eligible = summary.get("eligible_attempts")
-        if (
-            type(measured) is int
-            and type(eligible) is int
-            and 0 <= measured <= eligible
-            and eligible > 0
-        ):
-            return f"unknown ({measured}/{eligible} measured)"
         return (
             "N/A"
             if (entry.get("composite_scores") or {}).get(name, {}).get("status")
@@ -178,7 +173,9 @@ def _efficiency(entry, name, metric):
         raise ValueError(
             "A leaderboard efficiency must be a non-negative value or null"
         )
-    return _estimate(value, summary.get("confidence_interval"))
+    measured, eligible = summary.get("measured_attempts"), summary.get("eligible_attempts")
+    partial = type(measured) is int and type(eligible) is int and 0 < measured < eligible
+    return _estimate(value, summary.get("confidence_interval")) + ("*" if partial else "")
 
 
 def _success(entry, name):
@@ -277,7 +274,7 @@ def _section(board):
                 "",
                 "### Efficiency",
                 "",
-                "Efficiency is the mean fidelity divided by mean resource use per eligible reconstruction. Token efficiency uses total input and output tokens, while time efficiency uses elapsed reconstruction time, including model requests, tools and evaluation. Cost efficiency uses pricing-derived inference cost in USD, with compute cost reported separately. Each ratio uses the same eligible reconstructions for its score and resource means, with joint asset-cluster bootstrap intervals.",
+                "Efficiency is the mean fidelity divided by mean resource use across eligible reconstructions with both measurements. Token efficiency uses total input and output tokens, while time efficiency uses elapsed reconstruction time, including model requests, tools and evaluation. Cost efficiency uses pricing-derived inference cost in USD, with compute cost reported separately. Each ratio uses paired score and resource measurements, with joint asset-cluster bootstrap intervals.",
                 "",
                 "| Configuration | Formal points/1M tokens | Visual points/1M tokens | Kinematic points/1M tokens |",
                 "| --- | ---: | ---: | ---: |",
@@ -350,7 +347,7 @@ def _section(board):
                 "",
                 "### Resource use",
                 "",
-                "Means per reconstruction across all 100 attempts. Partial measurement coverage is shown in place of a mean. Full precision and eligible-attempt coverage are retained in [leaderboard.json](leaderboard.json).",
+                "Means per reconstruction with measured usage. Full precision, totals and measurement coverage are retained in [leaderboard.json](leaderboard.json).",
                 "",
                 "| Configuration | Total tokens | Elapsed minutes | Model requests | Pricing-derived inference cost (USD) | Compute cost (USD) | Total cost (USD) |",
                 "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
@@ -372,6 +369,19 @@ def _section(board):
                 )
                 + " |"
             )
+        if any(
+            type(metric.get("measured_attempts")) is int
+            and type(metric.get(total_field)) is int
+            and 0 < metric["measured_attempts"] < metric[total_field]
+            for entry in ordered
+            for metric, total_field in [
+                *((metric, "total_attempts") for metric in (entry.get("usage") or {}).values()),
+                *((metric, "eligible_attempts")
+                  for scores in (entry.get("efficiency") or {}).values()
+                  for metric in scores.values()),
+            ]
+        ):
+            lines.extend(["", "\\* Incomplete usage coverage."])
         lines.extend(
             [
                 "",

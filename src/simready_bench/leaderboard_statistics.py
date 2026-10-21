@@ -3,7 +3,7 @@
 The sampling unit is the reference asset. Each bootstrap draw retains all of
 an asset's reconstructions, rather than treating the four repetitions as
 independent assets. Headline means retain the original attempt weighting.
-Resource ratios use the same eligible attempts as their corresponding score.
+Resource ratios use paired scores and usage from the same measured attempts.
 """
 
 from __future__ import annotations
@@ -42,8 +42,8 @@ def statistical_summaries(rows, *, parts, summaries, usage_rows):
     """Add paired bootstrap intervals without changing any original mean.
 
     ``parts[name]`` is the original composite per attempt. Unknown headline
-    scores remain unknown. Reference-inapplicable attempts contribute neither
-    score nor resource use to that metric's efficiency denominator.
+    scores remain unknown. Each resource ratio uses the eligible attempts with
+    both a measured score and measured usage for that resource.
     """
     enriched, efficiency = {}, {}
     for name, summary in summaries.items():
@@ -109,10 +109,27 @@ def statistical_summaries(rows, *, parts, summaries, usage_rows):
                 "fidelity points per USD of pricing-derived inference cost",
             ),
         ):
-            values = [usage_rows[index].get(resource) for index in selected]
-            measured = sum(_number(value) and value >= 0 for value in values)
-            complete = bool(values) and measured == len(values)
-            denominator_mean = sum(values) / len(values) if complete else None
+            paired = [
+                index for index in selected
+                if _number(parts[name][index].get("score_percent"))
+                and _number(usage_rows[index].get(resource))
+                and usage_rows[index][resource] >= 0
+            ]
+            measured = len(paired)
+            complete = bool(paired) and measured == len(selected)
+            denominator_mean = (
+                math.fsum(usage_rows[index][resource] for index in paired) / measured
+                if paired else None
+            )
+            paired_score_mean = (
+                math.fsum(parts[name][index]["score_percent"] for index in paired) / measured
+                if paired else None
+            )
+            paired_clusters = defaultdict(list)
+            for index in paired:
+                paired_clusters[rows[index]["asset_id"]].append(index)
+            paired_groups = [paired_clusters[asset] for asset in sorted(paired_clusters)]
+            measured_assets = len(paired_groups)
             metric = {
                 "value": None,
                 "status": "not_applicable"
@@ -123,29 +140,39 @@ def statistical_summaries(rows, *, parts, summaries, usage_rows):
                 "measured_attempts": measured,
                 "eligible_attempts": len(selected),
                 "eligible_assets": asset_count,
+                "measured_assets": measured_assets,
+                "usage_coverage_complete": complete,
                 "total_attempts": len(rows),
-                "denominator": "mean_" + resource + "_per_eligible_attempt",
+                "denominator": "mean_" + resource + "_per_measured_eligible_attempt",
                 "denominator_mean": denominator_mean,
+                "paired_score_mean": paired_score_mean,
                 "multiplier": multiplier,
             }
-            if known and complete and denominator_mean > 0:
-                metric["value"] = multiplier * summary["score"] / denominator_mean
+            if paired and denominator_mean > 0:
+                metric["value"] = multiplier * paired_score_mean / denominator_mean
                 metric["status"] = "measured"
+                paired_draws = np.random.default_rng(SEED).integers(
+                    measured_assets, size=(RESAMPLES, measured_assets)
+                )
+                paired_score_totals = np.array(
+                    [math.fsum(parts[name][index]["score_percent"] for index in group)
+                     for group in paired_groups], dtype=float,
+                )
                 resource_totals = np.array(
                     [
-                        sum(usage_rows[index][resource] for index in group)
-                        for group in groups
+                        math.fsum(usage_rows[index][resource] for index in group)
+                        for group in paired_groups
                     ],
                     dtype=float,
                 )
-                resource_samples = resource_totals[draws].sum(axis=1)
+                resource_samples = resource_totals[paired_draws].sum(axis=1)
                 # Both totals use the identical sampled asset clusters. A zero
                 # resource draw makes a finite percentile interval undefined.
                 with np.errstate(divide="ignore", invalid="ignore"):
                     ratios = (
-                        multiplier * score_totals[draws].sum(axis=1) / resource_samples
+                        multiplier * paired_score_totals[paired_draws].sum(axis=1) / resource_samples
                     )
-                metric["confidence_interval"] = _interval(ratios, assets=asset_count)
+                metric["confidence_interval"] = _interval(ratios, assets=measured_assets)
             efficiency[name][key] = metric
     return enriched, efficiency
 

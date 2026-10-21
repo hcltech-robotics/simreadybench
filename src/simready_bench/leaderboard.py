@@ -426,9 +426,13 @@ def leaderboard_entry(result, *, manifest, results_url):
     usage = {}
     for name in USAGE_FIELDS:
         values = [row[name] for row in usage_rows]
+        measured = [value for value in values if value is not None]
         usage[name] = {
             "mean": _mean(values),
-            "measured_attempts": sum(value is not None for value in values),
+            "total": sum(values) if len(measured) == len(values) else None,
+            "measured_mean": _mean(measured) if measured else None,
+            "measured_total": sum(measured) if measured else None,
+            "measured_attempts": len(measured),
             "total_attempts": len(rows),
         }
     composite_parts = {name: [] for name in COMPOSITE_NAMES}
