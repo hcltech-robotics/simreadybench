@@ -63,6 +63,40 @@ def report_sources(batch):
     return entries
 
 
+def _health_observations(batches):
+    """Include owned executor failures even when shutdown interrupted reporting."""
+    from simready_bench.resume import _executor_terminal_proof, _read
+
+    observations = []
+    for batch in batches:
+        rows = {}
+        for _, _, report in report_sources(batch):
+            for row in report.get("results", []):
+                identity = batch.name + "/" + row["condition_id"]
+                rows[identity] = {"attempt_id": identity, "status": row.get("status")}
+        delivery_path, retirement_path = batch / "daytona-delivery.json", batch / "retirement.json"
+        terminal = None
+        if delivery_path.is_file() and retirement_path.is_file():
+            delivery, retirement = _read(delivery_path), _read(retirement_path)
+            unreported = {batch.name + "/" + identity for identity in
+                          retirement.get("unreported_admitted_conditions", [])}
+            unreported.difference_update(identity for identity, row in rows.items()
+                if row["status"] in ("completed", "infrastructure_error", "condition_error"))
+            if (delivery.get("cleanup_confirmed") is True
+                    and retirement.get("executor_deleted") is True
+                    and retirement.get("sandbox_id") == delivery.get("sandbox_id")
+                    and unreported
+                    and delivery.get("executor_terminal_proof_sha256")):
+                terminal = _executor_terminal_proof(batch, delivery)
+        if terminal is not None:
+            # A sealed retirement separates reported conditions from work that
+            # stopped without a result. Earlier failures remain separate events.
+            observations.append({"attempt_id": batch.name + "/@executor",
+                "status": "infrastructure_error"})
+        observations.extend(rows.values())
+    return observations
+
+
 def _completed_digest(row):
     """Bind measurements and content while allowing owned artefact relocation."""
     value = copy.deepcopy(row)
@@ -591,11 +625,7 @@ def coordinate_daytona(
                         batch.name, list(condition_plan(selected))
                     )
             index.backfill(batches)
-            observations = []
-            for batch in batches:
-                for _, _, report in report_sources(batch):
-                    observations.extend({'attempt_id': batch.name + '/' + row['condition_id'],
-                        'status': row.get('status')} for row in report.get('results', []))
+            observations = _health_observations(batches)
             if health.observe(observations, active=bool(futures)):
                 stop_event.set()
                 state['health_circuit'] = dict(health.state)
