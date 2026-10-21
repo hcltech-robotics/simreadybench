@@ -355,8 +355,12 @@ def compose_experiment(
     repetitions=4,
     maximum_spend_usd=0,
     authoring_turns=DEFAULT_AUTHORING_TURNS,
+    max_output_tokens=None,
 ):
-    protocol = authoring_protocol(authoring_turns)
+    from simready_bench.engine.native_output import validate_output_cap
+
+    validate_output_cap(max_output_tokens)
+    protocol = authoring_protocol(authoring_turns, max_output_tokens)
     if type(repetitions) is not int or not 1 <= repetitions <= 1000:
         raise ValueError("Repetitions must be between 1 and 1000")
     result = copy.deepcopy(manifest)
@@ -388,17 +392,17 @@ def compose_experiment(
         inference_requests=authoring_turns,
         agent_seconds=authoring_seconds(authoring_turns),
         max_input_tokens=None,
-        max_output_tokens=None,
+        max_output_tokens=max_output_tokens,
     )
     result["defaults"]["generation"] = {
-        "output_limit": "provider-native",
-        "max_output_tokens": None,
+        "output_limit": "provider-native" if max_output_tokens is None else "bounded",
+        "max_output_tokens": max_output_tokens,
     }
     result["models"] = [copy.deepcopy(model)]
     result["models"][0]["generation"] = {
         **model.get("generation", {}),
-        "output_limit": "provider-native",
-        "max_output_tokens": None,
+        "output_limit": "provider-native" if max_output_tokens is None else "bounded",
+        "max_output_tokens": max_output_tokens,
     }
     if model.get("generation", {}).get("reasoning_effort"):
         result["defaults"]["generation"]["reasoning_effort"] = model["generation"][
@@ -465,28 +469,34 @@ def _new_provider(
     }
 
 
-def native_run_allowance(model, *, provider, conditions, authoring_turns=DEFAULT_AUTHORING_TURNS):
-    """Reserve enough accounting capacity for every permitted native request."""
+def native_run_allowance(
+    model, *, provider, conditions,
+    authoring_turns=DEFAULT_AUTHORING_TURNS, max_output_tokens=None,
+):
+    """Reserve accounting capacity for every permitted model request."""
     from simready_bench.engine.request_cost import (
         CostDenied, native_output_facts, upper_cost_micro_usd,
     )
 
-    authoring_protocol(authoring_turns)
+    authoring_protocol(authoring_turns, max_output_tokens)
     try:
         facts = native_output_facts(model)
     except CostDenied as error:
         raise ValueError("Supply --policy with capacity and pricing for this model") from error
     if facts["route_identity_status"] != "resolved":
         raise ValueError("Supply --policy with a verified declaration for this model route")
+    output_bound = max_output_tokens or facts["output_token_upper_bound"]
+    if output_bound > facts["output_token_upper_bound"]:
+        raise ValueError("Output token cap exceeds the declared provider maximum")
     if provider == "huggingface":
         from simready_bench.engine.hf_pricing import hf_upper_cost_micro_usd
 
         per_request = hf_upper_cost_micro_usd(
-            model, facts["output_token_upper_bound"], native_output_limits=True
+            model, output_bound, native_output_limits=True
         )
     elif provider == "openai":
         per_request = upper_cost_micro_usd(
-            facts["maximum_input_tokens"], facts["output_token_upper_bound"],
+            facts["maximum_input_tokens"], output_bound,
             model=model, maximum_input_tokens=facts["maximum_input_tokens"],
             native_output_limits=True,
         )
@@ -495,8 +505,8 @@ def native_run_allowance(model, *, provider, conditions, authoring_turns=DEFAULT
     return float(Decimal(per_request * authoring_turns * conditions) / Decimal(10**6))
 
 
-def validate_native_policy_limits(policy, *, authoring_turns):
-    """Check explicit operator restrictions before preparing native execution."""
+def validate_native_policy_limits(policy, *, authoring_turns, max_output_tokens=None):
+    """Check explicit operator restrictions before preparing execution."""
     if policy is None:
         return
     limits = policy.get("limits", {})
@@ -508,6 +518,14 @@ def validate_native_policy_limits(policy, *, authoring_turns):
             raise ValueError("The requested authoring turns exceed the policy " + name + " limit")
     for name in ("max_input_tokens", "max_output_tokens"):
         if limits.get(name) is not None:
+            if (
+                name == "max_output_tokens"
+                and max_output_tokens is not None
+                and max_output_tokens <= limits[name]
+            ):
+                continue
+            if name == "max_output_tokens" and max_output_tokens is not None:
+                raise ValueError("Output token cap exceeds the policy max_output_tokens limit")
             raise ValueError("Native authoring requires policy " + name + " to be null")
 
 
@@ -522,9 +540,12 @@ def prepare_policy(
     runtime_images=None,
     authoring_turns=DEFAULT_AUTHORING_TURNS,
     maximum_attempts=1,
+    max_output_tokens=None,
 ):
-    authoring_protocol(authoring_turns)
-    validate_native_policy_limits(existing, authoring_turns=authoring_turns)
+    authoring_protocol(authoring_turns, max_output_tokens)
+    validate_native_policy_limits(
+        existing, authoring_turns=authoring_turns, max_output_tokens=max_output_tokens
+    )
     from simready_bench.policy import init_policy
 
     output = Path(output_dir)
@@ -603,7 +624,7 @@ def prepare_policy(
         inference_requests=authoring_turns,
         agent_seconds=authoring_seconds(authoring_turns),
         max_input_tokens=None,
-        max_output_tokens=None,
+        max_output_tokens=max_output_tokens,
     )
     policy["runtime"]["illustration_image"] = images["cpu"]
     policy["runtime"]["fidelity_image"] = images["cpu"]
@@ -1191,6 +1212,7 @@ def benchmark(
     maximum_spend_usd=None,
     repetitions=4,
     authoring_turns=None,
+    max_output_tokens=None,
     provider=None,
     api_key_env=None,
     model_metadata=None,
@@ -1233,6 +1255,7 @@ def benchmark(
             maximum_spend_usd=maximum_spend_usd,
             repetitions=repetitions,
             authoring_turns=authoring_turns,
+            max_output_tokens=max_output_tokens,
             provider=provider,
             api_key_env=api_key_env,
             model_metadata=model_metadata,
@@ -1251,14 +1274,14 @@ def benchmark(
             dispatch_pending=dispatch_pending,
         )
     authoring_turns = DEFAULT_AUTHORING_TURNS if authoring_turns is None else authoring_turns
-    authoring_protocol(authoring_turns)
+    authoring_protocol(authoring_turns, max_output_tokens)
     output = _absolute(output_dir)
     if output.exists() or output.is_symlink():
         raise FileExistsError("Choose a new output directory")
     if deploy not in ("local", "daytona"):
         raise ValueError("Choose local or daytona deployment")
     original = read_json(policy) if policy else None
-    validate_native_policy_limits(original, authoring_turns=authoring_turns)
+    validate_native_policy_limits(original, authoring_turns=authoring_turns, max_output_tokens=max_output_tokens)
     source, base, package_inputs = reference_manifest(reference)
     selected, connection, provider_kind = select_model(
         model, provider=provider, policy=original, metadata=model_metadata
@@ -1290,8 +1313,9 @@ def benchmark(
             maximum_spend_usd = native_run_allowance(
                 model, provider=provider_kind, conditions=conditions * maximum_attempts,
                 authoring_turns=authoring_turns,
+                max_output_tokens=max_output_tokens,
             )
-            allowance_source = "native-request-capacity"
+            allowance_source = "native-request-capacity" if max_output_tokens is None else "capped-request-capacity"
         else:
             maximum_spend_usd = min(
                 original["limits"]["maximum_spend_usd"],
@@ -1352,6 +1376,7 @@ def benchmark(
             "maximum_requests": connection["project_budget"]["maximum_requests"],
             "maximum_attempts_per_condition": maximum_attempts,
             "maximum_spend_usd": maximum_spend_usd,
+            **({"max_output_tokens": max_output_tokens} if max_output_tokens is not None else {}),
         },
     )
     for name in ("assets", "skills", "input_views", "private_manifests"):
@@ -1376,6 +1401,7 @@ def benchmark(
         repetitions=repetitions,
         maximum_spend_usd=float(Decimal(str(maximum_spend_usd)) / (maximum_attempts if original is None else 1)),
         authoring_turns=authoring_turns,
+        max_output_tokens=max_output_tokens,
     )
     effective_policy = prepare_policy(
         output_dir=output,
@@ -1386,6 +1412,7 @@ def benchmark(
         deploy=deploy,
         runtime_images=images,
         authoring_turns=authoring_turns,
+        max_output_tokens=max_output_tokens,
         maximum_attempts=maximum_attempts if original is None else 1,
     )
     if deploy == "local" and any(
@@ -1475,6 +1502,7 @@ def benchmark(
         maximum_spend_usd=maximum_spend_usd,
         repetitions=repetitions,
         authoring_turns=authoring_turns,
+        max_output_tokens=max_output_tokens,
         provider=provider,
         api_key_env=api_key_env,
         work_dir=work_dir,

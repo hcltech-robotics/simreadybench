@@ -50,6 +50,17 @@ def _label(entry):
             protocol.removeprefix("authoring-").removesuffix("-native-output-v1")
             + " turns"
         )
+    elif (
+        protocol.startswith("authoring-")
+        and "-bounded-output-" in protocol
+        and protocol.endswith("-v1")
+    ):
+        turns, cap = (
+            protocol.removeprefix("authoring-")
+            .removesuffix("-v1")
+            .split("-bounded-output-")
+        )
+        protocol = turns + " turns, " + format(int(cap), ",") + " output tokens/call"
     return (
         str(entry.get("model", "Unknown model"))
         + "\n"

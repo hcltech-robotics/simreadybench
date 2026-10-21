@@ -276,7 +276,7 @@ def validate_policy(value=None, *, base_dir):
     if limits["maximum_matrix_runs"] < 1:
         raise ValueError("maximum_matrix_runs must be positive")
     for k, cap in (
-        ("max_output_tokens", 4096),
+        ("max_output_tokens", 10000000),
         ("max_input_tokens", 262144),
         ("views_per_preview", 4),
     ):
@@ -441,7 +441,7 @@ def validate_policy(value=None, *, base_dir):
 
 def _generation(g):
     _object(g, {"max_output_tokens", "reasoning_effort", "output_limit"}, "generation")
-    if "output_limit" in g and g["output_limit"] != NATIVE_OUTPUT_POLICY:
+    if "output_limit" in g and g["output_limit"] not in (NATIVE_OUTPUT_POLICY, "bounded"):
         raise ValueError("Unsupported output limit policy")
     if "max_output_tokens" in g:
         if g["max_output_tokens"] is None:
@@ -454,7 +454,9 @@ def _generation(g):
                 raise ValueError(
                     "Native output protocol cannot carry a benchmark token cap"
                 )
-            _number(g["max_output_tokens"], "output tokens", 1, 4096, True)
+            _number(g["max_output_tokens"], "output tokens", 16, 10000000, True)
+    if g.get("output_limit") == "bounded" and g.get("max_output_tokens") is None:
+        raise ValueError("Bounded output requires an explicit output token cap")
     if "reasoning_effort" in g and g["reasoning_effort"] not in (
         "none",
         "off",
@@ -497,7 +499,7 @@ def _settings(s, limits, *, native=False):
         )
         if maximum is None:
             maximum = (
-                (10000000 if native else 262144) if k == "max_input_tokens" else 4096
+                (10000000 if native else 262144) if k == "max_input_tokens" else 10000000
             )
         _number(
             v,
@@ -601,15 +603,18 @@ def validate_manifest(value, *, base_dir, policy=None):
     if "scoring" in m:
         m["defaults"].setdefault("profile", {"id": "NVIDIA-Robotics-Prop-4.0.0"})
         m["defaults"].setdefault("acceptance_preset", "nvidia-mandatory-95-5-v1")
-    if any((limits[k] is not None for k in ("max_output_tokens", "max_input_tokens"))):
+    cap = m["defaults"].get("generation", {}).get("max_output_tokens")
+    if limits["max_input_tokens"] is not None or (
+        limits["max_output_tokens"] is not None and cap is None
+    ):
         raise ValueError(
-            "Native output requires operator limits.max_output_tokens=null and max_input_tokens=null"
+            "Provider-native input requires max_input_tokens=null, and uncapped output requires max_output_tokens=null"
         )
     m["defaults"].setdefault("budgets", {}).setdefault("inference_requests", turns)
-    m["defaults"]["budgets"].setdefault("max_output_tokens", None)
+    m["defaults"]["budgets"].setdefault("max_output_tokens", cap)
     m["defaults"]["budgets"].setdefault("max_input_tokens", None)
     m["defaults"].setdefault("generation", {}).setdefault(
-        "output_limit", NATIVE_OUTPUT_POLICY
+        "output_limit", NATIVE_OUTPUT_POLICY if cap is None else "bounded"
     )
     m["defaults"]["generation"].setdefault("max_output_tokens", None)
     _number(m["seed"], "seed", 0, 2**63 - 1, True)
@@ -863,24 +868,15 @@ def validate_manifest(value, *, base_dir, policy=None):
         )
     settings = [m["defaults"], *(o["settings"] for o in m["overrides"])]
     for s in settings:
-        g = s.get("generation", {})
         b = s.get("budgets", {})
-        if (
-            g.get("max_output_tokens") is not None
-            or b.get("max_output_tokens") is not None
-            or b.get("max_input_tokens") is not None
-        ):
+        if b.get("max_input_tokens") is not None:
             raise ValueError(
-                "Native output protocol cannot reintroduce a benchmark token cap"
+                "Provider-native input cannot carry a benchmark input token cap"
             )
         if b.get("inference_requests", turns) > turns:
             raise ValueError(
                 "Authoring protocol permits at most " + str(turns) + " inference requests"
             )
-    for model in m["models"]:
-        g = model.get("generation", {})
-        if g.get("max_output_tokens") is not None:
-            raise ValueError("Native output model cannot carry a benchmark token cap")
     if "benchmark_freeze" in m:
         from simready_bench.manifest import verify_freeze
 
@@ -964,10 +960,26 @@ def resolve_experiment(value, *, base_dir, policy=None):
         facts["protocol"] = m["authoring_protocol"]
         model = copy.deepcopy(model)
         model["native_output_facts"] = facts
-        model["metadata"]["maxTokens"] = facts["output_token_upper_bound"]
+        cap = settings["generation"].get("max_output_tokens")
+        from simready_bench.engine.native_output import authoring_protocol
+
+        if m["authoring_protocol"] != authoring_protocol(turns, cap):
+            raise ValueError("Authoring protocol and output token cap must match")
+        if settings["budgets"]["max_output_tokens"] != cap:
+            raise ValueError("Generation and budget output token caps must match")
+        if cap is not None and cap > facts["output_token_upper_bound"]:
+            raise ValueError("Output token cap exceeds the declared provider maximum")
+        model["metadata"]["maxTokens"] = cap or facts["output_token_upper_bound"]
         model["metadata"]["contextWindow"] = facts["context_window"]
         settings["budgets"]["max_input_tokens"] = facts["maximum_input_tokens"]
-        model["metadata"].setdefault("compat", {})["supportsMaxOutputTokens"] = False
+        model["metadata"].setdefault("compat", {})["supportsMaxOutputTokens"] = cap is not None
+        if cap is not None and model["adapter"] == "openai-completions":
+            connection = op["providers"][model["provider_ref"]]
+            model["metadata"]["compat"]["maxTokensField"] = (
+                "max_tokens"
+                if connection["kind"] == "huggingface" or connection.get("hf_router_relay")
+                else "max_completion_tokens"
+            )
         effort = settings["generation"].get("reasoning_effort")
         if effort not in (None, "none", "off") and (
             not model.get("metadata", {}).get("reasoning")

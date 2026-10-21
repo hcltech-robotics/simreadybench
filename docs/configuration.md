@@ -76,6 +76,14 @@ simready-bench benchmark nvidia-25 --provider openai --model gpt-6.1-sol --harne
 
 `--reasoning low|medium|high|xhigh|max` selects reasoning effort for a compatible model. GPT-6.1-Sol uses `medium` by default. `--api-key-env NAME` selects another credential variable.
 
+`--max-output-tokens N` caps each model response, including reasoning tokens counted within the provider's completion allowance. Omitting it retains provider-native output limits. The response cap is separate from `--authoring-turns`, which counts model calls. Both the cap and reasoning effort are saved in the experiment and cannot change when resuming it.
+
+For a bounded NV25 run:
+
+```bash
+simready-bench benchmark nvidia-25 --provider openai --model gpt-6.1-sol --reasoning medium --max-output-tokens 8192 --harness pi --deploy daytona --runtime-images ../simreadybench-runtime.json --repetitions 4 --authoring-turns 64 --workers 4 --supervise --output-dir ../simreadybench-medium-8192
+```
+
 ### Hugging Face
 
 Set `HF_TOKEN` and retain the routed provider suffix in the model identifier:
@@ -227,7 +235,7 @@ The agent receives only the selected skills. Each run records its model, harness
 
 ## Runtime and budget
 
-`--deploy local` uses the local Linux/Docker executor and `--deploy daytona` creates a Daytona CPU executor. Built-in providers receive an accounting allowance derived from the turn count and full native input/output capacity, recorded in `allowance.json`. `--max-spend-usd` supplies a separate monetary ceiling, and `--policy operator.json` reuses a configured runtime, provider connection and persistent allowance.
+`--deploy local` uses the local Linux/Docker executor and `--deploy daytona` creates a Daytona CPU executor. Built-in providers receive an accounting allowance derived from the turn count, native input capacity and selected output cap, using native output capacity when no cap is set. This is recorded in `allowance.json`. `--max-spend-usd` supplies a separate monetary ceiling, and `--policy operator.json` reuses a configured runtime, provider connection and persistent allowance.
 
 `--runtime-images PATH` selects a JSON configuration containing the actor, verifier and CPU image identities and, for an imported runtime, its Daytona snapshot name. See [deployment](deployment.md) for published runtime imports and source builds.
 

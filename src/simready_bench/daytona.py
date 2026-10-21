@@ -1850,6 +1850,7 @@ def run_daytona(
             "api_key": provider_key,
             "base_url": provider["base_url"],
             "project_id": project_id,
+            "native_output_only": manifest["defaults"].get("generation", {}).get("max_output_tokens") is None,
             "maximum_requests": requests,
             "maximum_condition_requests": manifest["defaults"]["budgets"][
                 "inference_requests"

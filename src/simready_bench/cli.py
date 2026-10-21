@@ -59,6 +59,10 @@ def main(argv=None):
         "--reasoning", choices=("low", "medium", "high", "xhigh", "max")
     )
     command.add_argument(
+        "--max-output-tokens", type=_positive_integer, default=None, metavar="N",
+        help="Maximum output tokens per model call, including reasoning (default: provider native)",
+    )
+    command.add_argument(
         "--max-retries",
         type=int,
         choices=range(11),
@@ -137,6 +141,7 @@ def main(argv=None):
             "skills",
             "repetitions",
             "authoring_turns",
+            "max_output_tokens",
             "workers",
             "max_retries",
             "retry_delay_seconds",

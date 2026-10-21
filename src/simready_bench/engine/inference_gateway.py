@@ -93,6 +93,13 @@ class GatewayConfig:
             )
         if type(self.native_output_cap) is not bool:
             raise ValueError("native_output_cap must be an explicit trusted boolean")
+        from simready_bench.engine.custom_model import configured_facts
+        from simready_bench.engine.request_cost import CostDenied
+
+        try:
+            provider_facts = configured_facts(self)
+        except CostDenied:
+            provider_facts = {"maximum_input_tokens": 262144, "output_token_upper_bound": 4096}
         if self.native_output_limits is True:
             from simready_bench.engine.request_cost import CostDenied
             from simready_bench.engine.custom_model import configured_facts
@@ -110,10 +117,10 @@ class GatewayConfig:
                 )
         elif (
             type(self.max_input_tokens) is not int
-            or not 1 <= self.max_input_tokens <= 262144
+            or not 1 <= self.max_input_tokens <= provider_facts["maximum_input_tokens"]
         ):
             raise ValueError(
-                "Declared input cap must be a positive integer at most 262144"
+                "Declared input cap must not exceed the provider maximum"
             )
         parsed = urlsplit(self.upstream_base_url)
         local = parsed.hostname == "localhost"
@@ -156,9 +163,9 @@ class GatewayConfig:
                     raise ValueError(exc.code) from None
         elif (
             type(self.max_output_tokens) is not int
-            or not 1 <= self.max_output_tokens <= 4096
+            or not 1 <= self.max_output_tokens <= provider_facts["output_token_upper_bound"]
         ):
-            raise ValueError("Fixed output cap must be an integer from 1 to 4096")
+            raise ValueError("Fixed output cap must be a positive integer within the provider maximum")
         if self.api_style not in ("openai-responses", "openai-completions"):
             raise ValueError(
                 "Only the configured OpenAI-compatible transport is supported"
@@ -815,7 +822,7 @@ class InferenceGateway:
                 "response_format",
                 "reasoning_effort",
                 "max_tokens"
-                if None is not None
+                if self.config.hf_router_relay is not None
                 or self.config.upstream_base_url == "https://router.huggingface.co/v1"
                 else "max_completion_tokens",
                 "stop",
@@ -839,7 +846,7 @@ class InferenceGateway:
             "max_output_tokens"
             if self.config.api_style == "openai-responses"
             else "max_tokens"
-            if None is not None
+            if self.config.hf_router_relay is not None
             or self.config.upstream_base_url == "https://router.huggingface.co/v1"
             else "max_completion_tokens"
         )
@@ -1286,6 +1293,8 @@ class InferenceGateway:
                     "request_bytes": len(raw),
                     "stream": data.get("stream", False),
                     "maximum_output_tokens": self.config.max_output_tokens,
+                    "requested_output_token_cap": self.config.max_output_tokens,
+                    "effective_output_token_cap": next((data[k] for k in ("max_output_tokens", "max_tokens", "max_completion_tokens") if k in data), None),
                     "status": "admitted",
                     "cost_usd": None,
                     "cost_status": "unknown",

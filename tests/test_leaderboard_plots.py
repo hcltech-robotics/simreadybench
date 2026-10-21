@@ -5,6 +5,19 @@ from PIL import Image
 from simready_bench.leaderboard_plots import render_leaderboard_plots
 
 
+def test_plot_labels_distinguish_bounded_and_native_output_protocols():
+    from simready_bench.leaderboard_plots import _label
+
+    entry = board()["entries"][0]
+    entry["authoring_protocol"] = "authoring-64-native-output-v1"
+    native = _label(entry)
+    entry.update(authoring_protocol="authoring-64-bounded-output-8192-v1", output_limit="bounded", max_output_tokens=8192)
+    bounded = _label(entry)
+    assert "64 turns, 8,192 output tokens/call" in bounded
+    assert "64 turns" in native and "tokens/call" not in native
+    assert native != bounded
+
+
 def board():
     return {
         "entries": [

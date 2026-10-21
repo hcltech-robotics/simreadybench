@@ -147,8 +147,8 @@ def _native_output_metadata(bridge_id, metadata, output_policy="bounded"):
     # The actual pinned Responses builder derives max_output_tokens from this
     # configured model ceiling. It clamps values below 16 and can omit the field
     # via compat. Reject those cases before any actor setup or inference.
-    if not 16 <= metadata["maxTokens"] <= 4096:
-        raise ValueError("Native Pi configured output ceiling must be 16..4096")
+    if not 16 <= metadata["maxTokens"] <= metadata["contextWindow"]:
+        raise ValueError("Native Pi configured output ceiling must be at least 16 and within its context window")
     if metadata.get("compat", {}).get("supportsMaxOutputTokens", True) is not True:
         raise ValueError("Native Pi must preserve explicit max_output_tokens")
 

@@ -219,7 +219,7 @@ def test_hf_shared_cap_is_atomic_and_attempts_are_not_refunded(tmp_path):
     "change",
     [
         {"max_tokens": True},
-        {"max_tokens": 4097},
+        {"max_tokens": 262145},
         {"n": 2},
         {"max_completion_tokens": 4096},
     ],

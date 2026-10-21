@@ -667,6 +667,48 @@ def test_mixed_viewer_factors_route_each_row_without_changing_csv_values():
         assert index["runs"]["matrix"]["groups"][axis][0]["path"] == "viewer/matrix/scores.parquet"
 
 
+def test_viewer_distinguishes_identical_conditions_under_different_output_protocols():
+    native, raw, _ = viewer_fixture()
+    capped = deepcopy(native)
+    capped["settings"]["authoring_protocol"] = "authoring-64-bounded-output-8192-v1"
+    for row in capped["results"]:
+        row["generation"] = {"output_limit": "bounded", "max_output_tokens": 8192,
+                             "reasoning_effort": row["reasoning_effort"]}
+    before = deepcopy((native, capped))
+    index, shards = build_viewer_dataset({"native": (native, raw), "capped": (capped, raw)})
+    old = _viewer_rows(shards["viewer/native/scores.parquet"])
+    new = _viewer_rows(shards["viewer/capped/scores.parquet"])
+    assert old[0]["condition_id"] == new[0]["condition_id"]
+    assert old[0]["run_id"] == "native" and new[0]["run_id"] == "capped"
+    assert old[0]["output_limit"] == "provider-native" and old[0]["max_output_tokens"] is None
+    assert new[0]["output_limit"] == "bounded" and new[0]["max_output_tokens"] == 8192
+    assert new[0]["reasoning_effort"] == "medium"
+    assert new[0]["authoring_protocol"] == "authoring-64-bounded-output-8192-v1"
+    assert len(index["splits"]["by_protocol"]) == 2
+    assert (native, capped) == before
+    assert old[0]["formal_fidelity_percent"] == new[0]["formal_fidelity_percent"] == 0
+    capped["results"][0]["generation"]["max_output_tokens"] = 4096
+    with pytest.raises(ValueError, match="output settings"):
+        build_viewer_update("capped", capped, raw)
+
+
+def test_viewer_protocol_expansion_rebuilds_retained_shards():
+    from simready_bench.publishing import _viewer_columns, _viewer_schema_digest
+
+    readout, raw, _ = viewer_fixture()
+    index, _ = build_viewer_update("retained", readout, raw)
+    fields = {"run_id", "authoring_protocol", "reasoning_effort", "output_limit", "max_output_tokens"}
+    index["columns"] = _viewer_columns([field for field in index["columns"] if field not in fields])
+    index["schema_sha256"] = _viewer_schema_digest(index["columns"])
+    with pytest.raises(ViewerRebuildRequired):
+        build_viewer_update("current", readout, raw, index=index)
+    rebuilt, shards = build_viewer_dataset({"retained": (readout, raw), "current": (readout, raw)}, index=index)
+    for run_id in rebuilt["runs"]:
+        rows = _viewer_rows(shards["viewer/" + run_id + "/scores.parquet"])
+        assert rows[0]["run_id"] == run_id
+        assert rows[0]["authoring_protocol"] == "authoring-64-native-output-v1"
+
+
 def test_viewer_split_collisions_never_rename_existing_groups():
     readout, raw, _ = viewer_fixture()
     readout["results"] = readout["results"][:1]

@@ -42,6 +42,9 @@ _VIEWER_AXES = (
 _SPLIT = re.compile(r"[a-z0-9][a-z0-9_]{0,95}\Z")
 _VIEWER_IMAGES = ("reference_image", "candidate_image")
 _VIEWER_CAPTURE_FIELDS = (*_VIEWER_IMAGES, "capture_view")
+_VIEWER_PROTOCOL_FIELDS = (
+    "run_id", "authoring_protocol", "reasoning_effort", "output_limit", "max_output_tokens",
+)
 
 
 class ViewerRebuildRequired(ValueError):
@@ -59,7 +62,7 @@ def _viewer_features(columns):
     labels = {"condition_id", "asset_id", "requested_model", "harness_id", "skill_set_id", "status"}
     return [{"name": name, "dtype": (
         "image" if name in _VIEWER_IMAGES else
-        "int64" if name == "repetition" else
+        "int64" if name in ("repetition", "max_output_tokens") else
         "float64" if name in SCORE_FIELDS and name not in labels and not name.endswith("_status") else
         "string"
     )} for name in columns]
@@ -646,7 +649,7 @@ def _reasoning(row, settings):
     return None
 
 
-def _manifest_reasoning(row, manifest):
+def _manifest_generation(row, manifest):
     model = next(model for model in manifest["models"] if model["model_id"] == row["requested_model"])
     generation = {**model.get("generation", {}), **manifest.get("defaults", {}).get("generation", {})}
     labels = {"asset": row["asset_id"], "harness": row["harness_id"],
@@ -654,7 +657,29 @@ def _manifest_reasoning(row, manifest):
     for override in manifest.get("overrides", []):
         if all(value == "*" or labels[key] == value for key, value in override["match"].items()):
             generation.update(override["settings"].get("generation", {}))
-    return generation.get("reasoning_effort")
+    return generation
+
+
+def _viewer_protocol(row, settings, run_id):
+    protocol = row.get("authoring_protocol", settings.get("authoring_protocol"))
+    effective = row.get("effective_settings") or {}
+    generation = effective.get("generation", row.get("generation", {}))
+    policy, cap = generation.get("output_limit"), generation.get("max_output_tokens")
+    bounded = re.fullmatch(r"authoring-[1-9][0-9]*-bounded-output-([1-9][0-9]*)-v1", protocol or "")
+    if bounded:
+        expected = int(bounded[1])
+        if policy not in (None, "bounded") or cap not in (None, expected):
+            raise ValueError("Viewer output settings differ from the authoring protocol")
+        policy, cap = "bounded", expected
+    elif re.fullmatch(r"authoring-[1-9][0-9]*-native-output-v1", protocol or ""):
+        if policy not in (None, "provider-native") or cap is not None:
+            raise ValueError("Viewer output settings differ from the authoring protocol")
+        policy = "provider-native"
+    return {
+        "run_id": run_id, "authoring_protocol": protocol or "",
+        "reasoning_effort": _reasoning(row, settings) or "",
+        "output_limit": policy or "", "max_output_tokens": cap if cap is not None else "",
+    }
 
 
 def _viewer_captures(row, run_id, image_reader):
@@ -721,7 +746,8 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None,
         raise ValueError("A score table requires distinct columns and condition identities")
     if set(columns) & set(_VIEWER_CAPTURE_FIELDS):
         raise ValueError("Capture columns are derived from the published comparison evidence")
-    canonical = _viewer_columns([*index.get("columns", []), *columns, *_VIEWER_CAPTURE_FIELDS])
+    canonical = _viewer_columns([*index.get("columns", []), *columns,
+                                 *_VIEWER_CAPTURE_FIELDS, *_VIEWER_PROTOCOL_FIELDS])
     if set(index["runs"]) - {run_id} and (
         index["schema"] != _VIEWER_SCHEMA or canonical != index["columns"]
     ):
@@ -750,6 +776,11 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None,
         for field in ("requested_model", "harness_id", "skill_set_id", "asset_id"):
             if field in record and record[field] != str(row.get(field) or ""):
                 raise ValueError("A viewer score row changes its public factor identity")
+        protocol = _viewer_protocol(row, settings, run_id)
+        for field, value in protocol.items():
+            if field in record and record[field] != str(value):
+                raise ValueError("A viewer score row changes its public protocol identity")
+        record.update(protocol)
         record.update(_viewer_captures(row, run_id, image_reader))
         factors = {
             "by_model": row.get("requested_model"),
@@ -805,7 +836,7 @@ def build_viewer_dataset(sources, *, index=None, repo_id=None, image_reader=None
         if not fields or len(fields) != len(set(fields)) or "condition_id" not in fields:
             raise ValueError("A score table requires distinct columns and condition identities")
         columns.extend(fields)
-    columns = _viewer_columns([*columns, *_VIEWER_CAPTURE_FIELDS])
+    columns = _viewer_columns([*columns, *_VIEWER_CAPTURE_FIELDS, *_VIEWER_PROTOCOL_FIELDS])
     updated = {
         "schema": _VIEWER_SCHEMA, "runs": {}, "splits": deepcopy(previous["splits"]),
         "columns": columns, "schema_sha256": _viewer_schema_digest(columns),
@@ -1125,7 +1156,10 @@ class HuggingFacePublisher:
                     "results": [_stage_row(row, source, run_stage) for row in rows],
                 }
                 for row in public["results"]:
-                    row["reasoning_effort"] = _manifest_reasoning(row, self.manifest)
+                    generation = _manifest_generation(row, self.manifest)
+                    row["reasoning_effort"] = generation.get("reasoning_effort")
+                    row["generation"] = generation
+                    row["authoring_protocol"] = self.manifest.get("authoring_protocol")
                 if old_readout:
                     old = _json(old_readout)
                     old_rows = self._rows(old)

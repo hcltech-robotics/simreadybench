@@ -194,6 +194,62 @@ def _generation(row, manifest, model):
     return generation
 
 
+def _output_policy(row, manifest, model, protocol):
+    from simready_bench.engine.native_output import authoring_protocol, authoring_turns
+
+    generation = _generation(row, manifest, model)
+    cap = generation.get("max_output_tokens")
+    limit = generation.get("output_limit")
+    if protocol is None:
+        if cap is not None or limit == "bounded":
+            raise ValueError("A bounded leaderboard output requires its authoring protocol")
+        return {}
+    if authoring_protocol(authoring_turns(protocol), cap) != protocol:
+        raise ValueError("A leaderboard output cap differs from its authoring protocol")
+    expected_limit = "provider-native" if cap is None else "bounded"
+    if limit not in (None, expected_limit) or (
+        cap is not None and limit != expected_limit
+    ):
+        raise ValueError("A leaderboard output policy differs from its authoring protocol")
+    effective = row.get("effective_settings") or {}
+    for recorded in (
+        row, row.get("generation") or {}, effective.get("generation") or {}
+    ):
+        if (
+            "max_output_tokens" in recorded
+            and (
+                recorded["max_output_tokens"] != cap
+                or type(recorded["max_output_tokens"]) is not type(cap)
+            )
+            or "output_limit" in recorded and recorded["output_limit"] != expected_limit
+        ):
+            raise ValueError("A leaderboard row changes its effective output cap or policy")
+    budgets = dict(manifest.get("defaults", {}).get("budgets", {}))
+    labels = {
+        "asset": row["asset_id"],
+        "harness": row["harness_id"],
+        "model": model["id"],
+        "skill_set": row["skill_set_id"],
+    }
+    for override in manifest.get("overrides", []):
+        if all(
+            value == "*" or labels[key] == value
+            for key, value in override.get("match", {}).items()
+        ):
+            budgets.update(override.get("settings", {}).get("budgets", {}))
+    for recorded in (budgets, effective.get("budgets") or {}):
+        if "max_output_tokens" in recorded and (
+            recorded["max_output_tokens"] != cap
+            or type(recorded["max_output_tokens"]) is not type(cap)
+        ):
+            raise ValueError("A leaderboard output budget differs from its authoring protocol")
+    return (
+        {"output_limit": expected_limit, "max_output_tokens": cap}
+        if cap is not None
+        else {}
+    )
+
+
 def _row_provenance(rows, manifest):
     from simready_bench.config import condition_identity
     from simready_bench.engine.native_output import authoring_turns
@@ -251,6 +307,7 @@ def _row_provenance(rows, manifest):
     if master_seed is not None and type(master_seed) is not int:
         raise ValueError("An explicit leaderboard master seed must be an integer")
     identifiers, efforts = set(), []
+    output_policy = {}
     for row in rows:
         actual = (
             row.get("requested_model") or (row.get("model") or {}).get("model_id"),
@@ -296,6 +353,7 @@ def _row_provenance(rows, manifest):
                     "A leaderboard row changes its frozen condition identity or seed"
                 )
         generation = _generation(row, manifest, model)
+        output_policy = _output_policy(row, manifest, model, protocol)
         declared_effort = generation.get("reasoning_effort")
         recorded = []
         effective = row.get("effective_settings") or {}
@@ -339,7 +397,7 @@ def _row_provenance(rows, manifest):
         if known and all(value is not None for value in efforts)
         else None
     )
-    return protocol, effort
+    return protocol, effort, output_policy
 
 
 def leaderboard_entry(result, *, manifest, results_url):
@@ -393,7 +451,7 @@ def leaderboard_entry(result, *, manifest, results_url):
         raise ValueError(
             "Each leaderboard entry describes one model, harness and skill set"
         )
-    protocol, reasoning = _row_provenance(rows, manifest)
+    protocol, reasoning, output_policy = _row_provenance(rows, manifest)
     scores = []
     primary_parts = []
     optional_parts = []
@@ -463,6 +521,7 @@ def leaderboard_entry(result, *, manifest, results_url):
         "harness": next(iter(harnesses)),
         "reasoning_effort": reasoning,
         "authoring_protocol": protocol,
+        **output_policy,
         "inference_requests_per_attempt": manifest.get("defaults", {})
         .get("budgets", {})
         .get("inference_requests"),

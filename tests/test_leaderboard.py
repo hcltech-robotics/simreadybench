@@ -679,3 +679,49 @@ def test_admitted_nondefault_protocol_keeps_its_actual_frozen_identities(turns):
     )
     assert entry["authoring_protocol"] == manifest["authoring_protocol"]
     assert entry["inference_requests_per_attempt"] == turns
+
+
+def bounded_run():
+    manifest, result = run()
+    manifest["authoring_protocol"] = "authoring-64-bounded-output-8192-v1"
+    manifest["defaults"]["generation"].update(output_limit="bounded", max_output_tokens=8192)
+    manifest["defaults"]["budgets"]["max_output_tokens"] = 8192
+    return manifest, result
+
+
+def test_bounded_entry_retains_cap_and_native_entry_keeps_legacy_fields():
+    manifest, result = bounded_run()
+    entry = leaderboard_entry(result, manifest=manifest, results_url="https://example.org/bounded")
+    assert entry["output_limit"] == "bounded"
+    assert entry["max_output_tokens"] == 8192
+    assert entry["authoring_protocol"] == "authoring-64-bounded-output-8192-v1"
+    manifest, result = run()
+    native = leaderboard_entry(result, manifest=manifest, results_url="https://example.org/native")
+    assert "max_output_tokens" not in native
+    assert "output_limit" not in native
+
+
+@pytest.mark.parametrize("damage", ["cap", "policy", "row", "effective", "budget", "override", "native"])
+def test_bounded_entry_rejects_output_policy_drift(damage):
+    from simready_bench.leaderboard import _row_provenance
+
+    manifest, result = bounded_run()
+    if damage == "cap":
+        manifest["defaults"]["generation"]["max_output_tokens"] = 4096
+    elif damage == "policy":
+        manifest["defaults"]["generation"]["output_limit"] = "provider-native"
+    elif damage == "row":
+        result["results"][0]["max_output_tokens"] = None
+    elif damage == "effective":
+        result["results"][0]["effective_settings"] = {"generation": {"max_output_tokens": 8192.0}}
+    elif damage == "budget":
+        manifest["defaults"]["budgets"]["max_output_tokens"] = None
+    elif damage == "override":
+        manifest["overrides"] = [{
+            "match": {"asset": manifest["assets"][0]["id"]},
+            "settings": {"generation": {"max_output_tokens": 4096}},
+        }]
+    else:
+        manifest["authoring_protocol"] = "authoring-64-native-output-v1"
+    with pytest.raises(ValueError, match="output"):
+        _row_provenance(result["results"], manifest)

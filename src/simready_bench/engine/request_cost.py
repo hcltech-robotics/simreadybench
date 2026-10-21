@@ -264,11 +264,11 @@ def upper_cost_micro_usd(
     native_output_limits=False,
 ):
     output_bound = (
-        NATIVE_OPENAI_MAX_OUTPUT.get(model, 0) if native_output_limits is True else 4096
+        NATIVE_OPENAI_MAX_OUTPUT.get(model, 4096)
     )
     input_bound = (
         NATIVE_OPENAI_MAX_INPUT
-        if native_output_limits is True and model in NATIVE_OPENAI_MAX_OUTPUT
+        if model in NATIVE_OPENAI_MAX_OUTPUT
         else 262144
     )
     if (
@@ -335,7 +335,7 @@ async def count_input_tokens(config, payload, *, maximum_input_tokens, deadline_
         raise CostDenied("verified_input_count_requires_responses")
     native = getattr(config, "native_output_limits", False)
     provider_input_bound = (
-        native_output_facts(config.model)["maximum_input_tokens"] if native else 262144
+        native_output_facts(config.model)["maximum_input_tokens"]
     )
     if (
         type(maximum_input_tokens) is not int
@@ -528,8 +528,6 @@ class CostLedger:
             raise CostDenied("native_output_policy_invalid")
         provider_input_bound = (
             native_output_facts(budget.model)["maximum_input_tokens"]
-            if native_output_limits
-            else 262144
         )
         maximum = (
             maximum_input_tokens
@@ -584,8 +582,6 @@ class CostLedger:
         )
         if type(output) is not int or not 1 <= output <= (
             NATIVE_OPENAI_MAX_OUTPUT.get(budget.model, 0)
-            if native_output_limits
-            else 4096
         ):
             raise CostDenied("output_token_budget_required")
         amount = upper_cost_micro_usd(

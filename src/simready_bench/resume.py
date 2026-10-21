@@ -808,6 +808,7 @@ def resume_benchmark(
     maximum_retry_delay_seconds=60,
     _initial_failure=False,
     authoring_turns=None,
+    max_output_tokens=None,
 ):
     """Collect existing executors and retry incomplete work within saved limits."""
     options = dict(locals())
@@ -987,6 +988,7 @@ def _resume_once(
     dispatch_pending=True,
     _allowed_pending=None,
     authoring_turns=None,
+    max_output_tokens=None,
     max_retries=2,
     retry_delay_seconds=5,
     maximum_retry_delay_seconds=60,
@@ -1004,6 +1006,8 @@ def _resume_once(
         raise ValueError("Parallel workers require Daytona deployment")
     output = Path(os.path.abspath(output_dir))
     original = _read(output / "experiment.json")
+    if max_output_tokens is not None and max_output_tokens != original.get("defaults", {}).get("generation", {}).get("max_output_tokens"):
+        raise ValueError("Resume must retain its original output token cap")
     if authoring_turns is not None:
         from simready_bench.engine.native_output import (
             authoring_turns as protocol_turns,

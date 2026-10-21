@@ -151,7 +151,7 @@ async def fetch_hf_route(model, *, deadline_at):
 def hf_upper_cost_micro_usd(model, output_tokens, *, native_output_limits=False):
     if model not in HF_PRICING:
         _deny("hf_cost_model_not_authorized")
-    bound = HF_PRICING[model].context_length if native_output_limits is True else 4096
+    bound = HF_PRICING[model].context_length
     if (
         type(native_output_limits) is not bool
         or type(output_tokens) is not int

@@ -63,7 +63,9 @@ The standard NV25 command runs four reconstructions per asset, giving 100 attemp
 
 Follow the `simready-benchmark` and `simready-model-relay` session logs in each Daytona sandbox. The controller reports its active asset and completed/planned counts every 30 seconds. The relay reports each model request's route, attempt, request allowance, HTTP status and duration, plus retry and failure events. Logs contain no prompt content or credentials.
 
-For built-in providers, the default accounting allowance covers every permitted request at the provider's full native capacity. `allowance.json` records its derivation. Add `--max-spend-usd AMOUNT` to impose a separate monetary ceiling, or supply an operator policy with an existing allowance.
+Use `--reasoning medium --max-output-tokens 8192` to select medium reasoning and cap each model response at 8,192 generated tokens. The 64-call limit remains separate. These settings are frozen for the run, so changing them requires a new output directory.
+
+For built-in providers, the accounting allowance covers every permitted request at the provider's input capacity and the selected output cap, or native output capacity when no cap is set. `allowance.json` records its derivation. Add `--max-spend-usd AMOUNT` to impose a separate monetary ceiling, or supply an operator policy with an existing allowance.
 
 ![Reference assets become controlled observations and Harbor reconstruction tasks, followed by profile validation, fidelity measurement and aligned captures.](site/assets/evaluation-protocol.png)
 

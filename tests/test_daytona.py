@@ -429,7 +429,8 @@ def test_relay_forwards_count_and_generation_exactly_without_exposing_key(
 )
 @pytest.mark.parametrize("actor_resources", [None, {"cpus": 3, "memory_mb": 8192}])
 def test_full_executor_reserves_before_create_exports_then_deletes(
-    tmp_path, monkeypatch, observation_unknown, publication_failure, actor_resources
+    tmp_path, monkeypatch, observation_unknown, publication_failure, actor_resources,
+    output_cap=None,
 ):
     import daytona
     from types import SimpleNamespace
@@ -438,6 +439,10 @@ def test_full_executor_reserves_before_create_exports_then_deletes(
     from simready_bench.daytona import run_daytona
 
     manifest, policy = experiment()
+    if output_cap is not None:
+        manifest["defaults"]["generation"] = {"output_limit": "bounded", "max_output_tokens": output_cap}
+        manifest["defaults"]["budgets"]["max_output_tokens"] = output_cap
+        policy["limits"]["max_output_tokens"] = output_cap
     output = tmp_path / "run"
     output.mkdir()
     for name in ("assets", "skills", "input_views", "private_manifests"):
@@ -601,6 +606,7 @@ def test_full_executor_reserves_before_create_exports_then_deletes(
     assert (output / "report.html").is_file()
     assert (output / "experiment.json").read_text() == "original launcher manifest"
     assert b"private-openai-key" in uploads["/run/simready-benchmark/provider.json"]
+    assert json.loads(uploads["/run/simready-benchmark/provider.json"])["native_output_only"] is (output_cap is None)
     assert all(
         b"private-openai-key" not in value
         for name, value in uploads.items()
@@ -686,13 +692,14 @@ def test_remote_controller_builds_a_valid_current_policy(tmp_path, monkeypatch, 
         daytona, "Path", lambda value: root if str(value) == "/work" else Path(value)
     )
 
-    def execute(manifest, *, policy, output_dir, work_dir, on_progress):
+    def execute(manifest, *, policy, output_dir, work_dir, on_progress, on_asset_start):
         validate_policy(policy, base_dir=root)
         assert "actor_backend" not in policy["runtime"]
         assert policy["runtime"]["container_resources"] == (
             actor_resources or {"cpus": 2, "memory_mb": 4096}
         )
         assert callable(on_progress)
+        assert callable(on_asset_start)
         return {
             "planned_conditions": 100,
             "completed_conditions": 100,

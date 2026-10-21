@@ -58,7 +58,7 @@ def response_frames(api_style, terminal):
 
 
 async def exercise(
-    tmp_path, monkeypatch, api_style, body, *, disconnect=False, status=200
+    tmp_path, monkeypatch, api_style, body, *, disconnect=False, status=200, output_cap=4096
 ):
     calls = []
     app = web.Application()
@@ -103,6 +103,8 @@ async def exercise(
         config = replace(
             config,
             api_style=api_style,
+            max_output_tokens=output_cap,
+            native_output_cap=True,
             budget=replace(config.budget, external_spend_cap_verified=True),
         )
         gateway = CompletedHandlerGateway(controller, config)
@@ -111,10 +113,10 @@ async def exercise(
         if api_style == "openai-completions":
             payload.update(
                 messages=[{"role": "user", "content": "asset"}],
-                max_completion_tokens=4096,
+                max_completion_tokens=output_cap,
             )
         else:
-            payload.update(input="asset", max_output_tokens=4096)
+            payload.update(input="asset", max_output_tokens=output_cap)
         async with serve(gateway.runner()) as local, aiohttp.ClientSession() as client:
             response_error = None
             received = b""
@@ -141,6 +143,7 @@ async def exercise(
             await asyncio.wait_for(gateway.handler_finished.get(), 2)
         (record,) = gateway.records("episode")
         assert len(calls) == 1
+        assert calls[0] == payload
         assert controller.get_episode("episode").inference_calls_used == 1
         assert record["upstream_attempts"] == record["upstream_condition_requests"] == 1
         return record, received, response_error
