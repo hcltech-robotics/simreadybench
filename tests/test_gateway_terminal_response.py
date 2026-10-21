@@ -73,6 +73,7 @@ def upstream_fixture(counted, generated):
         generated.append(payload)
         result = {
             "model": MODEL,
+            "status": "completed",
             "output": [
                 {
                     "type": "function_call",

@@ -37,8 +37,8 @@ def _health_policy(policy):
     return {"schema": EXECUTOR_HEALTH_SCHEMA, "stall_seconds": seconds, "orphan_stop_minutes": ORPHAN_STOP_MINUTES}
 
 
-def _executor_activity(sandbox):
-    """Read provider admissions from the relay rather than actor-controlled logs."""
+def _executor_relay_state(sandbox):
+    """Read admissions and transport failures from the trusted provider relay."""
     raw = sandbox.fs.download_file("/run/simready-benchmark/ledger.json", 10)
     if len(raw) > 32 * 1024**2:
         raise ValueError("The executor activity ledger exceeds its size limit")
@@ -46,7 +46,20 @@ def _executor_activity(sandbox):
     counts = [value.get(name, 0) for name in ("generation_requests", "input_counter_requests")]
     if any(type(number) is not int or number < 0 for number in counts):
         raise ValueError("The executor activity counters are invalid")
-    return counts
+    failure = next(
+        (event for event in value.get("events", [])
+         if event.get("status") == "transport_error"),
+        None,
+    )
+    if failure is not None:
+        failure = {
+            key: failure[key] for key in (
+                "request_ordinal", "condition_request_ordinal", "path", "status",
+                "http_status", "error_type", "started_at", "finished_at",
+            ) if key in failure
+        }
+        failure["ledger_sha256"] = hashlib.sha256(raw).hexdigest()
+    return counts, failure
 
 
 def _stop_stalled_executor(sandbox, record, output, *, reason, save, exit_code=137):
@@ -972,13 +985,22 @@ def _monitor_executor(sandbox, record, output, *, save, on_report=None, stop_req
             forward_telemetry(sandbox, output, record=record)
             if guarded:
                 try:
-                    activity = _executor_activity(sandbox)
+                    activity, transport_failure = _executor_relay_state(sandbox)
+                except Exception:
+                    pass
+                else:
+                    if transport_failure is not None:
+                        record["provider_transport_failure"] = transport_failure
+                        save()
+                        _stop_stalled_executor(
+                            sandbox, record, output,
+                            reason="inference_transport_circuit_open", save=save,
+                        )
+                        return
                     if activity != record.get("activity_counters"):
                         record.update(activity_counters=activity, last_activity_at=time.time())
                         last_activity = record["last_activity_at"]
                         save()
-                except Exception:
-                    pass
                 try:
                     state = json.loads(_executor_command(sandbox, "docker inspect --format '{{json .State}}' simready-benchmark-controller", clean=str))
                     if state.get("Status") in ("exited", "dead") and state.get("Running") is False and type(state.get("ExitCode")) is int:

@@ -7,7 +7,8 @@ import pytest
 from simready_bench import daytona
 
 
-def monitor_fixture(monkeypatch, tmp_path, *, stale=True, running=True, exit_code=0):
+def monitor_fixture(monkeypatch, tmp_path, *, stale=True, running=True, exit_code=0,
+                    relay_events=()):
     clock = [10000.0]
     record = {
         "sandbox_id": "saved-sandbox", "run_id": "saved-run",
@@ -28,7 +29,8 @@ def monitor_fixture(monkeypatch, tmp_path, *, stale=True, running=True, exit_cod
         if path == "/work/controller-status.json":
             return b'{"status":"running"}'
         if path == "/run/simready-benchmark/ledger.json":
-            return b'{"generation_requests":1,"input_counter_requests":0}'
+            return json.dumps({"generation_requests": 1, "input_counter_requests": 0,
+                               "events": list(relay_events)}).encode()
         raise FileNotFoundError(path)
 
     sandbox = SimpleNamespace(
@@ -61,6 +63,54 @@ def test_open_circuit_stops_the_owned_worker_before_further_observation(monkeypa
     assert record['termination_reason'] == 'inference_transport_circuit_open'
     assert record['terminal_confirmed'] is True
     assert any('docker kill' in command for command in commands)
+
+
+def test_truncated_provider_stream_stops_live_worker_for_native_collection(monkeypatch, tmp_path):
+    failure = {
+        "request_ordinal": 1, "condition_request_ordinal": 1,
+        "path": "/chat/completions", "status": "transport_error",
+        "http_status": 200, "error_type": "IncompleteRead",
+        "started_at": 9990, "finished_at": 9999,
+    }
+    sandbox, record, commands, _ = monitor_fixture(
+        monkeypatch, tmp_path, stale=False, relay_events=[failure],
+    )
+    record["condition_retry_counts"] = {"saved-condition": 2}
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert record["termination_reason"] == "inference_transport_circuit_open"
+    assert record["terminal_confirmed"] is True
+    assert record["provider_transport_failure"]["error_type"] == "IncompleteRead"
+    assert len(record["provider_transport_failure"]["ledger_sha256"]) == 64
+    assert record["condition_retry_counts"] == {"saved-condition": 2}
+    assert record["activity_counters"] == [1, 0]
+    assert any("docker kill" in command for command in commands)
+    assert (tmp_path / "executor-terminal-proof.json").is_file()
+
+
+@pytest.mark.parametrize("status", ["admitted", "completed", "retryable_rejection", "client_disconnected"])
+def test_nonfatal_relay_event_does_not_stop_live_worker(monkeypatch, tmp_path, status):
+    sandbox, record, commands, _ = monitor_fixture(
+        monkeypatch, tmp_path, stale=False,
+        relay_events=[{"path": "/chat/completions", "status": status}],
+    )
+    outcomes = iter([None, 0])
+    sandbox.process.get_session_command = lambda *a, **k: SimpleNamespace(exit_code=next(outcomes))
+    daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert record["controller_exit"] == 0
+    assert "provider_transport_failure" not in record
+    assert not any("docker kill" in command for command in commands)
+
+
+def test_failed_transport_stop_is_not_swallowed_as_an_observation_error(monkeypatch, tmp_path):
+    sandbox, record, _, _ = monitor_fixture(
+        monkeypatch, tmp_path, stale=False,
+        relay_events=[{"status": "transport_error", "error_type": "IncompleteRead"}],
+    )
+    sandbox.process.exec = lambda *a, **k: SimpleNamespace(exit_code=1, result="stop failed")
+    with pytest.raises(RuntimeError, match="stop failed"):
+        daytona._monitor_executor(sandbox, record, tmp_path, save=lambda: None)
+    assert record["provider_transport_failure"]["error_type"] == "IncompleteRead"
+    assert not record.get("terminal_confirmed")
 
 
 def test_stale_running_status_cannot_hide_a_dead_controller(monkeypatch, tmp_path):

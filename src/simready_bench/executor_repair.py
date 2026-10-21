@@ -11,6 +11,7 @@ from .recovery import _save
 
 REPAIR_MODULES = {
     'simready_bench/engine/actor_relay.py',
+    'simready_bench/engine/inference_gateway.py',
     'simready_bench/daytona.py', 'simready_bench/orchestration.py',
     'simready_bench/recovery.py', 'simready_bench/resume.py',
     'simready_bench/execution_health.py', 'simready_bench/executor_repair.py',

@@ -46,3 +46,23 @@ def test_changed_repair_package_is_rejected_on_resume(tmp_path):
     replacement.write_bytes(b'different runtime')
     with pytest.raises(ValueError, match='recorded approval'):
         frozen_wheel(tmp_path)
+
+
+def test_gateway_transport_repair_keeps_agent_prompt_protected(tmp_path):
+    original = tmp_path / 'original.whl'
+    replacement = tmp_path / 'replacement.whl'
+    changed_prompt = tmp_path / 'changed-prompt.whl'
+    for path, gateway, prompt in (
+        (original, b'original transport', b'frozen prompt'),
+        (replacement, b'terminal stream validation', b'frozen prompt'),
+        (changed_prompt, b'terminal stream validation', b'new prompt'),
+    ):
+        with zipfile.ZipFile(path, 'w') as archive:
+            archive.writestr('simready_bench/engine/inference_gateway.py', gateway)
+            archive.writestr('simready_bench/engine/pi.py', prompt)
+    with pytest.raises(ValueError, match='protected evaluator'):
+        approve_executor_repair(tmp_path, original, changed_prompt, reason='Transport repair')
+    receipt = approve_executor_repair(
+        tmp_path, original, replacement, reason='Reject incomplete upstream streams'
+    )
+    assert receipt['changed_modules'] == ['simready_bench/engine/inference_gateway.py']

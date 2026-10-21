@@ -1429,6 +1429,21 @@ class InferenceGateway:
                             telemetry.feed(chunk)
                             await response.write(chunk)
                         telemetry.finish()
+                        if upstream.status == 200 and data.get("stream"):
+                            terminal = (
+                                bool(telemetry.finish_reasons)
+                                if self.config.api_style == "openai-completions"
+                                else bool(
+                                    telemetry.response_statuses.intersection(
+                                        {"completed", "incomplete", "failed", "cancelled"}
+                                    )
+                                )
+                            )
+                            if not terminal:
+                                # HTTP EOF can hide a relay/provider disconnect.
+                                # Preserve the admission and partial evidence,
+                                # but never send a successful downstream EOF.
+                                raise GatewayDenied(502, "upstream_stream_incomplete")
                         record.update(
                             status="completed",
                             upstream_status=upstream.status,
