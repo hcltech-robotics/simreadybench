@@ -12,7 +12,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--context", type=Path, required=True)
     parser.add_argument("--name", default="simready-bench-cpu")
-    parser.add_argument("--memory", type=int, default=6)
+    parser.add_argument("--memory", type=int, default=12)
     parser.add_argument("--disk", type=int, default=10)
     parser.add_argument("--receipt", type=Path, required=True)
     args = parser.parse_args()

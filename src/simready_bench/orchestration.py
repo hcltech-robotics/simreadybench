@@ -488,6 +488,8 @@ def coordinate_daytona(
         }
     batches, finished, futures = {}, set(), {}
     blocked = set()
+    transport_failures = {}
+    state["blocked_conditions"] = {}
     errors = []
     with _observer_guard:
         previous = _live_observers.get(str(output))
@@ -515,8 +517,10 @@ def coordinate_daytona(
 
     def execute(batch):
         selected = batches[batch]
+
         def callback(report, **_):
             return index.add(batch, report)
+
         if (batch / "daytona-delivery.json").is_file():
             return reconnect_daytona(
                 selected,
@@ -588,6 +592,16 @@ def coordinate_daytona(
                     proof = _read(batch / "retirement.json")
                     index.closed.update(proof.get("admitted_conditions", []))
                     index.closed.update(proof.get("terminal_unadmitted_conditions", []))
+                    if (
+                        proof.get("requests") == 0
+                        and not proof.get("admitted_conditions")
+                        and not proof.get("unreported_admitted_conditions")
+                        and not proof.get("terminal_unadmitted_conditions")
+                    ):
+                        for identity in condition_plan(selected):
+                            transport_failures.setdefault(identity, set()).add(
+                                batch.name
+                            )
                     finished.add(batch)
                     continue
                 if (
@@ -604,6 +618,19 @@ def coordinate_daytona(
             pending = set(expected) - index.closed - owned - blocked
             if allowed_pending is not None:
                 pending &= set(allowed_pending)
+            exhausted = {
+                identity
+                for identity in pending
+                if len(transport_failures.get(identity, ())) > max_retries
+            }
+            for identity in exhausted:
+                state["blocked_conditions"][identity] = {
+                    "reason": "unadmitted_transport_retries_exhausted",
+                    "failed_batches": sorted(transport_failures[identity]),
+                    "maximum_retries": max_retries,
+                }
+            blocked.update(exhausted)
+            pending -= exhausted
             available = workers - len(futures)
             for batch in batches:
                 if not available:
@@ -620,16 +647,6 @@ def coordinate_daytona(
                 futures[pool.submit(execute, batch)] = batch
                 available -= 1
             if pending and available and dispatch_pending:
-                counts = {
-                    identity: sum(
-                        identity in entries for entries in state["dispatches"].values()
-                    )
-                    for identity in pending
-                }
-                if any(count > max_retries for count in counts.values()):
-                    raise RecoveryLimitReached(
-                        "Unadmitted work exhausted its executor retries"
-                    )
                 requests, dollars = _remaining(policy, manifest)
                 budget = manifest["defaults"]["budgets"]
                 if (
@@ -678,11 +695,9 @@ def coordinate_daytona(
             done, _ = wait(futures, timeout=1, return_when=FIRST_COMPLETED)
             for future in done:
                 batch = futures.pop(future)
-                failure = None
                 try:
                     future.result()
                 except Exception as error:
-                    failure = error
                     errors.append(error)
                     count = state["observation_failures"].get(batch.name, 0) + 1
                     state["observation_failures"][batch.name] = count
@@ -694,8 +709,7 @@ def coordinate_daytona(
                         raise
                 if not (batch / "daytona-delivery.json").exists():
                     finished.add(batch)
-                    if failure is not None:
-                        blocked.update(condition_plan(batches[batch]))
+                    blocked.update(set(condition_plan(batches[batch])) - index.closed)
         report = index.aggregate(final=True)
         result = {
             **read_generated_report(report["results"]),
@@ -715,10 +729,14 @@ def coordinate_daytona(
         )
         if result["completed_conditions"] != len(expected) and dispatch_pending:
             error = (
-                errors[0]
-                if blocked and errors
-                else RecoveryLimitReached(
-                    "Admitted incomplete attempts retain their original outcomes"
+                RecoveryLimitReached("Unadmitted work exhausted its transport retries")
+                if state["blocked_conditions"]
+                else (
+                    errors[0]
+                    if blocked and errors
+                    else RecoveryLimitReached(
+                        "Admitted incomplete attempts retain their original outcomes"
+                    )
                 )
             )
             error.result = result

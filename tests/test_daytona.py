@@ -97,6 +97,28 @@ def test_upstream_route_cannot_change_under_existing_authority():
         _plan(manifest, policy)
 
 
+@pytest.mark.parametrize("resources", [
+    {}, {"cpus": True, "memory_mb": 4096}, {"cpus": 2, "memory_mb": 64},
+    {"cpus": 2, "memory_mb": 4096, "extra": 1},
+])
+def test_invalid_actor_resources_are_rejected_before_spend_or_compute(tmp_path, monkeypatch, resources):
+    from simready_bench import local
+    from simready_bench.daytona import run_daytona
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("Invalid resources must not reserve an allowance")
+
+    monkeypatch.setattr(local, "ParentAuthorityLedger", unexpected)
+    manifest, policy = experiment()
+    policy["runtime"] = {"container_resources": resources}
+    with pytest.raises(ValueError, match="Actor resources"):
+        run_daytona(
+            manifest, policy=policy, output_dir=tmp_path,
+            assets_root=tmp_path / "assets", skills_root=tmp_path / "skills",
+        )
+    assert not (tmp_path / "daytona-delivery.json").exists()
+
+
 def test_collection_retains_attempts_when_aggregate_report_is_missing(tmp_path):
     from simready_bench.daytona import _collect_portable
 
@@ -381,8 +403,9 @@ def test_relay_forwards_count_and_generation_exactly_without_exposing_key(tmp_pa
     "observation_unknown,publication_failure",
     [(False, False), (True, False), (False, True)],
 )
+@pytest.mark.parametrize("actor_resources", [None, {"cpus": 3, "memory_mb": 8192}])
 def test_full_executor_reserves_before_create_exports_then_deletes(
-    tmp_path, monkeypatch, observation_unknown, publication_failure
+    tmp_path, monkeypatch, observation_unknown, publication_failure, actor_resources
 ):
     import daytona
     from types import SimpleNamespace
@@ -397,6 +420,8 @@ def test_full_executor_reserves_before_create_exports_then_deletes(
         (output / name).mkdir()
     (output / "experiment.json").write_text("original launcher manifest")
     policy["runtime"] = {"authority_state_dir": str(tmp_path / "authority")}
+    if actor_resources is not None:
+        policy["runtime"]["container_resources"] = actor_resources
     events = []
     uploads = {}
     commands = []
@@ -557,6 +582,11 @@ def test_full_executor_reserves_before_create_exports_then_deletes(
         for value in commands
     )
     assert "private-openai-key" not in (output / "daytona-delivery.json").read_text()
+    envelope = json.loads(uploads["/work/controller.json"])
+    assert envelope["container_resources"] == (
+        actor_resources or {"cpus": 2, "memory_mb": 4096}
+    )
+    assert result["deployment"]["container_resources"] == envelope["container_resources"]
 
 
 def test_custom_runtime_mapping_reaches_relay_controller_and_actor(
@@ -588,7 +618,8 @@ def test_result_archive_rejects_escape_and_links(tmp_path):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Controller policies require Linux")
-def test_remote_controller_builds_a_valid_current_policy(tmp_path, monkeypatch):
+@pytest.mark.parametrize("actor_resources", [None, {"cpus": 4, "memory_mb": 6144}])
+def test_remote_controller_builds_a_valid_current_policy(tmp_path, monkeypatch, actor_resources):
     from simready_bench import benchmark, daytona
     from simready_bench.config import validate_policy
     from simready_bench.runtime_images import DEFAULT_IMAGES
@@ -617,6 +648,8 @@ def test_remote_controller_builds_a_valid_current_policy(tmp_path, monkeypatch):
         "cpu_image": DEFAULT_IMAGES["cpu"],
         "work_dir": str(tmp_path / "trials"),
     }
+    if actor_resources is not None:
+        envelope["container_resources"] = actor_resources
     request = tmp_path / "controller.json"
     request.write_text(json.dumps(envelope))
     monkeypatch.setenv("SIMREADY_RELAY_KEY", "previous-marker")
@@ -627,6 +660,9 @@ def test_remote_controller_builds_a_valid_current_policy(tmp_path, monkeypatch):
     def execute(manifest, *, policy, output_dir, work_dir, on_progress):
         validate_policy(policy, base_dir=root)
         assert "actor_backend" not in policy["runtime"]
+        assert policy["runtime"]["container_resources"] == (
+            actor_resources or {"cpus": 2, "memory_mb": 4096}
+        )
         assert callable(on_progress)
         return {
             "planned_conditions": 100,

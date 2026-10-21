@@ -70,12 +70,15 @@ def load_release(path=None):
     return validate_release(json.loads(raw))
 
 
-def _confirm_snapshot(snapshot, *, name, image):
+def _confirm_snapshot(snapshot, *, name, image, cpu, memory, disk):
     if snapshot.name != name or snapshot.image_name != image:
         raise ValueError("The named Daytona snapshot uses another image. Choose a different --snapshot name")
     state = getattr(snapshot.state, "value", snapshot.state)
     if state != "active":
         raise RuntimeError("The Daytona snapshot is not active. Check its state and repeat setup when it is ready")
+    actual = (snapshot.cpu, snapshot.mem, snapshot.disk)
+    if any(value < requested for value, requested in zip(actual, (cpu, memory, disk))):
+        raise ValueError("The named Daytona snapshot has fewer resources than requested. Choose a different --snapshot name")
 
 
 def _save_mapping(target, mapping):
@@ -97,7 +100,7 @@ def _save_mapping(target, mapping):
         temporary.unlink(missing_ok=True)
 
 
-def setup_daytona(*, output, release_manifest=None, snapshot=None, cpu=2, memory=6, disk=10, timeout=600):
+def setup_daytona(*, output, release_manifest=None, snapshot=None, cpu=2, memory=12, disk=10, timeout=600):
     """Import or reuse a matching active snapshot and save its runtime mapping."""
     release = load_release(release_manifest)
     name = snapshot or "simready-bench-cpu-" + release["version"].replace("+", "-")
@@ -138,7 +141,7 @@ def setup_daytona(*, output, release_manifest=None, snapshot=None, cpu=2, memory
                 status = "created"
             except DaytonaConflictError:
                 selected = client.snapshot.get(name)
-        _confirm_snapshot(selected, name=name, image=image)
+        _confirm_snapshot(selected, name=name, image=image, cpu=cpu, memory=memory, disk=disk)
     except DaytonaError as error:
         raise RuntimeError("Daytona runtime setup failed: " + str(error).replace(key, "[redacted]")) from error
     _save_mapping(target, mapping)
@@ -148,6 +151,7 @@ def setup_daytona(*, output, release_manifest=None, snapshot=None, cpu=2, memory
         "snapshot": name,
         "snapshot_id": selected.id,
         "snapshot_image": image,
+        "resources": {"cpu": selected.cpu, "memory": selected.mem, "disk": selected.disk},
         "status": status,
         "runtime_images": str(target),
     }

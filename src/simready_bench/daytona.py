@@ -26,6 +26,22 @@ from uuid import uuid4
 from .runtime_images import CPU_IMAGE, CPU_SNAPSHOT, DEFAULT_IMAGES
 
 
+def _actor_resources(value=None):
+    """Retain explicit actor bounds across the executor boundary."""
+    if value is None:
+        return {"cpus": 2, "memory_mb": 4096}
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"cpus", "memory_mb"}
+        or type(value["cpus"]) is not int
+        or not 1 <= value["cpus"] <= 64
+        or type(value["memory_mb"]) is not int
+        or not 128 <= value["memory_mb"] <= 1048576
+    ):
+        raise ValueError("Actor resources require explicit CPU and memory MiB bounds")
+    return dict(value)
+
+
 def _json(path, value):
     temporary = Path(str(path) + ".tmp")
     temporary.write_text(
@@ -501,6 +517,7 @@ def execute_remote(path):
     from simready_bench.policy import init_policy
 
     envelope = json.loads(Path(path).read_text(encoding="utf-8"))
+    actor_resources = _actor_resources(envelope.get("container_resources"))
     root = Path("/work")
     output = root / "output"
     output.mkdir(mode=0o700)
@@ -532,7 +549,7 @@ def execute_remote(path):
     )
     policy["limits"].update(envelope["limits"])
     policy["runtime"].update(
-        container_resources={"cpus": 2, "memory_mb": 1024},
+        container_resources=actor_resources,
         illustration_image=envelope["cpu_image"],
         fidelity_image=envelope["cpu_image"],
     )
@@ -1439,6 +1456,9 @@ def run_daytona(
     delivery = output / "daytona-delivery.json"
     if delivery.exists():
         raise FileExistsError("Preserving an existing Daytona run")
+    actor_resources = _actor_resources(
+        policy.get("runtime", {}).get("container_resources")
+    )
     images = dict(DEFAULT_IMAGES if runtime_images is None else runtime_images)
     for role in DEFAULT_IMAGES:
         if role not in images or not re.fullmatch(
@@ -1510,6 +1530,7 @@ def run_daytona(
         "sandbox_name": "simready-benchmark-" + run_id[:12],
         "snapshot": snapshot,
         "runtime_images": images,
+        "container_resources": actor_resources,
         "planned_requests": requests,
         "model": parent.model,
         "maximum_condition_requests": budgets["inference_requests"],
@@ -1637,6 +1658,7 @@ def run_daytona(
             "project_id": project_id,
             "maximum_spend_usd": spend,
             "limits": policy["limits"],
+            "container_resources": actor_resources,
             "cpu_image": images["cpu"],
             "actor_image": images["actor"],
             "verifier_image": images["verifier"],

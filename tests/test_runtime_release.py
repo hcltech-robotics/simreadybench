@@ -47,7 +47,8 @@ def service(monkeypatch):
         def create(self, params, *, timeout):
             self.created.append((params, timeout))
             selected = SimpleNamespace(
-                id="snapshot-id", name=params.name, image_name=params.image, state="active"
+                id="snapshot-id", name=params.name, image_name=params.image, state="active",
+                cpu=params.resources.cpu, mem=params.resources.memory, disk=params.resources.disk,
             )
             self.values[params.name] = selected
             if self.conflict:
@@ -99,7 +100,8 @@ def test_setup_imports_pinned_outer_image_and_writes_loadable_mapping(tmp_path, 
     assert load_images(output) == {**release()["images"], "snapshot": first["snapshot"]}
     params, timeout = service.created[0]
     assert params.image == release()["snapshot_image"]
-    assert (params.resources.cpu, params.resources.memory, params.resources.disk) == (2, 6, 10)
+    assert (params.resources.cpu, params.resources.memory, params.resources.disk) == (2, 12, 10)
+    assert first["resources"] == {"cpu": 2, "memory": 12, "disk": 10}
     assert timeout == 600
     original = output.read_bytes()
     again = runtime.setup_daytona(output=output, release_manifest=source)
@@ -196,6 +198,36 @@ def test_active_enum_and_concurrent_matching_snapshot_are_reused(tmp_path, servi
     assert len(service.created) == 1
 
 
+@pytest.mark.parametrize("resource,available", [("cpu", 1), ("mem", 6), ("disk", 8)])
+def test_setup_refuses_reuse_of_an_undersized_snapshot(tmp_path, service, resource, available):
+    name = "simready-bench-cpu-1.0.0"
+    selected = SimpleNamespace(
+        id="old-snapshot", name=name, image_name=release()["snapshot_image"],
+        state="active", cpu=2, mem=12, disk=10,
+    )
+    setattr(selected, resource, available)
+    service.values[name] = selected
+    output = tmp_path / "runtime.json"
+    with pytest.raises(ValueError, match="fewer resources.*--snapshot"):
+        runtime.setup_daytona(
+            output=output, release_manifest=write_release(tmp_path / "release.json")
+        )
+    assert not output.exists() and not service.created
+
+
+def test_setup_reuses_a_larger_compatible_snapshot(tmp_path, service):
+    name = "simready-bench-cpu-1.0.0"
+    service.values[name] = SimpleNamespace(
+        id="larger-snapshot", name=name, image_name=release()["snapshot_image"],
+        state="active", cpu=4, mem=16, disk=20,
+    )
+    result = runtime.setup_daytona(
+        output=tmp_path / "runtime.json", release_manifest=write_release(tmp_path / "release.json")
+    )
+    assert result["status"] == "reused" and not service.created
+    assert result["resources"] == {"cpu": 4, "memory": 16, "disk": 20}
+
+
 def test_setup_preserves_conflicting_output_before_contacting_daytona(tmp_path, service):
     output = tmp_path / "runtime.json"
     output.write_text('{"existing": true}')
@@ -251,6 +283,7 @@ def test_setup_cli_dispatches_without_requiring_a_model_or_benchmark(monkeypatch
     ]) == 0
     assert calls[0]["release_manifest"] == Path("release.json")
     assert calls[0]["snapshot"] == "team-runtime"
+    assert calls[0]["memory"] == 12
     assert "Snapshot ready: team-runtime" in capsys.readouterr().out
 
 

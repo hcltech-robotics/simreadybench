@@ -16,7 +16,7 @@ def main(argv=None):
     daytona.add_argument("--release-manifest", type=Path)
     daytona.add_argument("--snapshot", help="Organisation snapshot name")
     daytona.add_argument("--cpu", type=int, default=2)
-    daytona.add_argument("--memory", type=int, default=6, help="Memory in GiB")
+    daytona.add_argument("--memory", type=int, default=12, help="Memory in GiB (default: 12)")
     daytona.add_argument("--disk", type=int, default=10, help="Disk in GiB")
     daytona.add_argument("--timeout", type=int, default=600, help="Import timeout in seconds")
     command = commands.add_parser(
