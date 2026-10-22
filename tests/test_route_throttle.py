@@ -50,6 +50,36 @@ def test_identity_binds_route_and_account_without_credentials():
         route_identity("https://secret@example.com", "p", "m", "c")
 
 
+def test_live_limit_changes_preserve_leases_and_cooldown(tmp_path):
+    now = [100.0]
+    database = tmp_path / 'limits.sqlite'
+    one = RouteThrottleStore(database, clock=lambda: now[0])
+    two = RouteThrottleStore(database, clock=lambda: now[0])
+    leases = [one.acquire(ROUTE_A, str(index).zfill(32)) for index in range(4)]
+    assert all(lease['admitted'] for lease in leases)
+    assert not two.acquire(ROUTE_A, 'a' * 32)['admitted']
+    one.set_limit(ROUTE_A, 12)
+    extra = [two.acquire(ROUTE_A, str(index).zfill(32)) for index in range(4, 12)]
+    assert all(lease['admitted'] for lease in extra)
+    assert not one.acquire(ROUTE_A, 'a' * 32)['admitted']
+    two.set_limit(ROUTE_A, 2)
+    assert not one.acquire(ROUTE_A, 'a' * 32)['admitted']
+    assert one.acquire(ROUTE_A, '0' * 32)['lease'] == leases[0]['lease']
+    with one._connect() as db:
+        db.execute('UPDATE routes SET cooldown=200 WHERE route=?', (ROUTE_A,))
+        db.execute('DELETE FROM leases')
+    one.set_limit(ROUTE_A, 12)
+    assert two.acquire(ROUTE_A, 'a' * 32)['retry_after'] == 100
+
+
+def test_concurrent_store_schema_migration(tmp_path):
+    database = tmp_path / 'migration.sqlite'
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        stores = list(pool.map(lambda _: RouteThrottleStore(database), range(8)))
+    stores[0].set_limit(ROUTE_A, 12)
+    assert stores[-1].acquire(ROUTE_A, 'a' * 32)['admitted']
+
+
 def test_real_http_clients_share_concurrency(server):
     active = 0
     high_water = 0

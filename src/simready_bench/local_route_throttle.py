@@ -28,5 +28,9 @@ def local_route_throttles(resolved):
     # Separate coordinators may expose different loopback ports. SQLite shares
     # their route permits and cooldowns through the persistent authority store.
     with RouteThrottleServer(directory / "local.sqlite3", token, route_keys=set(routes.values())) as server:
+        limits = policy['runtime'].get('inference_route_concurrency', {})
+        for (_, model), route in routes.items():
+            if model in limits:
+                server.store.set_limit(route, limits[model])
         yield {reference: {"url": server.url, "token": token, "route_key": route}
                for reference, route in routes.items()}

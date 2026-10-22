@@ -94,6 +94,26 @@ class RouteThrottleStore:
                     request TEXT NOT NULL UNIQUE);
                 CREATE INDEX IF NOT EXISTS leases_route ON leases(route, expires);
             """)
+            db.execute('BEGIN IMMEDIATE')
+            if 'max_concurrency' not in {row[1] for row in db.execute('PRAGMA table_info(routes)')}:
+                db.execute('ALTER TABLE routes ADD COLUMN max_concurrency INTEGER')
+            db.execute('CREATE TABLE IF NOT EXISTS route_limit_changes (route TEXT, previous_limit INTEGER, new_limit INTEGER, changed_at REAL)')
+            db.commit()
+
+    def set_limit(self, route: str, maximum: int) -> None:
+        """Persist an operator limit shared by every coordinator on this store."""
+        self._route(route)
+        if type(maximum) is not int or not 1 <= maximum <= 64:
+            raise ValueError('Route concurrency must be between 1 and 64')
+        with self._connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            db.execute('INSERT OR IGNORE INTO routes(route) VALUES (?)', (route,))
+            previous = db.execute('SELECT max_concurrency FROM routes WHERE route=?', (route,)).fetchone()[0]
+            if previous != maximum:
+                db.execute('UPDATE routes SET max_concurrency=? WHERE route=?', (maximum, route))
+                db.execute('INSERT INTO route_limit_changes VALUES (?,?,?,?)',
+                           (route, previous or self.max_concurrency, maximum, self.clock()))
+            db.commit()
 
     @contextmanager
     def _connect(self):
@@ -133,11 +153,12 @@ class RouteThrottleStore:
                 return {"admitted": True, "lease": existing[0], "expires_at": expires,
                         "lease_seconds": self.lease_seconds}
             db.execute("INSERT OR IGNORE INTO routes(route) VALUES (?)", (route,))
-            cooldown = db.execute("SELECT cooldown FROM routes WHERE route=?", (route,)).fetchone()[0]
+            cooldown, limit = db.execute("SELECT cooldown,max_concurrency FROM routes WHERE route=?", (route,)).fetchone()
+            limit = limit if limit is not None else self.max_concurrency
             count = db.execute("SELECT count(*) FROM leases WHERE route=?", (route,)).fetchone()[0]
-            if cooldown > now or count >= self.max_concurrency:
+            if cooldown > now or count >= limit:
                 db.commit()
-                return {"admitted": False, "retry_after": max(0.25, cooldown - now, 1.0 if count >= self.max_concurrency else 0)}
+                return {"admitted": False, "retry_after": max(0.25, cooldown - now, 1.0 if count >= limit else 0)}
             lease = uuid.uuid4().hex
             expires = now + self.lease_seconds
             db.execute("INSERT INTO leases VALUES (?,?,?,?)", (lease, route, expires, request_id))

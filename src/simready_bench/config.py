@@ -369,6 +369,7 @@ def validate_policy(value=None, *, base_dir):
             "container_resources",
             "illustration_image",
             "illustration_memory_mb",
+            "inference_route_concurrency",
             "fidelity_image",
             "executor_stall_seconds",
         },
@@ -378,6 +379,12 @@ def validate_policy(value=None, *, base_dir):
         _number(runtime["executor_stall_seconds"], "executor stall seconds", 1800, 86400)
     if 'illustration_memory_mb' in runtime:
         _number(runtime['illustration_memory_mb'], 'illustration memory MiB', 512, 16384, True)
+    if 'inference_route_concurrency' in runtime:
+        limits = runtime['inference_route_concurrency']
+        if not isinstance(limits, dict) or any(not isinstance(model, str) or not 1 <= len(model) <= 512 for model in limits):
+            raise ValueError('Inference route concurrency requires model identifiers')
+        for maximum in limits.values():
+            _number(maximum, 'inference route concurrency', 1, 64, True)
     if "fidelity_image" in runtime and (
         not isinstance(runtime["fidelity_image"], str)
         or not re.fullmatch("sha256:[0-9a-f]{64}", runtime["fidelity_image"])

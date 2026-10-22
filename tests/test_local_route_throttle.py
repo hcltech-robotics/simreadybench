@@ -46,3 +46,26 @@ def test_models_using_the_same_provider_have_independent_routes(tmp_path, monkey
     with local_route_throttles(config) as descriptors:
         assert len(descriptors) == 2
         assert descriptors[("hf", "fixture")]["route_key"] != descriptors[("hf", "another")]["route_key"]
+
+
+def test_explicit_route_limit_is_shared_and_does_not_change_other_models(tmp_path, monkeypatch):
+    monkeypatch.setenv('LOCAL_THROTTLE_TEST_KEY', 'private-test-credential')
+    config = resolved(tmp_path)
+    config['operator_policy']['runtime']['inference_route_concurrency'] = {'fixture': 12}
+    config['conditions'].append({'model': {'provider_ref': 'hf', 'model_id': 'another'}})
+    with local_route_throttles(config) as first, local_route_throttles(config) as second:
+        one = RouteThrottleClient(**first[('hf', 'fixture')])
+        two = RouteThrottleClient(**second[('hf', 'fixture')])
+        leases = [one.acquire(timeout=5) for _ in range(12)]
+        try:
+            assert two._post('/acquire', {'request_id': 'c' * 32})['admitted'] is False
+        finally:
+            for lease in leases:
+                lease.finish(status_code=200)
+        other = RouteThrottleClient(**second[('hf', 'another')])
+        leases = [other.acquire(timeout=5) for _ in range(4)]
+        try:
+            assert other._post('/acquire', {'request_id': 'd' * 32})['admitted'] is False
+        finally:
+            for lease in leases:
+                lease.finish(status_code=200)
