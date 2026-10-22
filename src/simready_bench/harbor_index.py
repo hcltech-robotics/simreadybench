@@ -45,6 +45,7 @@ def refresh_asset_index(root, conditions):
     """
     from harbor.models.job.result import JobResult, JobStats
     from harbor.models.trial.result import TrialResult
+    from harbor.metrics.mean import Mean
 
     root = Path(root)
     destination = root / 'harbor-assets'
@@ -91,6 +92,17 @@ def refresh_asset_index(root, conditions):
                     results.append(result)
         # JobStats is Harbor's own aggregation over the actual native results.
         stats = JobStats.from_trial_results(results, n_total_trials=len(planned), n_running_trials=active)
+        rewards = defaultdict(list)
+        for trial_result in results:
+            info = trial_result.agent_info
+            key = JobStats.format_agent_evals_key(
+                info.name, info.model_info.name if info.model_info else None,
+                trial_result.source or 'adhoc',
+            )
+            rewards[key].append(trial_result.verifier_result.rewards
+                               if trial_result.verifier_result else None)
+        for key, values in rewards.items():
+            stats.evals[key].metrics = [Mean().compute(values)]
         complete = len(results) == len(planned)
         result = JobResult(
             id=uuid5(NAMESPACE_URL, str(root.resolve()) + '/' + asset),

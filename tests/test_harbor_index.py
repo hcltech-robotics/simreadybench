@@ -57,6 +57,7 @@ def test_asset_index_groups_models_and_repetitions_with_native_stats(tmp_path):
     assert bucket.n_total_trials == bucket.stats.n_completed_trials == 4
     assert {r.verifier_result.rewards['simready_reward'] for r in bucket.trial_results} == {1, 2, 3, 4}
     assert len(bucket.stats.evals) == 2
+    assert sorted(e.metrics[0]['mean'] for e in bucket.stats.evals.values()) == [1.5, 3.5]
     assert scanner.get_job_result('kettle').stats.n_running_trials == 1
     assert scanner.get_job_result('kettle').finished_at is None
     assert len(scanner.list_trials('bucket')) == 4
