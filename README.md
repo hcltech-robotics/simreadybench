@@ -130,6 +130,14 @@ Fidelity evaluation normalises units and the up-axis, then aligns the reconstruc
 
 The [leaderboard](https://huggingface.co/datasets/hcltech-robotics/simreadybench) reports complete NV25 sets with 95% confidence intervals, token and elapsed-time efficiency and strict pass rates. Tables and plots update automatically when a complete set is published. The dataset viewer shows paired reference and candidate images, with subsets for models, harnesses, skills, protocols and assets. The [statistics guide](docs/leaderboard.md) defines the intervals and efficiency denominators.
 
+## Leaderboard results
+
+| Model | Reasoning | Harness | Reconstructions | Formal fidelity, 95% CI | Mandatory pass rate |
+| --- | --- | --- | --- | --- | --- |
+| [GLM-5.3-Flash](leaderboard/nv25-glm53-flash-low-20261021.json) | Low | Pi | 100/100 | 89.45 [82.21, 95.47] | 84/100 |
+
+The GLM run uses four reconstructions of each NV25 asset, 64 productive authoring calls, a 4,096-token cap per response, bounded tools and continuation after length-limited responses. All 25 assets have at least one mandatory pass among their four reconstructions. The separate optional score has 90% measurement coverage and bounds of 62.78-72.78. Visual and kinematic fidelity retain unknown full-set scores and their measurement coverage in the [machine-readable result](leaderboard/nv25-glm53-flash-low-20261021.json).
+
 ## Authors and citation
 
 Chris von Csefalvay, Pranav Doma, Achyuthan Unni Krishnan and Tamas Foldi, HCLTech. Cite the software using [CITATION.cff](CITATION.cff). The code is licensed under [MIT](LICENSE), and the reference assets use the [NVIDIA SimReady Assets licence](https://huggingface.co/datasets/nvidia/simready-assets).
