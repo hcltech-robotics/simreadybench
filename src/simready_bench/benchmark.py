@@ -1204,10 +1204,13 @@ def freeze_execution_spec(output, manifest, policy, *, wheel=None, runtime_image
     output = Path(output)
     normalized = copy.deepcopy(manifest)
     for skill in normalized.get('skill_sets', []):
-        skill['closure'] = _closure(Path(policy['roots']['skills']), skill.get('paths', []), 'skills', allow_directories=True)
+        skill['closure'] = _closure(Path(policy['roots']['skills']), skill.get('paths', []), 'skill', allow_directories=True)
     for asset in normalized.get('assets', []):
         if (Path(policy['roots']['assets']) / asset['usd']).is_file():
-            asset['closure'] = _closure(Path(policy['roots']['assets']), [asset['usd'], *asset.get('dependencies', [])], 'reference')
+            asset['closure'] = _closure(Path(policy['roots']['assets']), [asset['usd'], *asset.get('dependencies', [])], 'asset')
+            asset['input_view_closure'] = _closure(
+                Path(policy['roots']['input_views']), asset.get('input_views', []), 'input view'
+            )
     conditions = []
     plan = condition_plan(manifest)
     for asset, harness, model, skill in itertools.product(*(manifest[key] for key in ('assets', 'harnesses', 'models', 'skill_sets'))):

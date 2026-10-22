@@ -158,6 +158,68 @@ def test_frozen_protocol_binds_the_supplied_wheel_instead_of_importing_host(tmp_
     assert specs[0]['protocol_sha256'] != specs[1]['protocol_sha256']
 
 
+@pytest.mark.parametrize('size', [256 * 1024**2 + 1, 1024**3 + 1])
+def test_freeze_reference_uses_the_same_closure_bound_as_resolution(tmp_path, size):
+    from simready_bench.benchmark import freeze_execution_spec
+    from simready_bench.config import _closure
+    from test_parallel import manifest
+
+    selected = manifest()
+    selected['assets'] = [{'id': 'reference', 'usd': 'asset.usda', 'dependencies': []}]
+    selected['repetitions'] = 1
+    roots = {}
+    for name in ('assets', 'skills', 'input_views', 'private_manifests'):
+        path = tmp_path / name
+        path.mkdir()
+        roots[name] = str(path)
+    reference = tmp_path / 'assets/asset.usda'
+    # Hash a real sparse file above the general-input bound without storing
+    # hundreds of MiB of fixture data in the test checkout.
+    with reference.open('wb') as stream:
+        stream.truncate(size)
+    output = tmp_path / 'output'
+    output.mkdir()
+    if size > 1024**3:
+        with pytest.raises(ValueError, match='asset exceeds configured closure byte bound'):
+            _closure(reference.parent, ['asset.usda'], 'asset')
+        with pytest.raises(ValueError, match='asset exceeds configured closure byte bound'):
+            freeze_execution_spec(output, selected, {'roots': roots})
+    else:
+        expected = _closure(reference.parent, ['asset.usda'], 'asset')
+        spec = freeze_execution_spec(output, selected, {'roots': roots})
+        asset = spec['protocol']['manifest']['assets'][0]
+        assert asset['closure'][0]['size_bytes'] == size
+        assert asset['closure'][0]['sha256'] == expected[0]['sha256']
+
+
+@pytest.mark.parametrize('kind', ['skill', 'input view'])
+def test_freeze_keeps_the_resolution_bound_for_other_inputs(tmp_path, kind):
+    from simready_bench.benchmark import freeze_execution_spec
+    from test_parallel import manifest
+
+    selected = manifest()
+    selected['assets'] = [{'id': 'reference', 'usd': 'asset.usda', 'dependencies': [], 'input_views': []}]
+    selected['repetitions'] = 1
+    roots = {}
+    for name in ('assets', 'skills', 'input_views', 'private_manifests'):
+        path = tmp_path / name
+        path.mkdir()
+        roots[name] = str(path)
+    (tmp_path / 'assets/asset.usda').write_text('#usda 1.0\n')
+    if kind == 'skill':
+        oversized = tmp_path / 'skills/SKILL.md'
+        selected['skill_sets'] = [{'id': 'fixture', 'paths': ['SKILL.md']}]
+    else:
+        oversized = tmp_path / 'input_views/thumbnail.png'
+        selected['assets'][0]['input_views'] = ['thumbnail.png']
+    with oversized.open('wb') as stream:
+        stream.truncate(256 * 1024**2 + 1)
+    output = tmp_path / 'output'
+    output.mkdir()
+    with pytest.raises(ValueError, match=kind + ' exceeds configured closure byte bound'):
+        freeze_execution_spec(output, selected, {'roots': roots})
+
+
 @pytest.mark.parametrize('name', ('../simready_bench/config.py', 'simready_bench/../config.py',
                                  '/simready_bench/config.py', 'simready_bench\\config.py'))
 def test_wheel_contract_rejects_unconfined_members(tmp_path, name):
