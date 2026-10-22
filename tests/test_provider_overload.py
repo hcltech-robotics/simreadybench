@@ -6,6 +6,9 @@ import http.server
 import io
 import json
 import sqlite3
+import subprocess
+import sys
+from pathlib import Path
 import threading
 import time
 import urllib.error
@@ -333,6 +336,33 @@ def test_shared_route_throttle_auth_failure_never_falls_back_to_provider(tmp_pat
             assert upstream.requests == []
             ledger = (tmp_path / "relay" / "ledger.json").read_text()
             assert "incorrect-private-test-token" not in ledger
+
+
+def test_standalone_relay_starts_in_isolated_python_without_benchmark_package(tmp_path):
+    from simready_bench import provider_relay, route_throttle
+
+    route_key = "f" * 64
+    with route_throttle.RouteThrottleServer(tmp_path / "shared.sqlite3", "standalone-private-test-token", route_keys=[route_key]) as broker:
+        (tmp_path / "relay.py").write_bytes(Path(provider_relay.__file__).read_bytes())
+        (tmp_path / "route_throttle.py").write_bytes(Path(route_throttle.__file__).read_bytes())
+        configuration_path = tmp_path / "configuration.json"
+        configuration_path.write_text(json.dumps(config(expires_at=time.time() + 60, shared_route_throttle={"url": broker.url, "token": "standalone-private-test-token", "route_key": route_key})))
+        # -I removes PYTHONPATH and the script directory from sys.path. The
+        # standard library interpreter also has no benchmark wheel installed.
+        python = "/usr/bin/python3" if Path("/usr/bin/python3").is_file() else sys.executable
+        process = subprocess.Popen([python, "-I", str(tmp_path / "relay.py"), str(configuration_path)], cwd=tmp_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            ready = tmp_path / "ready.json"
+            deadline = time.monotonic() + 5
+            while not ready.exists() and process.poll() is None and time.monotonic() < deadline:
+                threading.Event().wait(0.05)
+            assert ready.exists(), process.communicate(timeout=1)
+            assert process.poll() is None
+            assert json.loads(ready.read_text())["port"] > 0
+            assert not configuration_path.exists()
+        finally:
+            process.terminate()
+            process.communicate(timeout=5)
 
 
 def test_lost_shared_lease_closes_upstream_and_does_not_replay(tmp_path, monkeypatch):

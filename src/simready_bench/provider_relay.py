@@ -226,7 +226,11 @@ class RelayState:
         ):
             raise ValueError("A fixed HTTPS provider endpoint is required")
         self.maximum_requests = config["maximum_requests"]
-        from simready_bench.engine.native_output import DEFAULT_AUTHORING_TURNS
+        if __package__:
+            from simready_bench.engine.native_output import DEFAULT_AUTHORING_TURNS
+        else:
+            # The cloud sidecar is uploaded independently of the actor image.
+            DEFAULT_AUTHORING_TURNS = 64
 
         self.maximum_condition_requests = config.get(
             "maximum_condition_requests", min(DEFAULT_AUTHORING_TURNS, self.maximum_requests)
@@ -270,7 +274,17 @@ class RelayState:
                 or any(not isinstance(value, str) or not value for value in throttle_config.values())
             ):
                 raise ValueError("A fixed shared route throttle configuration is required")
-            from simready_bench.route_throttle import RouteThrottleClient
+            if __package__:
+                from simready_bench.route_throttle import RouteThrottleClient
+            else:
+                from importlib.util import module_from_spec, spec_from_file_location
+
+                spec = spec_from_file_location(
+                    "_simready_route_throttle", Path(__file__).with_name("route_throttle.py")
+                )
+                module = module_from_spec(spec)
+                spec.loader.exec_module(module)
+                RouteThrottleClient = module.RouteThrottleClient
 
             self.shared_route_throttle = RouteThrottleClient(**throttle_config)
         self.directory = Path(directory)
