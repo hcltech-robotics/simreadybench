@@ -58,6 +58,20 @@ def catalog():
     }
 
 
+def test_qwen35_catalog_accepts_binary_float_roundoff_but_rejects_changed_rates():
+    from simready_bench.engine.hf_pricing import validate_catalog_route
+    model = 'Qwen/Qwen3.5-397B-A17B:deepinfra'
+    doc = catalog()
+    doc['data'][0]['id'] = model.rsplit(':', 1)[0]
+    pricing = doc['data'][0]['providers'][0]['pricing']
+    pricing.update(input=0.45, output=2.9999999999999996)
+    assert validate_catalog_route(doc, model).model == model
+    for value in (3.00001, '2.9999999999999996', float('nan'), -3):
+        pricing['output'] = value
+        with pytest.raises(cost.CostDenied):
+            validate_catalog_route(doc, model)
+
+
 def evidence(payload):
     from simready_bench.engine.hf_pricing import (
         validate_catalog_route,

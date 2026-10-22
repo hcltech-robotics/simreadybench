@@ -41,6 +41,12 @@ def _score(entry, name):
         raise ValueError("A leaderboard composite summary must be an object")
     score = summary.get("score")
     if score is None:
+        if name == 'optional' and all(
+            type(summary.get(key)) in (int, float) and math.isfinite(summary[key])
+            and 0 <= summary[key] <= 100 for key in ('lower_bound', 'upper_bound', 'coverage')
+        ) and summary['lower_bound'] <= summary['upper_bound'] and summary.get('measured', 0) > 0:
+            return (f"{summary['lower_bound']:.2f}-{summary['upper_bound']:.2f} bounds"
+                    f" ({summary['coverage']:.3f}% measured)")
         return "N/A" if summary.get("status") == "not_applicable" else "unknown"
     if (
         type(score) not in (int, float)
@@ -222,42 +228,22 @@ def _section(board):
             ]
         )
         ordered = sorted(board["entries"], key=_order)
-        group = None
+        lines.extend([
+            "| Model | Reasoning | Harness | Skills | Protocol | Formal score | Optional score | Visual score | Kinematic score | Results |",
+            "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
+        ])
         for entry in ordered:
             profile = entry.get("profile") or {}
             if not isinstance(profile, dict):
                 raise ValueError("A leaderboard profile must be an object")
-            identity = tuple(
-                json.dumps(entry.get(field), sort_keys=True, ensure_ascii=True)
-                for field in ("authoring_protocol", "reference_revision", "profile")
-            )
-            if identity != group:
-                if group is not None:
-                    lines.append("")
-                group = identity
-                lines.extend(
-                    [
-                        "**"
-                        + _cell(entry.get("reference_set"))
-                        + ", "
-                        + _cell(profile.get("id"))
-                        + " "
-                        + _cell(profile.get("version"))
-                        + "**. Protocol: `"
-                        + _cell(entry.get("authoring_protocol"))
-                        + "`. Reference revision: `"
-                        + _cell(entry.get("reference_revision"))
-                        + "`.",
-                        "",
-                        "| Model | Reasoning | Harness | Skills | Formal (%) | Optional (%) | Visual (%) | Kinematic (%) | Results |",
-                        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
-                    ]
-                )
             cells = [
                 _cell(entry.get("model")),
                 _cell(entry.get("reasoning_effort")),
                 _cell(entry.get("harness")),
                 _skills(entry),
+                _cell(entry.get("authoring_protocol")) + "<br>"
+                + _cell(profile.get("id")) + " " + _cell(profile.get("version"))
+                + "<br>Reference: " + _cell(entry.get("reference_revision")),
                 *(
                     _score(entry, name)
                     for name in ("formal", "optional", "visual", "kinematic")

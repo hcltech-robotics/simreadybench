@@ -108,7 +108,7 @@ def test_table_preserves_zero_unknown_inapplicability_and_full_factor_identity()
     before = deepcopy(authoritative)
     rendered = render_benchmark_card("# Results\n", authoritative)
     assert (
-        "| model/a | medium | pi | none | 0.00 | unknown | unknown | N/A |" in rendered
+        "| 0.00 | unknown | unknown | N/A |" in rendered
     )
     assert '<a href="' + item["results_url"] + '">Readout</a>' in rendered
     assert "[leaderboard.json](leaderboard.json)" in rendered
@@ -116,7 +116,7 @@ def test_table_preserves_zero_unknown_inapplicability_and_full_factor_identity()
     assert authoritative == before
 
 
-def test_protocol_groups_are_deterministic_without_ranking_by_score():
+def test_protocols_share_one_deterministic_table_without_collapsing_conditions():
     earlier = entry(model="model/z", authoring_protocol="authoring-32-native-output-v1")
     unknown = entry(model="model/b", reasoning_effort=None, authoring_protocol=None)
     normal = entry(model="model/a", skills=["authoring-tools"])
@@ -125,8 +125,18 @@ def test_protocol_groups_are_deterministic_without_ranking_by_score():
     assert a == b
     assert a.index("| model/z |") < a.index("| model/a |") < a.index("| model/b |")
     assert "| model/b | unknown | pi | none |" in a
-    assert "Protocol: `unknown`" in a
+    assert a.count('| Model | Reasoning | Harness | Skills | Protocol |') == 1
+    assert 'authoring-32-native-output-v1' in a
+    assert 'Reference: ' in a
     assert "| model/a | medium | pi | authoring-tools |" in a
+
+
+def test_partial_optional_results_show_bounds_and_coverage_in_unified_table():
+    value = entry()
+    value['optional'] = {'score': None, 'lower_bound': 47.8039, 'upper_bound': 47.8824,
+                         'coverage': 99.9215686, 'measured': 5096}
+    text = render_benchmark_card('# Results\n', board(value))
+    assert '47.80-47.88 bounds (99.922% measured)' in text
 
 
 def test_managed_table_replacement_preserves_surrounding_manual_content():
@@ -151,7 +161,7 @@ def test_display_values_are_inert_markdown_and_html():
     assert "<script>" not in rendered
     assert "&#124;" in rendered and "&lt;script&gt; next" in rendered
     row = next(line for line in rendered.splitlines() if "&lt;script&gt;" in line)
-    assert row.count("|") == 10
+    assert row.count("|") == 11
 
 
 @pytest.mark.parametrize("score", [True, -1, 101, float("nan"), float("inf"), "0"])
@@ -370,7 +380,7 @@ def test_optional_scores_have_their_own_interval_beside_formal_fidelity():
     )
     original = deepcopy(item)
     rendered = render_benchmark_card("# Results\n", board(item))
-    assert "| Formal (%) | Optional (%) | Visual (%) |" in rendered
+    assert "| Formal score | Optional score | Visual score |" in rendered
     assert "| 0.00 | 72.34 [68.12, 77.46] | unknown | N/A |" in rendered
     assert (
         "51 optional SimReady requirements separately from the 46 mandatory" in rendered

@@ -38,6 +38,7 @@ class HFPrice:
 HF_PRICING = MappingProxyType(
     {
         "Qwen/Qwen3.8-27B:deepinfra": HFPrice(262144, "0.20", "2.50"),
+        "Qwen/Qwen3.5-397B-A17B:deepinfra": HFPrice(262144, "0.45", "3.00"),
         "google/gemma-4-31B-it:novita": HFPrice(262144, "0.14", "0.40"),
         "meta-models/Muse-Glimmer-30B:deepinfra": HFPrice(131072, "0.30", "1.20"),
         "meta-models/Muse-Spark-Open-816B-A42B:baseten": HFPrice(1048576, "1.25", "4.25"),
@@ -74,6 +75,16 @@ def _deny(code):
     raise CostDenied(code)
 
 
+def _catalog_price(value):
+    """Remove binary JSON float artefacts while retaining exact decimal strings."""
+    if isinstance(value, bool):
+        raise ValueError('A boolean is not a token price')
+    price = Decimal(format(value, '.15g') if isinstance(value, float) else str(value))
+    if not price.is_finite() or price < 0:
+        raise ValueError('Token prices must be finite and non-negative')
+    return price
+
+
 def validate_catalog_route(catalog, model):
     """Reject missing/ambiguous routes, changed rates/capacity, or lost features."""
     if model not in HF_PRICING:
@@ -98,8 +109,8 @@ def validate_catalog_route(catalog, model):
             or set(pricing) != {"input", "output"}
             or isinstance(pricing["input"], bool)
             or isinstance(pricing["output"], bool)
-            or Decimal(str(pricing["input"])) != Decimal(expected.input_per_million_usd)
-            or Decimal(str(pricing["output"]))
+            or _catalog_price(pricing["input"]) != Decimal(expected.input_per_million_usd)
+            or _catalog_price(pricing["output"])
             != Decimal(expected.output_per_million_usd)
             or not {"image", "text"} <= set(row["architecture"]["input_modalities"])
             or row["architecture"]["output_modalities"] != ["text"]
