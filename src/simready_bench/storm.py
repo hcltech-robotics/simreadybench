@@ -102,6 +102,57 @@ def _GL_context():
     return (app, surface, context, fbo), proof
 
 
+def _visual_composition(original):
+    """Remove malformed joint attributes from independent rendering layers only."""
+    from pxr import Ar, Sdf, Usd, UsdPhysics, UsdUtils
+
+    omitted = {}
+    for prim in original.Traverse(Usd.TraverseInstanceProxies()):
+        if not prim.IsA(UsdPhysics.Joint):
+            continue
+        for name in ("physics:body0", "physics:body1"):
+            relationship = prim.GetRelationship(name)
+            for spec in relationship.GetPropertyStack() if relationship else []:
+                if isinstance(spec, Sdf.AttributeSpec):
+                    omitted.setdefault(spec.layer.identifier, set()).add(str(spec.path))
+    if not omitted:
+        return original, []
+    layers = list(original.GetUsedLayers())
+    copies = {layer.identifier: Sdf.Layer.CreateAnonymous("illustration.usda") for layer in layers}
+    identities = {
+        identity: copies[layer.identifier]
+        for layer in layers
+        for identity in (layer.identifier, layer.realPath)
+        if identity
+    }
+    records = []
+    for layer in layers:
+        copy = copies[layer.identifier]
+        copy.TransferContent(layer)
+        for path in sorted(omitted.get(layer.identifier, ())):
+            edit = Sdf.BatchNamespaceEdit()
+            edit.Add(path, Sdf.Path.emptyPath)
+            if not copy.Apply(edit):
+                raise ValueError("Cannot isolate malformed joint property for illustrations")
+            records.append({"property": path, "method": "omit malformed joint attribute from illustration copy"})
+
+        def asset_path(value):
+            anchored = Sdf.ComputeAssetPathRelativeToLayer(layer, value)
+            resolved = str(Ar.GetResolver().Resolve(anchored))
+            target = identities.get(anchored) or identities.get(resolved)
+            return target.identifier if target else anchored
+
+        UsdUtils.ModifyAssetPaths(copy, asset_path)
+    stage = Usd.Stage.Open(
+        copies[original.GetRootLayer().identifier],
+        copies[original.GetSessionLayer().identifier],
+        original.GetPathResolverContext(),
+    )
+    if not stage:
+        raise ValueError("Cannot compose independent illustration layers")
+    return stage, records
+
+
 def _stage(path, *, alignment=None):
     from pxr import Gf, Usd, UsdGeom, UsdLux
 
@@ -110,7 +161,12 @@ def _stage(path, *, alignment=None):
         raise ValueError("USD stage unavailable")
     # Work on an anonymous composed copy. Separate per-root references would
     # discard bindings/connections targeting a sibling root such as /Looks.
-    stage = Usd.Stage.Open(original.Flatten())
+    visual, omitted = _visual_composition(original)
+    stage = Usd.Stage.Open(visual.Flatten())
+    if omitted:
+        metadata = dict(stage.GetRootLayer().customLayerData)
+        metadata["illustration_omitted_joint_properties"] = [item["property"] for item in omitted]
+        stage.GetRootLayer().customLayerData = metadata
     roots = [p.GetPath() for p in stage.GetPseudoRoot().GetChildren()]
     if stage.GetPrimAtPath("/IllustrationAsset"):
         raise ValueError("Illustration staging namespace collision")
@@ -413,6 +469,9 @@ def render(request, output):
         support = material_support(materials, [str(x) for x in unresolved])
         support["approximations"] = approximations
         support["compatibility"] = compatibility
+        support["omitted_joint_properties"] = list(
+            stage.GetRootLayer().customLayerData.get("illustration_omitted_joint_properties", [])
+        )
         material_reports[role] = support
         warnings.extend(role + ": " + w for w in support["warnings"])
     reference, root = stages["reference"]

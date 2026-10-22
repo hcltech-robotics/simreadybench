@@ -5,6 +5,63 @@ import math
 import pytest
 
 
+@pytest.mark.parametrize("composition", ["sublayer", "reference"])
+@pytest.mark.parametrize("endpoint", ["body0", "body1"])
+def test_malformed_joint_attributes_are_omitted_only_from_rendering_layers(
+    tmp_path, composition, endpoint
+):
+    from pxr import Sdf, Usd, UsdGeom, UsdPhysics, UsdShade
+    from PIL import Image
+    from simready_bench.storm import _stage
+
+    layer_path, path = tmp_path / "body.usda", tmp_path / "asset.usda"
+    texture_path = tmp_path / "texture.png"
+    Image.new("RGB", (2, 2), "orange").save(texture_path)
+    layer = Usd.Stage.CreateNew(str(layer_path))
+    body = UsdGeom.Xform.Define(layer, "/Body")
+    cube = UsdGeom.Cube.Define(layer, "/Body/Cube")
+    cube.AddTranslateOp().Set((1, 2, 3))
+    joint = UsdPhysics.FixedJoint.Define(layer, "/Body/Fixed")
+    joint.GetPrim().CreateAttribute("physics:" + endpoint, Sdf.ValueTypeNames.String).Set("/Body")
+    material = UsdShade.Material.Define(layer, "/Body/Looks/Material")
+    shader = UsdShade.Shader.Define(layer, "/Body/Looks/Material/Shader")
+    shader.CreateIdAttr("UsdPreviewSurface")
+    texture = UsdShade.Shader.Define(layer, "/Body/Looks/Material/Texture")
+    texture.CreateIdAttr("UsdUVTexture")
+    texture.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath("texture.png"))
+    texture.CreateOutput("rgb", Sdf.ValueTypeNames.Float3)
+    shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).ConnectToSource(
+        texture.ConnectableAPI(), "rgb"
+    )
+    shader.CreateOutput("surface", Sdf.ValueTypeNames.Token)
+    material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+    UsdShade.MaterialBindingAPI.Apply(cube.GetPrim()).Bind(material)
+    layer.SetDefaultPrim(body.GetPrim())
+    layer.GetRootLayer().Save()
+    source = Usd.Stage.CreateNew(str(path))
+    if composition == "sublayer":
+        source.GetRootLayer().subLayerPaths = ["body.usda"]
+    else:
+        root = UsdGeom.Xform.Define(source, "/Body")
+        root.GetPrim().GetReferences().AddReference("body.usda")
+    source.GetRootLayer().Save()
+    before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in (path, layer_path, texture_path)}
+    rendered, _ = _stage(path)
+    mesh = rendered.GetPrimAtPath("/IllustrationAsset/Body/Cube")
+    assert mesh and mesh.IsA(UsdGeom.Cube)
+    assert mesh.GetAttribute("xformOp:translate").Get() == (1, 2, 3)
+    material = UsdShade.MaterialBindingAPI(mesh).ComputeBoundMaterial()[0]
+    assert material and material.ComputeSurfaceSource()[0].GetIdAttr().Get() == "UsdPreviewSurface"
+    texture = UsdShade.Shader.Get(rendered, "/IllustrationAsset/Body/Looks/Material/Texture")
+    assert texture.GetInput("file").Get().resolvedPath == str(texture_path)
+    joint = rendered.GetPrimAtPath("/IllustrationAsset/Body/Fixed")
+    assert joint and joint.IsA(UsdPhysics.FixedJoint)
+    assert not joint.GetRelationship("physics:" + endpoint).GetPropertyStack()
+    assert not joint.GetAttribute("physics:" + endpoint).GetPropertyStack()
+    assert rendered.GetRootLayer().customLayerData["illustration_omitted_joint_properties"] == ["/Body/Fixed.physics:" + endpoint]
+    assert {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in before} == before
+
+
 @pytest.mark.parametrize(
     "variant", ["identity", "defaults", "scale", "rotation", "translation", "connected"]
 )
