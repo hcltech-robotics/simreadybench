@@ -377,16 +377,21 @@ def _signature(rows):
     )
 
 
-def _authoring_signature(rows, *, optional_recovery=False):
+def _authoring_signature(rows, *, optional_recovery=False, formal_recovery=False):
     """Bind every published authoring value while allowing evaluation repair."""
     values = json.loads(_signature(rows))
     for row in values:
+        if formal_recovery:
+            row['simready'] = {'optional_score': row['simready'].get('optional_score')}
         if optional_recovery:
             row["simready"].pop("optional_score", None)
         for key in list(row):
             if key in {"fidelity", "illustrations", "images"} or key.startswith(
                 ("fidelity_", "visual_", "kinematic_")
-            ) or (optional_recovery and key.startswith("optional_")):
+            ) or (optional_recovery and key.startswith("optional_")) or (
+                formal_recovery and (key.startswith(('formal_', 'mandatory_'))
+                                     or key in {'simready_reward', 'completion_bonus', 'official_conformance_passed', 'nvidia_findings', 'status'})
+            ):
                 del row[key]
     return json.dumps(values, sort_keys=True, allow_nan=False)
 
@@ -407,17 +412,67 @@ def _evaluation_recovery(previous, current, request, revision):
         isinstance(stage, dict) and stage.get('operation') == 'optional_validation'
         for stage in request.get('stages', [])
     )
-    if _authoring_signature(previous, optional_recovery=optional_recovery) != _authoring_signature(current, optional_recovery=optional_recovery):
+    formal_recovery = any(isinstance(stage, dict) and stage.get('operation') == 'formal_validation'
+                          for stage in request.get('stages', []))
+    if formal_recovery:
+        old_rows = {row['condition_id']: row for row in previous}
+        for row in current:
+            old = old_rows.get(row['condition_id'], {})
+            prior = mandatory_report_metadata(old.get('simready') or {})
+            replacement = mandatory_report_metadata(row.get('simready') or {})
+            prior.pop('optional_score', None)
+            replacement.pop('optional_score', None)
+            if prior.get('score_percent') is not None and prior != replacement:
+                raise ValueError('Formal validation recovery cannot replace measured mandatory results')
+            if old.get('status') != row.get('status'):
+                audit = old.get('actor_stop_audit') or {}
+                state = audit.get('state') or {}
+                stopped = audit.get('actor_stopped') is True or (
+                    bool(audit.get('container_id'))
+                    and type(audit.get('kill_return_code')) is int and audit['kill_return_code'] == 0
+                    and state.get('Running') is False and state.get('Status') == 'exited'
+                    and state.get('OOMKilled') is False and state.get('Error') == ''
+                )
+                if not (
+                    old.get('status') == 'infrastructure_error' and row.get('status') == 'completed'
+                    and stopped
+                    and old.get('termination_reason') in {'inference_budget_exhausted', 'agent_completed', 'submitted'}
+                    and old.get('actor_stop_audit') == row.get('actor_stop_audit')
+                    and old.get('actor_stop_receipt') == row.get('actor_stop_receipt')
+                    and row.get('candidate', {}).get('status') == 'available'
+                    and type(replacement.get('score_percent')) in (int, float)
+                ):
+                    raise ValueError('Formal validation recovery requires preserved terminal authoring evidence')
+    signature_options = {'optional_recovery': optional_recovery, 'formal_recovery': formal_recovery}
+    if _authoring_signature(previous, **signature_options) != _authoring_signature(current, **signature_options):
         raise ValueError("Evaluation recovery cannot change authoring, formal scores, candidates, traces or usage")
     receipt = {key: deepcopy(request[key]) for key in (
         "schema", "previous_revision", "source_commit", "source_tree_sha256", "reason", "condition_ids",
     )}
+    if formal_recovery:
+        receipt['formal_validation'] = [
+            {
+                'condition_id': row['condition_id'],
+                'previous_score': (old_rows[row['condition_id']].get('simready') or {}).get('score_percent'),
+                'replacement_score': (row.get('simready') or {}).get('score_percent'),
+                'previous_status': old_rows[row['condition_id']].get('status'),
+                'replacement_status': row.get('status'),
+                'terminal_evidence_sha256': hashlib.sha256(json.dumps({
+                    key: old_rows[row['condition_id']].get(key)
+                    for key in ('actor_stop_audit', 'actor_stop_receipt', 'termination_reason')
+                }, sort_keys=True, allow_nan=False).encode()).hexdigest(),
+            }
+            for row in current
+            if old_rows[row['condition_id']].get('status') != row.get('status')
+            or (old_rows[row['condition_id']].get('simready') or {}).get('score_percent')
+            != (row.get('simready') or {}).get('score_percent')
+        ]
     if 'stages' in request:
         stages = request['stages']
         if not isinstance(stages, list) or not 1 <= len(stages) <= 8 or any(
             not isinstance(stage, dict)
             or set(stage) != {'operation', 'source_commit', 'source_tree_sha256'}
-            or stage['operation'] not in {'cpu_fidelity', 'captures', 'optional_validation'}
+            or stage['operation'] not in {'cpu_fidelity', 'captures', 'optional_validation', 'formal_validation'}
             or not re.fullmatch(r'[a-f0-9]{40}', str(stage['source_commit']))
             or not re.fullmatch(r'[a-f0-9]{64}', str(stage['source_tree_sha256']))
             for stage in stages
@@ -427,7 +482,7 @@ def _evaluation_recovery(previous, current, request, revision):
     receipt.update(
         previous_measurements_sha256=hashlib.sha256(_signature(previous).encode()).hexdigest(),
         replacement_measurements_sha256=hashlib.sha256(_signature(current).encode()).hexdigest(),
-        authoring_sha256=hashlib.sha256(_authoring_signature(current, optional_recovery=optional_recovery).encode()).hexdigest(),
+        authoring_sha256=hashlib.sha256(_authoring_signature(current, **signature_options).encode()).hexdigest(),
         authoring_unchanged=True,
     )
     return receipt

@@ -80,6 +80,39 @@ def test_optional_repair_requires_explicit_stage_and_preserves_mandatory_result(
         _evaluation_recovery(previous, current, request, 'head-1')
 
 
+@pytest.mark.parametrize('damage', [None, 'measured_score', 'unstopped_actor', 'candidate', 'docker_audit', 'oom', 'running'])
+def test_formal_replay_requires_terminal_authoring_and_preserves_existing_scores(publication, damage):
+    manifest, report, hub, row, save = publication
+    publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
+    publisher(save([row()]))
+    current = json.loads(hub.files['runs/run-a/results.json'])['results']
+    current[0].update(actor_stop_audit={'actor_stopped': True},
+                      termination_reason='inference_budget_exhausted')
+    previous = deepcopy(current)
+    previous[0]['status'] = 'infrastructure_error'
+    previous[0]['simready']['score_percent'] = None
+    request = _request(row(), 'head-1')
+    request['stages'] = [{'operation': 'formal_validation', 'source_commit': 'a' * 40,
+                          'source_tree_sha256': 'b' * 64}]
+    if damage == 'measured_score':
+        previous[0]['simready']['score_percent'] = 50
+    elif damage == 'unstopped_actor':
+        previous[0]['actor_stop_audit']['actor_stopped'] = False
+    elif damage == 'candidate':
+        current[0]['candidate']['files'][0]['sha256'] = 'c' * 64
+    elif damage in {'docker_audit', 'oom', 'running'}:
+        audit = {'container_id': 'container-1', 'kill_return_code': 0,
+                 'state': {'Running': damage == 'running', 'Status': 'exited',
+                           'OOMKilled': damage == 'oom', 'Error': ''}}
+        previous[0]['actor_stop_audit'] = deepcopy(audit)
+        current[0]['actor_stop_audit'] = deepcopy(audit)
+    if damage and damage != 'docker_audit':
+        with pytest.raises(ValueError):
+            _evaluation_recovery(previous, current, request, 'head-1')
+    else:
+        assert _evaluation_recovery(previous, current, request, 'head-1')['authoring_unchanged']
+
+
 @pytest.mark.parametrize('field', ['candidate', 'traces', 'simready', 'input_tokens', 'reasoning_effort'])
 def test_repair_cannot_change_any_authoring_evidence(publication, field):
     manifest, report, hub, row, save = publication

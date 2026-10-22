@@ -496,7 +496,9 @@ def test_invalid_submission_is_published_and_does_not_block_later_reconstruction
     assert invalid["candidate"]["status"] == "unavailable"
     assert invalid["images"] == [] and invalid["traces"] == []
     assert invalid["nvidia_validator_report_file"] is None
-    assert invalid["optional_score"]["unknown_count"] == 51
+    assert invalid["optional_score"]["unknown_count"] == 0
+    assert invalid["optional_score"]["failed_count"] == 51
+    assert invalid["optional_score"]["score_percent"] == 0
 
 
 def test_scored_submission_without_available_captures_still_publishes(publication):
