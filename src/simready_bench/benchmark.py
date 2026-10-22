@@ -757,7 +757,7 @@ def publish_report(work_dir, output_dir, *, results):
     return report
 
 
-def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=None, workers=1):
+def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=None, workers=1, _inputs_prepared=False):
     """Acquire references, run the Harbor matrix and export scores and captures."""
     from simready_bench.config import resolve_experiment, validate_policy
     from simready_bench.preparation import write_json
@@ -771,7 +771,7 @@ def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=No
         if work_dir
         else Path("/dev/shm") / ("srb-" + uuid4().hex[:10])
     )
-    if manifest.get("source"):
+    if not _inputs_prepared and manifest.get("source"):
         try:
             import_source(
                 manifest["source"], base_dir=output, assets_root=policy["roots"]["assets"]
@@ -779,7 +779,8 @@ def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=No
         except Exception as error:
             error._simready_source_acquisition_failure = True
             raise
-    prepare_source_views(manifest, policy, output)
+    if not _inputs_prepared:
+        prepare_source_views(manifest, policy, output)
     (output / "experiment.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
@@ -1002,6 +1003,7 @@ def execute_local_sequential(
     work_dir=None,
     on_progress=None,
     on_asset_start=None,
+    _inputs_prepared=False,
 ):
     """Evaluate each reference, export its artefacts and release temporary data."""
     output = _absolute(output_dir)
@@ -1069,6 +1071,8 @@ def execute_local_sequential(
             progress_options = (
                 {"on_progress": on_progress} if on_progress is not None else {}
             )
+            if _inputs_prepared:
+                progress_options["_inputs_prepared"] = True
             value = execute_local(
                 experiment,
                 policy=policy,
@@ -1228,7 +1232,7 @@ def freeze_execution_spec(output, manifest, policy, *, wheel=None, runtime_image
 
 
 def execute_local_reported(
-    manifest, *, policy, output_dir, work_dir=None, on_report=None, workers=1
+    manifest, *, policy, output_dir, work_dir=None, on_report=None, workers=1, _inputs_prepared=False
 ):
     """Export and announce each reconstruction while the local run continues."""
     from simready_bench.controller_runner import ControllerReporter
@@ -1259,6 +1263,8 @@ def execute_local_reported(
 
     execute = execute_local_sequential if len(manifest["assets"]) > 1 and workers == 1 else execute_local
     options = {"on_progress": progress}
+    if _inputs_prepared:
+        options["_inputs_prepared"] = True
     if workers != 1:
         options["workers"] = workers
     if execute is execute_local_sequential:
@@ -1511,10 +1517,7 @@ def benchmark(
         max_output_tokens=max_output_tokens,
         maximum_attempts=maximum_attempts if original is None else 1,
     )
-    if deploy == "local" and any(
-        not asset.get("source_view") and not asset.get("input_views")
-        for asset in experiment["assets"]
-    ):
+    if deploy == "local":
         if experiment.get("source"):
             from simready_bench.sources import import_source
 
@@ -1524,6 +1527,10 @@ def benchmark(
                 assets_root=effective_policy["roots"]["assets"],
             )
         prepare_source_views(experiment, effective_policy, output)
+        freeze_execution_spec(
+            output, experiment, effective_policy,
+            wheel=wheel, runtime_images=images,
+        )
     (output / "experiment.json").write_text(
         json.dumps(experiment, indent=2) + "\n", encoding="utf-8"
     )
@@ -1574,6 +1581,7 @@ def benchmark(
                 output_dir=output,
                 work_dir=work_dir,
                 on_report=on_report,
+                _inputs_prepared=True,
                 **({"workers": workers} if workers != 1 else {}),
             )
     except Exception:

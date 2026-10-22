@@ -207,6 +207,8 @@ def test_fresh_failure_enters_saved_recovery_without_new_authority(
 
     monkeypatch.setattr(workflow, "prepare_policy", policy)
     monkeypatch.setattr(workflow, "prepare_source_views", lambda *args: None)
+    from simready_bench import sources
+    monkeypatch.setattr(sources, "import_source", lambda *args, **kwargs: None)
     monkeypatch.setattr(workflow, "publication_callback", lambda *args, **kwargs: None)
     monkeypatch.setattr(workflow, "execute_local_reported", execute)
     monkeypatch.setattr(daytona, "run_daytona", execute)
