@@ -377,14 +377,16 @@ def _signature(rows):
     )
 
 
-def _authoring_signature(rows):
+def _authoring_signature(rows, *, optional_recovery=False):
     """Bind every published authoring value while allowing evaluation repair."""
     values = json.loads(_signature(rows))
     for row in values:
+        if optional_recovery:
+            row["simready"].pop("optional_score", None)
         for key in list(row):
             if key in {"fidelity", "illustrations", "images"} or key.startswith(
                 ("fidelity_", "visual_", "kinematic_")
-            ):
+            ) or (optional_recovery and key.startswith("optional_")):
                 del row[key]
     return json.dumps(values, sort_keys=True, allow_nan=False)
 
@@ -401,7 +403,11 @@ def _evaluation_recovery(previous, current, request, revision):
         or set(request.get("condition_ids", [])) != {row["condition_id"] for row in previous}
     ):
         raise ValueError("Explicit evaluation recovery requires its pinned revision, source and conditions")
-    if _authoring_signature(previous) != _authoring_signature(current):
+    optional_recovery = any(
+        isinstance(stage, dict) and stage.get('operation') == 'optional_validation'
+        for stage in request.get('stages', [])
+    )
+    if _authoring_signature(previous, optional_recovery=optional_recovery) != _authoring_signature(current, optional_recovery=optional_recovery):
         raise ValueError("Evaluation recovery cannot change authoring, formal scores, candidates, traces or usage")
     receipt = {key: deepcopy(request[key]) for key in (
         "schema", "previous_revision", "source_commit", "source_tree_sha256", "reason", "condition_ids",
@@ -411,7 +417,7 @@ def _evaluation_recovery(previous, current, request, revision):
         if not isinstance(stages, list) or not 1 <= len(stages) <= 8 or any(
             not isinstance(stage, dict)
             or set(stage) != {'operation', 'source_commit', 'source_tree_sha256'}
-            or stage['operation'] not in {'cpu_fidelity', 'captures'}
+            or stage['operation'] not in {'cpu_fidelity', 'captures', 'optional_validation'}
             or not re.fullmatch(r'[a-f0-9]{40}', str(stage['source_commit']))
             or not re.fullmatch(r'[a-f0-9]{64}', str(stage['source_tree_sha256']))
             for stage in stages
@@ -421,7 +427,7 @@ def _evaluation_recovery(previous, current, request, revision):
     receipt.update(
         previous_measurements_sha256=hashlib.sha256(_signature(previous).encode()).hexdigest(),
         replacement_measurements_sha256=hashlib.sha256(_signature(current).encode()).hexdigest(),
-        authoring_sha256=hashlib.sha256(_authoring_signature(current).encode()).hexdigest(),
+        authoring_sha256=hashlib.sha256(_authoring_signature(current, optional_recovery=optional_recovery).encode()).hexdigest(),
         authoring_unchanged=True,
     )
     return receipt

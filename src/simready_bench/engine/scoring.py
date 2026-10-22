@@ -77,6 +77,7 @@ def score_optional_validation(nvidia, *, candidate_invalid=False):
     statuses = {row["code"]: "unknown" for row in roster}
     reason = None
     if candidate_invalid:
+        statuses = {code: "invalid" for code in statuses}
         reason = "invalid_candidate_package"
     elif not isinstance(nvidia, dict):
         reason = "validator_unavailable"
@@ -170,7 +171,7 @@ def score_optional_validation(nvidia, *, candidate_invalid=False):
                 reason = "invalid_optional_requirement_execution"
     count = len(roster)
     passed = sum(status == "pass" for status in statuses.values())
-    failed = sum(status == "fail" for status in statuses.values())
+    failed = sum(status in ("fail", "invalid") for status in statuses.values())
     unknown = count - passed - failed
     return {
         "schema": "simready-validator-optional-score-v1",
@@ -221,14 +222,14 @@ def validate_optional_score(score):
             row.get("requirement_id") != requirement["code"]
             or row.get("requirement_version") != requirement["version"]
             or row.get("mandatory") is not False
-            or row.get("status") not in ("pass", "fail", "unknown")
+            or row.get("status") not in ("pass", "fail", "unknown", "invalid")
             for row, requirement in zip(rows, roster)
         )
     ):
         raise ValueError("Exact pinned optional requirement outcomes are required")
     count = len(roster)
     passed = sum(row["status"] == "pass" for row in rows)
-    failed = sum(row["status"] == "fail" for row in rows)
+    failed = sum(row["status"] in ("fail", "invalid") for row in rows)
     unknown = count - passed - failed
     counts = {
         "passed_count": passed,
@@ -244,7 +245,10 @@ def validate_optional_score(score):
     ):
         raise ValueError("Optional requirement accounting is inconsistent")
     expected_status = "unknown" if unknown else "scored"
-    if score.get("status") == "invalid_candidate" and unknown == count:
+    invalid = sum(row["status"] == "invalid" for row in rows)
+    if invalid and (invalid != count or score.get("status") != "invalid_candidate"):
+        raise ValueError("Invalid optional outcomes require a wholly invalid candidate")
+    if score.get("status") == "invalid_candidate" and (unknown == count or invalid == count):
         expected_status = "invalid_candidate"
     if (
         score.get("schema") != "simready-validator-optional-score-v1"

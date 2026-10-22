@@ -146,17 +146,24 @@ def test_optional_rule_source_drift_does_not_change_the_mandatory_grade():
     )
 
 
-def test_missing_and_invalid_candidates_do_not_fabricate_optional_assessments():
-    for invalid in (False, True):
-        optional = score_optional_validation(None, candidate_invalid=invalid)
-        assert optional["score_percent"] is None
-        assert (
-            optional["measured_count"]
-            == optional["passed_count"]
-            == optional["failed_count"]
-            == 0
-        )
-        assert optional["unknown_count"] == optional["applicable_count"] == 51
+def test_unavailable_validator_retains_unknown_optional_assessments():
+    optional = score_optional_validation(None)
+    assert optional["score_percent"] is None
+    assert optional["measured_count"] == optional["passed_count"] == optional["failed_count"] == 0
+    assert optional["unknown_count"] == optional["applicable_count"] == 51
+
+
+def test_invalid_candidate_has_zero_optional_credit_like_mandatory_scoring():
+    result = score_validation(None, scoring_policy(), candidate_invalid=True)
+    optional = result["optional_score"]
+    assert optional["score_percent"] == result["score_percent"] == 0
+    assert optional["failed_count"] == optional["measured_count"] == 51
+    assert optional["passed_count"] == optional["unknown_count"] == 0
+    assert optional["coverage_fraction"] == 1
+    assert optional["lower_bound_percent"] == optional["upper_bound_percent"] == 0
+    assert optional["status"] == 'invalid_candidate'
+    assert {row['status'] for row in optional['checks']} == {'invalid'}
+    assert validate_optional_score(optional) is optional
 
 
 @pytest.mark.parametrize("change", ["duplicate", "version", "bucket_calls"])

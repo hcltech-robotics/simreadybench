@@ -60,6 +60,26 @@ def test_repair_does_not_backfill_new_alignment_into_previous_unknown_fidelity(p
     assert public['evaluation_recoveries'][0]['authoring_unchanged'] is True
 
 
+def test_optional_repair_requires_explicit_stage_and_preserves_mandatory_result(publication):
+    manifest, report, hub, row, save = publication
+    publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
+    publisher(save([row()]))
+    previous = json.loads(hub.files['runs/run-a/results.json'])['results']
+    current = deepcopy(previous)
+    current[0]['optional_score_percent'] = 0
+    current[0]['optional_score'] = {'score_percent': 0}
+    current[0]['simready']['optional_score'] = {'score_percent': 0}
+    request = _request(row(), 'head-1')
+    with pytest.raises(ValueError, match='cannot change authoring'):
+        _evaluation_recovery(previous, current, request, 'head-1')
+    request['stages'] = [{'operation': 'optional_validation', 'source_commit': 'a' * 40,
+                          'source_tree_sha256': 'b' * 64}]
+    assert _evaluation_recovery(previous, current, request, 'head-1')['authoring_unchanged']
+    current[0]['simready']['score_percent'] = 0
+    with pytest.raises(ValueError, match='cannot change authoring'):
+        _evaluation_recovery(previous, current, request, 'head-1')
+
+
 @pytest.mark.parametrize('field', ['candidate', 'traces', 'simready', 'input_tokens', 'reasoning_effort'])
 def test_repair_cannot_change_any_authoring_evidence(publication, field):
     manifest, report, hub, row, save = publication
