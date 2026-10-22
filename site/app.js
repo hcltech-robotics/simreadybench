@@ -29,7 +29,14 @@ function countLabel(value) {
 
 function metricCell(metric = {}) {
   const inapplicable = metric.status === "not_applicable";
-  const cell = textCell(isScore(metric.score) ? metric.score.toFixed(2) : inapplicable ? "N/A" : "Not measured", "metric-value");
+  const bounded = !isScore(metric.score) && !inapplicable
+    && isScore(metric.lower_bound) && isScore(metric.upper_bound)
+    && metric.lower_bound <= metric.upper_bound
+    && Number.isFinite(metric.measured) && metric.measured > 0;
+  const label = isScore(metric.score) ? metric.score.toFixed(2) : inapplicable ? "N/A"
+    : bounded ? `${metric.lower_bound.toFixed(2)} to ${metric.upper_bound.toFixed(2)}` : "Not measured";
+  const cell = textCell(label, "metric-value");
+  if (bounded) metricDetail(cell, "Score bounds with unmeasured criteria");
   const interval = metric.confidence_interval;
   if (isScore(metric.score) && interval?.level === 0.95
       && isScore(interval.lower) && isScore(interval.upper) && interval.lower <= interval.upper) {
@@ -46,7 +53,8 @@ function metricCell(metric = {}) {
   if (Number.isFinite(metric.measured) && Number.isFinite(metric.eligible)) {
     metricDetail(cell, `${countLabel(metric.measured)}/${countLabel(metric.eligible)} measured`);
   }
-  metricDetail(cell, isScore(metric.coverage) ? `${metric.coverage.toFixed(1)}% mean reference coverage` : "Reference coverage not measured");
+  const coverageDigits = isScore(metric.coverage) && metric.coverage > 99.9 && metric.coverage < 100 ? 3 : 1;
+  metricDetail(cell, isScore(metric.coverage) ? `${metric.coverage.toFixed(coverageDigits)}% mean reference coverage` : "Reference coverage not measured");
   if (Number.isInteger(metric.eligible_attempts) && Number.isInteger(metric.measured_attempts)) {
     metricDetail(cell, `${metric.measured_attempts}/${metric.eligible_attempts} eligible reconstructions scored`);
   }
