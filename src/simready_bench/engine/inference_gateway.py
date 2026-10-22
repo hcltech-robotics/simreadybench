@@ -63,6 +63,7 @@ class GatewayConfig:
     model_spec: dict | None = field(default=None, repr=False)
     strip_native_output_fields: bool = False
     hf_router_relay: dict | None = field(default=None, repr=False)
+    shared_route_throttle: dict | None = field(default=None, repr=False)
 
     def __post_init__(self):
         if self.hf_router_relay is not None:
@@ -1161,6 +1162,7 @@ class InferenceGateway:
                         "maximum_request_bytes": min(
                             self.config.max_request_bytes, 64 * 1024**2
                         ),
+                        "shared_route_throttle": self.config.shared_route_throttle,
                     },
                     directory=directory,
                 )

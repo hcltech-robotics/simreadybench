@@ -1024,8 +1024,6 @@ def _resume_once(
     from simready_bench.runtime_images import load_images
 
     validate_workers(workers)
-    if deploy != "daytona" and workers != 1:
-        raise ValueError("Parallel workers require Daytona deployment")
     output = Path(os.path.abspath(output_dir))
     original = _read(output / "experiment.json")
     if continue_on_length and not original.get('authoring_protocol', '').endswith('-continue-length-v1'):
@@ -1305,6 +1303,7 @@ def _resume_once(
             policy=resumed_policy,
             output_dir=batch,
             work_dir=work_dir,
+            **({"workers": workers} if workers != 1 else {}),
             **publication_options,
         )
     except Exception as caught:

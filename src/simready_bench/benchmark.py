@@ -757,7 +757,7 @@ def publish_report(work_dir, output_dir, *, results):
     return report
 
 
-def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=None):
+def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=None, workers=1):
     """Acquire references, run the Harbor matrix and export scores and captures."""
     from simready_bench.config import resolve_experiment, validate_policy
     from simready_bench.preparation import write_json
@@ -805,6 +805,8 @@ def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=No
         progress_options = (
             {"on_progress": on_progress} if on_progress is not None else {}
         )
+        if workers != 1:
+            progress_options["workers"] = workers
         result = runner.run(resolved, work_dir=work, policy=trusted, **progress_options)
     except Exception as error:
         result = getattr(error, "result", None)
@@ -1226,7 +1228,7 @@ def freeze_execution_spec(output, manifest, policy, *, wheel=None, runtime_image
 
 
 def execute_local_reported(
-    manifest, *, policy, output_dir, work_dir=None, on_report=None
+    manifest, *, policy, output_dir, work_dir=None, on_report=None, workers=1
 ):
     """Export and announce each reconstruction while the local run continues."""
     from simready_bench.controller_runner import ControllerReporter
@@ -1255,8 +1257,10 @@ def execute_local_reported(
                     flush=True,
                 )
 
-    execute = execute_local_sequential if len(manifest["assets"]) > 1 else execute_local
+    execute = execute_local_sequential if len(manifest["assets"]) > 1 and workers == 1 else execute_local
     options = {"on_progress": progress}
+    if workers != 1:
+        options["workers"] = workers
     if execute is execute_local_sequential:
         options["on_asset_start"] = reporter.asset_started
     try:
@@ -1325,8 +1329,6 @@ def benchmark(
     if not dispatch_pending and not resume:
         raise ValueError("Collecting existing executors requires resume")
     validate_workers(workers)
-    if deploy == "local" and workers > 1:
-        raise ValueError("Parallel workers require Daytona deployment")
     if resume:
         from simready_bench.resume import resume_benchmark
 
@@ -1572,6 +1574,7 @@ def benchmark(
                 output_dir=output,
                 work_dir=work_dir,
                 on_report=on_report,
+                **({"workers": workers} if workers != 1 else {}),
             )
     except Exception:
         if not max_retries:

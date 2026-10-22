@@ -62,7 +62,7 @@ def main(argv=None):
         type=_positive_integer,
         default=1,
         metavar="N",
-        help="Positive number of simultaneous Daytona workers within your allocation",
+        help="Positive number of simultaneous local or Daytona workers within your allocation",
     )
     command.add_argument(
         "--reasoning", choices=("off", "low", "medium", "high", "xhigh", "max")

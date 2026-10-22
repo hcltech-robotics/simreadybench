@@ -1,5 +1,6 @@
 import asyncio
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
+from dataclasses import replace
 from datetime import datetime, timezone
 from email.utils import format_datetime
 import http.server
@@ -614,8 +615,9 @@ def test_gateway_owns_retry_headers_and_retains_attempt_metadata(tmp_path):
     asyncio.run(run())
 
 
+@pytest.mark.parametrize("shared", [False, True])
 def test_local_https_gateway_reuses_backoff_and_single_spend_reservation(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, shared
 ):
     from simready_bench import provider_relay
     from simready_bench.engine import request_cost
@@ -664,6 +666,8 @@ def test_local_https_gateway_reuses_backoff_and_single_spend_reservation(
     async def run():
         _, controller = actor_and_controller(tmp_path, 4)
         cfg = configuration("https://api.openai.com", 4)
+        if throttle is not None:
+            cfg = replace(cfg, shared_route_throttle=throttle)
         gateway = CompletedHandlerGateway(controller, cfg)
         token = gateway.issue_episode_token("episode")
         async with serve(gateway.runner()) as local, aiohttp.ClientSession() as client:
@@ -702,4 +706,15 @@ def test_local_https_gateway_reuses_backoff_and_single_spend_reservation(
         async with serve(restored.runner()):
             assert states[-1].requests == 2
 
-    asyncio.run(run())
+    with ExitStack() as stack:
+        throttle = None
+        if shared:
+            from simready_bench.route_throttle import RouteThrottleServer
+
+            broker = stack.enter_context(RouteThrottleServer(tmp_path / "shared.sqlite3", "private-test-throttle-token", route_keys=["a" * 64]))
+            throttle = {"url": broker.url, "token": "private-test-throttle-token", "route_key": "a" * 64}
+        asyncio.run(run())
+        if shared:
+            assert states[0].shared_route_throttle.route_key == throttle["route_key"]
+            with sqlite3.connect(tmp_path / "shared.sqlite3") as db:
+                assert db.execute("SELECT count(*) FROM leases").fetchone()[0] == 0

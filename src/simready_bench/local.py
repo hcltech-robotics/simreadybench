@@ -364,7 +364,7 @@ def _provider_authorities(resolved):
                 )
 
 
-def _gateway(condition, resolved, *, allocation_id=None):
+def _gateway(condition, resolved, *, allocation_id=None, shared_route_throttle=None):
     from simready_bench.engine.inference_gateway import GatewayConfig, ProjectBudget
 
     model = condition["model"]
@@ -387,6 +387,8 @@ def _gateway(condition, resolved, *, allocation_id=None):
         transport["model_spec"] = provider["model_spec"]
     if provider.get("hf_router_relay") is not None:
         transport["hf_router_relay"] = provider["hf_router_relay"]
+    if shared_route_throttle is not None:
+        transport["shared_route_throttle"] = shared_route_throttle
     keyref = provider.get("api_key_env")
     key = os.environ.get(keyref, "") if keyref else ""
     projectref = provider.get("project_id_env")
@@ -710,7 +712,7 @@ def _retain_failed_submission(result, root, controller, bridge, submission):
         )
 
 
-async def _condition(condition, prepared, resolved, root, controller):
+async def _condition(condition, prepared, resolved, root, controller, *, shared_route_throttle=None):
     from harbor.job import Job
     from harbor.models.job.config import JobConfig
     from harbor.models.task.config import TaskConfig
@@ -781,7 +783,7 @@ async def _condition(condition, prepared, resolved, root, controller):
     )
     services = native_services_class()(
         bridge,
-        _gateway(condition, resolved, allocation_id=allocation_id),
+        _gateway(condition, resolved, allocation_id=allocation_id, shared_route_throttle=shared_route_throttle),
         task_inputs=[
             ReferenceTaskInput(
                 task,
@@ -806,10 +808,12 @@ async def _condition(condition, prepared, resolved, root, controller):
 
     async def guard():
         while True:
-            if shutil.disk_usage("/").free < 5 * 1024**3:
+            root_low = shutil.disk_usage("/").free < 5 * 1024**3
+            work_low = shutil.disk_usage(root).free < 1024**3
+            if root_low or work_low:
                 for eid in list(bridge._episodes):
                     await bridge.request_stop(eid, "infrastructure_disk_guard")
-                raise RuntimeError("Five-GiB root reserve crossed")
+                raise RuntimeError("Five-GiB root reserve crossed" if root_low else "One-GiB work storage reserve crossed")
             for episode_id, environment in list(bridge._episodes.items()):
                 verifier = services.verifiers.get(episode_id)
                 if verifier is not None and (
@@ -1033,7 +1037,113 @@ def _write_progress(root, resolved, results, allowance):
     return record
 
 
-async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None):
+_worker_stop = None
+
+
+def _initialise_condition_worker(stop):
+    global _worker_stop
+    _worker_stop = stop
+
+
+def _condition_process(condition, prepared, resolved, root, controller_root, throttle):
+    """Keep Harbor's native bridge hooks within one condition process."""
+    async def execute():
+        if _worker_stop is not None and _worker_stop.is_set():
+            raise RuntimeError("The local coordinator stopped before condition execution")
+        controller = bounded_controller_class()(controller_root)
+        options = {"shared_route_throttle": throttle} if throttle is not None else {}
+        task = asyncio.create_task(_condition(condition, prepared, resolved, root, controller, **options))
+
+        async def watch_stop():
+            while True:
+                if _worker_stop is not None and _worker_stop.is_set():
+                    task.cancel()
+                    return
+                await asyncio.sleep(0.25)
+
+        watcher = asyncio.create_task(watch_stop())
+        try:
+            return await task
+        finally:
+            watcher.cancel()
+            await asyncio.gather(watcher, return_exceptions=True)
+
+    return asyncio.run(execute())
+
+
+async def _condition_results(resolved, prepared, root, controller, ledger, workers, throttles):
+    """Admit at most one condition per worker and retain each completed outcome."""
+    conditions = iter(enumerate(resolved["conditions"]))
+
+    def admit(index, condition):
+        if shutil.disk_usage(root).free < 1024**3:
+            raise RuntimeError("At least 1 GiB of free work storage is required before admitting another condition")
+        admission = ledger.reserve(condition["condition_id"], condition["settings"]["budgets"]["maximum_spend_usd"])
+        if admission["status"] == "completed":
+            return admission["result"]
+        if admission["status"] != "new":
+            raise RuntimeError("Previously admitted incomplete condition requires operator investigation; no automatic paid retry")
+        return None
+
+    if workers == 1:
+        for index, condition in conditions:
+            result = admit(index, condition)
+            cached = result is not None
+            if result is None:
+                throttle = throttles.get((condition["model"]["provider_ref"], condition["model"]["model_id"]))
+                options = {"shared_route_throttle": throttle} if throttle is not None else {}
+                try:
+                    result = await _condition(condition, prepared[condition["condition_id"]], resolved, root / ("c" + str(index)), controller, **options)
+                except Exception as exc:
+                    result = _condition_failure(condition, root / ("c" + str(index)), exc)
+            yield index, condition, result, cached
+        return
+
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    context = multiprocessing.get_context("spawn")
+    stop = context.Event()
+    pool = ProcessPoolExecutor(max_workers=min(workers, len(resolved["conditions"])), mp_context=context, initializer=_initialise_condition_worker, initargs=(stop,))
+    loop = asyncio.get_running_loop()
+    pending = {}
+
+    def submit_one():
+        try:
+            index, condition = next(conditions)
+        except StopIteration:
+            return
+        result = admit(index, condition)
+        if result is None:
+            future = loop.run_in_executor(pool, _condition_process, condition, prepared[condition["condition_id"]], resolved, root / ("c" + str(index)), root / "controller", throttles.get((condition["model"]["provider_ref"], condition["model"]["model_id"])))
+        else:
+            future = loop.create_future()
+            future.set_result(result)
+        pending[future] = index, condition, result is not None
+
+    try:
+        for _ in range(min(workers, len(resolved["conditions"]))):
+            submit_one()
+        while pending:
+            done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for future in sorted(done, key=lambda item: pending[item][0]):
+                index, condition, cached = pending.pop(future)
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    result = _condition_failure(condition, root / ("c" + str(index)), exc)
+                yield index, condition, result, cached
+                submit_one()
+    finally:
+        stop.set()
+        for future in pending:
+            future.cancel()
+        # Child cancellation runs the native actor stop and service cleanup
+        # before the route throttle or work tree can be released.
+        await asyncio.to_thread(pool.shutdown, wait=True, cancel_futures=True)
+
+
+async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None, workers=1):
     resolved = checked_resolved(resolved, policy)
     runtime_policy(resolved, execute=True)
     _provider_authorities(resolved)
@@ -1106,35 +1216,22 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None)
         )
         controller = bounded_controller_class()(root / "controller")
         results = []
-        for index, c in enumerate(resolved["conditions"]):
-            admission = ledger.reserve(
-                c["condition_id"], c["settings"]["budgets"]["maximum_spend_usd"]
-            )
-            if admission["status"] == "completed":
-                results.append(admission["result"])
-                continue
-            if admission["status"] != "new":
-                raise RuntimeError(
-                    "Previously admitted incomplete condition requires operator investigation; no automatic paid retry"
-                )
-            trialroot = root / ("c" + str(index))
+        from simready_bench.local_route_throttle import local_route_throttles
+
+        with local_route_throttles(resolved) as throttles:
+            outcomes = _condition_results(resolved, prepared, root, controller, ledger, workers, throttles)
             try:
-                result = await _condition(
-                    c, prepared[c["condition_id"]], resolved, trialroot, controller
-                )
-            except Exception as exc:
-                result = _condition_failure(c, trialroot, exc)
-                ledger.complete(c["condition_id"], result)
-                results.append(result)
-                progress = _write_progress(root, resolved, results, ledger.records())
-                if on_progress is not None:
-                    on_progress(root, progress)
-                continue
-            ledger.complete(c["condition_id"], result)
-            results.append(result)
-            progress = _write_progress(root, resolved, results, ledger.records())
-            if on_progress is not None:
-                on_progress(root, progress)
+                order = {condition["condition_id"]: index for index, condition in enumerate(resolved["conditions"])}
+                async for index, c, result, cached in outcomes:
+                    if not cached:
+                        ledger.complete(c["condition_id"], result)
+                    results.append(result)
+                    results.sort(key=lambda item: order[item["condition_id"]])
+                    progress = _write_progress(root, resolved, results, ledger.records())
+                    if on_progress is not None:
+                        on_progress(root, progress)
+            finally:
+                await outcomes.aclose()
         summary = {
             "schema": "simready-bench-matrix-result-v1",
             "configuration_sha256": resolved["configuration_sha256"],
@@ -1349,7 +1446,9 @@ def _retire_unrun_local(resolved, result, ownership):
         )
 
 
-def run(resolved, *, work_dir, policy, on_progress=None):
+def run(resolved, *, work_dir, policy, on_progress=None, workers=1):
+    from simready_bench.parallel import validate_workers
+    validate_workers(workers)
     ownership = {}
     try:
         result = asyncio.run(
@@ -1359,6 +1458,7 @@ def run(resolved, *, work_dir, policy, on_progress=None):
                 policy=policy,
                 on_progress=on_progress,
                 _ownership=ownership,
+                workers=workers,
             )
         )
     except BaseException as exc:
