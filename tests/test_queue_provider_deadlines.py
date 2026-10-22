@@ -73,7 +73,8 @@ def test_exhausted_queue_never_admits_or_calls_provider(tmp_path):
         assert state.requests == state.calls == 0
 
 
-def test_gateway_does_not_spend_provider_timeout_waiting_for_relay_permit(tmp_path, monkeypatch):
+@pytest.mark.parametrize("trusted_relay", [True, False])
+def test_gateway_trusts_relay_timing_only_for_bound_relay_transport(tmp_path, monkeypatch, trusted_relay):
     async def counter(config, payload, **bounds):
         return request_cost.InputTokenEvidence(
             config.model, 10, request_cost.sha(payload),
@@ -96,10 +97,11 @@ def test_gateway_does_not_spend_provider_timeout_waiting_for_relay_permit(tmp_pa
         app.router.add_post("/v1/responses", upstream)
         async with serve(app) as origin:
             _, controller = actor_and_controller(tmp_path, 2)
-            cfg = replace(configuration(origin, 2), request_timeout_seconds=0.1,
+            cfg = replace(configuration(origin, 2), request_timeout_seconds=0.1 if trusted_relay else 1,
                           queue_wait_timeout_seconds=1)
             gateway = CompletedHandlerGateway(controller, cfg)
-            gateway._provider_relay_marker = "fixture-relay-marker"
+            if trusted_relay:
+                gateway._provider_relay_marker = "fixture-relay-marker"
             token = gateway.issue_episode_token("episode")
             async with serve(gateway.runner()) as local, aiohttp.ClientSession() as client:
                 async with client.post(local + "/v1/responses",
@@ -109,10 +111,14 @@ def test_gateway_does_not_spend_provider_timeout_waiting_for_relay_permit(tmp_pa
                     await response.read()
                 await asyncio.wait_for(gateway.handler_finished.get(), 2)
             (record,) = gateway.records("episode")
-            assert record["queue_wait_seconds"] == 0.2
-            assert 0.05 <= record["provider_request_seconds"] < 0.15
+            if trusted_relay:
+                assert record["queue_wait_seconds"] == 0.2
+                assert 0.05 <= record["provider_request_seconds"] < 0.15
+            else:
+                assert record["queue_wait_seconds"] == 0
+                assert record["provider_request_seconds"] >= 0.25
             assert record["elapsed_seconds"] >= 0.25
-            assert observed[0]["X-SimReady-Provider-Timeout"] == "0.1"
+            assert float(observed[0]["X-SimReady-Provider-Timeout"]) == cfg.request_timeout_seconds
             assert observed[0]["X-SimReady-Queue-Timeout"] == "1"
             assert float(observed[0]["X-SimReady-Deadline"]) <= controller.get_episode("episode").deadline_at
     asyncio.run(run())

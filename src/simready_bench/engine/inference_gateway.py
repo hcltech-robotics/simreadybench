@@ -1472,7 +1472,7 @@ class InferenceGateway:
                         ),
                     ) as upstream:
                         record["observed_upstream_status"] = upstream.status
-                        if private_transport:
+                        if queued_transport:
                             for header, field in (
                                 ("X-SimReady-Queue-Wait-Seconds", "queue_wait_seconds"),
                                 ("X-SimReady-Provider-Elapsed-Seconds", "provider_request_seconds"),
