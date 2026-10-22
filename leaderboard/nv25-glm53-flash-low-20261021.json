@@ -489,5 +489,10 @@
       }
     }
   },
-  "schema": "simreadybench-leaderboard-snapshot/v1"
+  "schema": "simreadybench-leaderboard-snapshot/v1",
+  "source": {
+    "dataset": "hcltech-robotics/simreadybench",
+    "leaderboard_path": "leaderboard.json",
+    "revision": "dd48ce4bb201a6bfd5b30250937203b7682652b4"
+  }
 }
