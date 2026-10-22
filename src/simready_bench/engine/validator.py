@@ -326,9 +326,9 @@ def requirement_outcomes(requirements, buckets, issues):
             for issue in issues
             if issue["rule_id"] is None and issue["rule"] == rule
         ]
-        if any(issue["severity"] == "error" for issue in related + unscoped):
+        if any(issue["severity"] == "error" for issue in unscoped):
             disposition = "infrastructure_error"
-        elif any(issue["severity"] == "failure" for issue in related):
+        elif any(issue["severity"] in ("error", "failure") for issue in related):
             disposition = "failed"
         elif any(issue["severity"] == "failure" for issue in unscoped):
             disposition = "unscoped_failure"
@@ -610,7 +610,9 @@ def validate_asset(asset_path, report_path=None) -> dict:
                     ]
                     report["infos"] = [i for i in all_issues if i["severity"] == "info"]
                     for issue in all_issues:
-                        if issue["severity"] == "error":
+                        # The pinned SDK attaches a requirement to asset errors.
+                        # Its execution-exception handlers emit unscoped errors.
+                        if issue["severity"] == "error" and issue["rule_id"] is None:
                             report["infrastructure_errors"].append(
                                 {
                                     "code": "validator_rule_execution_error",
