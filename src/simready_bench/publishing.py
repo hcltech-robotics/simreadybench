@@ -1003,18 +1003,23 @@ def render_viewer_card(existing, index):
     return "---\n" + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False) + "---\n" + body
 
 
+def validate_publication_ids(repo_id, run_id):
+    """Validate publication identifiers before acquiring benchmark inputs."""
+    if (
+        not isinstance(repo_id, str)
+        or len(repo_id.split("/")) != 2
+        or not all(_NAME.fullmatch(part) for part in repo_id.split("/"))
+    ):
+        raise ValueError("Use a Hugging Face dataset ID in owner/name form")
+    if not isinstance(run_id, str) or not _NAME.fullmatch(run_id):
+        raise ValueError("Use a run identifier of 1 to 96 letters, digits, dots, underscores or hyphens, starting with a letter or digit")
+
+
 class HuggingFacePublisher:
     """Publish one model, harness and skill configuration as results complete."""
 
     def __init__(self, repo_id, run_id, manifest, *, api=None):
-        if (
-            not isinstance(repo_id, str)
-            or len(repo_id.split("/")) != 2
-            or not all(_NAME.fullmatch(part) for part in repo_id.split("/"))
-        ):
-            raise ValueError("Use a Hugging Face dataset ID in owner/name form")
-        if not isinstance(run_id, str) or not _NAME.fullmatch(run_id):
-            raise ValueError("Use a simple run identifier")
+        validate_publication_ids(repo_id, run_id)
         self.repo_id, self.run_id = repo_id, run_id
         self.manifest = deepcopy(manifest)
         self._api, self._private = api, None

@@ -1344,6 +1344,10 @@ def benchmark(
     if not dispatch_pending and not resume:
         raise ValueError("Collecting existing executors requires resume")
     validate_workers(workers)
+    if hf_repo:
+        from simready_bench.publishing import validate_publication_ids
+
+        validate_publication_ids(hf_repo, hf_run or _absolute(output_dir).name)
     if resume:
         from simready_bench.resume import resume_benchmark
 
