@@ -892,7 +892,8 @@ def render_html(summary):
                             part.get("score_percent"),
                             _fraction(part.get("earned"), part.get("eligible")),
                             _fraction(part.get("measured"), part.get("eligible")),
-                            100 * part.get("coverage_fraction", 0),
+                            100 * part['coverage_fraction']
+                            if part.get('coverage_fraction') is not None else None,
                         ]
                         for name, part in kinematic["groups"].items()
                     ],

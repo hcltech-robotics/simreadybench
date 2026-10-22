@@ -83,6 +83,17 @@ def test_table_shows_partial_credit_and_eligible_counts_for_every_component():
     assert "Material correspondence" in text
 
 
+def test_unknown_kinematic_coverage_renders_without_inventing_zero_coverage():
+    row = condition()
+    unknown = {'status': 'unknown', 'score_percent': None, 'earned': None,
+               'eligible': None, 'measured': None, 'coverage_fraction': None}
+    row['fidelity']['components']['kinematics'] = {
+        **unknown, 'groups': {'moving_joints': dict(unknown)}, 'joints': []}
+    text = render_html({'results': [row]})
+    assert 'Kinematic correspondence' in text
+    assert 'Not measured' in text
+
+
 def test_no_eligible_joints_is_na_while_zero_of_eligible_checks_is_zero():
     row = condition()
     joints = row["fidelity"]["components"]["joints"]
