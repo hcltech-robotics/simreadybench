@@ -521,6 +521,62 @@ def _controller_images(task, runtime):
     return images
 
 
+class LocalRuntimePreflightError(RuntimeError):
+    """The local Docker runtime cannot execute the declared matrix."""
+
+
+def _redacted_runtime_diagnostic(value):
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    text = str(value or "")
+    for name, secret in os.environ.items():
+        if len(secret) >= 4 and re.search(r"TOKEN|KEY|SECRET|PASSWORD", name, re.I):
+            text = text.replace(secret, "[redacted]")
+    text = re.sub(r"(https?://)[^\s/@]+:[^\s/@]+@", r"\1[redacted]@", text)
+    text = re.sub(r"(?i)Bearer\s+[^\s]+", "Bearer [redacted]", text)
+    return text[:4096]
+
+
+def preflight_runtime_images(runtime, root):
+    """Check declared Docker images once, before reserving condition authority."""
+    runtime = runtime or {}
+    profile = runtime.get("shared_profile", {})
+    images = {}
+    for role, image in (
+        ("actor", profile.get("actor_image")),
+        ("verifier", profile.get("verifier_image")),
+        ("fidelity", runtime.get("fidelity_image")),
+        ("illustration", runtime.get("illustration_image")),
+    ):
+        if image:
+            images.setdefault(image, []).append(role)
+    if not images:
+        return
+    directory = Path(root) / "private"
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    diagnostic = directory / "runtime-preflight.json"
+    checks = []
+    for image, roles in images.items():
+        command = ["docker", "image", "inspect", "--format", "{{.Id}}", image]
+        check = {"roles": roles, "image": image, "command": command}
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+            check.update(returncode=result.returncode, available=result.returncode == 0,
+                         stdout=_redacted_runtime_diagnostic(result.stdout),
+                         stderr=_redacted_runtime_diagnostic(result.stderr))
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            check.update(returncode=None, available=False, error_type=type(exc).__name__,
+                         stderr=_redacted_runtime_diagnostic(getattr(exc, "stderr", None) or str(exc)))
+        checks.append(check)
+    write_json(diagnostic, {"schema": "simready-bench-local-runtime-preflight-v1", "checks": checks})
+    unavailable = [role for check in checks if not check["available"] for role in check["roles"]]
+    if unavailable:
+        raise LocalRuntimePreflightError(
+            "Local Docker runtime images are unavailable for " + ", ".join(unavailable)
+            + ". Command, exit status and redacted output are retained in " + str(diagnostic)
+        )
+
+
 def _native_failure(job_result, *, normal_stop=False):
     """Keep provider and harness failures distinct from configured actor limits."""
     trials = getattr(job_result, "trial_results", None) or []
@@ -1145,7 +1201,7 @@ async def _condition_results(resolved, prepared, root, controller, ledger, worke
 
 async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None, workers=1):
     resolved = checked_resolved(resolved, policy)
-    runtime_policy(resolved, execute=True)
+    runtime = runtime_policy(resolved, execute=True)
     _provider_authorities(resolved)
     root = confined_work_dir(work_dir, fresh=True, ram_only=True)
     root.mkdir(mode=448, parents=True)
@@ -1153,6 +1209,7 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None,
         _ownership["work_root"] = str(root)
     if len(str(root)) + 65 > 106:
         raise ValueError("Short RAM work directory required for private Unix sockets")
+    preflight_runtime_images(runtime, root)
     authorized = [
         c
         for c in resolved["conditions"]
@@ -1326,6 +1383,8 @@ def _blocked_result(resolved, work_dir, exc):
                 "seed": condition.get("seed"),
             }
         )
+        if old is None and isinstance(exc, LocalRuntimePreflightError):
+            rows[-1].update(error_code="local_runtime_image_unavailable", error_message=str(exc))
     return {
         "schema": "simready-bench-matrix-result-v1",
         "configuration_sha256": resolved["configuration_sha256"],
