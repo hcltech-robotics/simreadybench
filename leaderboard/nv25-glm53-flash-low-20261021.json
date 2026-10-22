@@ -373,20 +373,28 @@
     "max_output_tokens": 4096,
     "model": "zai-org/GLM-5.3-Flash:baseten",
     "optional": {
-      "confidence_interval": null,
-      "coverage": 90.0,
+      "confidence_interval": {
+        "asset_count": 25,
+        "level": 0.95,
+        "lower": 57.509803921568626,
+        "method": "asset_cluster_bootstrap_percentile",
+        "resamples": 10000,
+        "seed": 20261020,
+        "upper": 67.09803921568627
+      },
+      "coverage": 100.0,
       "eligible": 5100,
       "eligible_assets": 25,
-      "failed": 1388,
+      "failed": 1898,
       "lower_bound": 62.78431372549019,
-      "measured": 4590,
-      "measured_attempts": 90,
+      "measured": 5100,
+      "measured_attempts": 100,
       "passed": 3202,
       "reported_attempts": 100,
-      "score": null,
-      "unknown": 510,
-      "unknown_attempts": 10,
-      "upper_bound": 72.7843137254902
+      "score": 62.78431372549019,
+      "unknown": 0,
+      "unknown_attempts": 0,
+      "upper_bound": 62.78431372549019
     },
     "output_limit": "bounded",
     "profile": {
@@ -509,6 +517,6 @@
   "source": {
     "dataset": "hcltech-robotics/simreadybench",
     "leaderboard_path": "leaderboard.json",
-    "revision": "be2ff11f5c5b599c7c63a6a511471a978ee25739"
+    "revision": "41d1c0d6b36c573641d67ef0986facdcf5cac339"
   }
 }
