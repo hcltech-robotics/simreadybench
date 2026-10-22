@@ -7,6 +7,12 @@ from pathlib import Path
 VIEWS = ("isometric", "front", "side", "top")
 
 
+def check_renderer_log(log):
+    """A PNG and zero exit code do not establish successful shader rendering."""
+    if re.search(r'Failed to compile shader|shader compilation failed|shader program link failed', log, re.IGNORECASE):
+        raise RuntimeError('Storm shader compilation failed; original renderer log retained privately')
+
+
 def validate_settings(value):
     if type(value) is not dict or set(value) - {
         "renderer",
@@ -218,6 +224,7 @@ def _render_final(condition, cfg, runtime, snapshot, root, *, alignment=None):
             argv, capture_output=True, text=True, timeout=settings["seconds"]
         )
         (output / "renderer.log").write_text(result.stdout + result.stderr)
+        check_renderer_log(result.stdout + result.stderr)
         if result.returncode:
             raise RuntimeError(
                 "CPU illustration process failed; original renderer log retained privately"

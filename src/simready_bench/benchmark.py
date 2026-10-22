@@ -935,12 +935,15 @@ def _aggregate_reports(
                 row.setdefault("report_path", "report.html")
             rows.append(row)
     completed = sum(row.get("status") == "completed" for row in rows)
+    from simready_bench.completion import completion_summary
+    measurement_summary = completion_summary(rows, planned_conditions)
     summary = {
         "schema": "simready-bench-portable-report-v1",
         "planned_conditions": planned_conditions,
         "attempted_conditions": len(rows),
         "completed_conditions": completed,
-        "partial": completed < planned_conditions,
+        "partial": not measurement_summary['benchmark_complete'],
+        **measurement_summary,
         "scoring_notice": scoring_notice,
         "results": rows,
     }

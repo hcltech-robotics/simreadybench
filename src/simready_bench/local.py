@@ -1039,6 +1039,13 @@ async def _condition(condition, prepared, resolved, root, controller, *, shared_
                 bridge._controlled_receipts[episode_id]
             )
         complete_trial_result(result, native_result, normal_stop=normal_stop)
+        from simready_bench.completion import evaluation_completion
+        result['evaluation_completion'] = evaluation_completion(
+            result,
+            fidelity_enabled=condition['settings'].get('fidelity', {}).get('enabled', True),
+            captures_enabled=condition['settings'].get('illustrations', {}).get('renderer', 'none') != 'none',
+            views=condition['settings'].get('illustrations', {}).get('views', ['isometric', 'front', 'side']),
+        )
         write_json(root / "result.json", result)
         return result
     except BaseException as exc:
@@ -1076,6 +1083,7 @@ async def _condition(condition, prepared, resolved, root, controller, *, shared_
 
 
 def _write_progress(root, resolved, results, allowance):
+    from simready_bench.completion import completion_summary
     record = {
         "schema": "simready-bench-matrix-result-v1",
         "configuration_sha256": resolved["configuration_sha256"],
@@ -1085,6 +1093,7 @@ def _write_progress(root, resolved, results, allowance):
         "results": results,
         "allowance_ledger": allowance,
         "partial": True,
+        **completion_summary(results, len(resolved['conditions'])),
     }
     temporary = root / "progress.json.tmp"
     with temporary.open("w") as stream:
@@ -1334,6 +1343,9 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None,
                 (r.get("official_reward") is None for r in results)
             ),
         }
+        from simready_bench.completion import completion_summary
+        summary.update(completion_summary(results, len(resolved['conditions'])))
+        summary['partial'] = not summary['benchmark_complete']
         write_json(root / "results.json", summary)
         return summary
     finally:
