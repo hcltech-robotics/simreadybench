@@ -833,6 +833,7 @@ class InferenceGateway:
                 "response_format",
                 "reasoning_effort",
                 "thinking",
+                "chat_template_kwargs",
                 "max_tokens"
                 if self.config.hf_router_relay is not None
                 or self.config.upstream_base_url == "https://router.huggingface.co/v1"
@@ -855,6 +856,18 @@ class InferenceGateway:
                 or set(thinking) - {"type", "clear_thinking"}
                 or thinking.get("type") not in ("enabled", "disabled")
                 or ("clear_thinking" in thinking and type(thinking["clear_thinking"]) is not bool)
+            ):
+                raise GatewayDenied(400, "invalid_thinking_setting")
+        if "chat_template_kwargs" in data:
+            thinking = data["chat_template_kwargs"]
+            if (
+                not isinstance(thinking, dict)
+                or set(thinking) - {"enable_thinking", "preserve_thinking"}
+                or type(thinking.get("enable_thinking")) is not bool
+                or (
+                    "preserve_thinking" in thinking
+                    and type(thinking["preserve_thinking"]) is not bool
+                )
             ):
                 raise GatewayDenied(400, "invalid_thinking_setting")
         affinity = data.get("prompt_cache_key")
