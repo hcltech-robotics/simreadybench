@@ -45,6 +45,21 @@ def test_explicit_repair_updates_fidelity_and_is_idempotent(publication):
     assert len(json.loads(hub.files['runs/run-a/results.json'])['evaluation_recoveries']) == 1
 
 
+def test_repair_does_not_backfill_new_alignment_into_previous_unknown_fidelity(publication):
+    from test_publication_metadata import with_comparison
+
+    manifest, report, hub, row, save = publication
+    original = row()
+    original['fidelity'] = {'status': 'unknown'}
+    publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
+    publisher(save([original]))
+    changed = with_comparison(row())
+    publisher(save([changed]), evaluation_recovery=_request(changed, 'head-1'))
+    public = json.loads(hub.files['runs/run-a/results.json'])
+    assert public['results'][0]['fidelity']['alignment'] == changed['fidelity']['alignment']
+    assert public['evaluation_recoveries'][0]['authoring_unchanged'] is True
+
+
 @pytest.mark.parametrize('field', ['candidate', 'traces', 'simready', 'input_tokens', 'reasoning_effort'])
 def test_repair_cannot_change_any_authoring_evidence(publication, field):
     manifest, report, hub, row, save = publication

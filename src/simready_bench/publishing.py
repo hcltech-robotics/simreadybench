@@ -323,7 +323,11 @@ def _enrich_previous_metadata(previous, current):
         row = deepcopy(original)
         prior_rig = _comparison_metadata(row)
         next_rig = _comparison_metadata(current[row["condition_id"]])
-        if prior_rig is None and next_rig is not None:
+        if (
+            prior_rig is None and next_rig is not None
+            and (row.get("fidelity") or {}).get("alignment")
+            == (current[row["condition_id"]].get("fidelity") or {}).get("alignment")
+        ):
             row["illustrations"] = next_rig
         if "reasoning_effort" not in row and "reasoning_effort" in current[row["condition_id"]]:
             row["reasoning_effort"] = current[row["condition_id"]]["reasoning_effort"]
@@ -1250,7 +1254,7 @@ class HuggingFacePublisher:
                     "settings": self.settings,
                     "results": [_stage_row(row, source, run_stage) for row in rows],
                 }
-                if self.manifest.get('defaults', {}).get('fidelity', {}).get('enabled') is True:
+                if self.manifest.get('defaults', {}).get('fidelity', {}).get('enabled', True):
                     from simready_bench.completion import evaluation_completion, completion_summary
                     capture_settings = self.manifest.get('defaults', {}).get('illustrations', {})
                     for row in public['results']:
