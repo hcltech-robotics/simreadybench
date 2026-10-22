@@ -131,20 +131,23 @@ async def exercise(
                 except aiohttp.ClientPayloadError as error:
                     response_error = type(error).__name__
             await asyncio.wait_for(gateway.handler_finished.get(), 2)
-            # A failed transport must retain its sole admission. It cannot
-            # silently replay or make a second call available.
-            async with client.post(
-                local + route,
-                json=payload,
-                headers={"Authorization": "Bearer " + token},
-            ) as response:
-                assert response.status == 429
-                await response.read()
-            await asyncio.wait_for(gateway.handler_finished.get(), 2)
+            from simready_bench.engine.controller import inference_failed
+
+            (first,) = gateway.records("episode")
+            failed = inference_failed(first)
+            if not failed:
+                async with client.post(
+                    local + route,
+                    json=payload,
+                    headers={"Authorization": "Bearer " + token},
+                ) as response:
+                    assert response.status == 429
+                    await response.read()
+                await asyncio.wait_for(gateway.handler_finished.get(), 2)
         (record,) = gateway.records("episode")
         assert len(calls) == 1
         assert calls[0] == payload
-        assert controller.get_episode("episode").inference_calls_used == 1
+        assert controller.get_episode("episode").inference_calls_used == (0 if failed else 1)
         assert record["upstream_attempts"] == record["upstream_condition_requests"] == 1
         return record, received, response_error
 

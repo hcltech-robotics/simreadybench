@@ -30,7 +30,9 @@ COMPLETION_REASONS = frozenset(
     {
         "submitted",
         "inference_budget_exhausted",
+        "inference_attempt_budget_exhausted",
         "project_request_budget_exhausted",
+        "project_attempt_budget_exhausted",
         "project_spend_budget_exhausted",
         "walltime_exhausted",
     }

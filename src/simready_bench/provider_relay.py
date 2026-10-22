@@ -24,6 +24,10 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise ValueError("Model provider redirects are not allowed")
 
 
+class RelayAllowanceError(ValueError):
+    """A relay authority limit refused an upstream attempt."""
+
+
 RETRYABLE_STATUS = {429, 502, 503, 504}
 PROBE_BYTES = 64 * 1024
 
@@ -132,6 +136,77 @@ def _retry_after(value, now):
     return max(0.0, delay) if math.isfinite(delay) else 0.0
 
 
+def _rate_limit_reset(value):
+    """Read exhausted quota reset delays from HF's RateLimit header."""
+    delays = []
+    for quota in (value or "").split(","):
+        remaining = re.search(r"(?:^|;)\s*r\s*=\s*(\d{1,12})\s*(?:;|$)", quota)
+        reset = re.search(r"(?:^|;)\s*t\s*=\s*(\d{1,12})\s*(?:;|$)", quota)
+        if remaining and reset and int(remaining.group(1)) == 0:
+            delays.append(float(reset.group(1)))
+    return max(delays, default=0.0)
+
+
+class _ResponseOutcome:
+    """Inspect bounded response frames without changing forwarded bytes."""
+
+    def __init__(self, content_type, route="/responses"):
+        self.streaming = "text/event-stream" in content_type
+        self.chat = route == "/chat/completions"
+        self.buffer = b""
+        self.failed = False
+        self.oversized = False
+        self.terminal = False
+
+    def feed(self, chunk):
+        self.buffer += chunk
+        if self.streaming:
+            self.buffer = self.buffer.replace(b"\r\n", b"\n")
+            while b"\n\n" in self.buffer:
+                frame, self.buffer = self.buffer.split(b"\n\n", 1)
+                if not self.oversized:
+                    self.inspect(b"\n".join(
+                        line[5:].lstrip() for line in frame.split(b"\n")
+                        if line.startswith(b"data:")
+                    ))
+                self.oversized = False
+        if len(self.buffer) > PROBE_BYTES:
+            self.buffer = self.buffer[-1:] if self.streaming else b""
+            self.oversized = True
+
+    def inspect(self, raw):
+        try:
+            value = json.loads(raw)
+        except (ValueError, UnicodeError):
+            return
+        if not isinstance(value, dict):
+            return
+        candidates = [value]
+        if isinstance(value.get("response"), dict):
+            candidates.append(value["response"])
+        for item in candidates:
+            status = item.get("status")
+            self.failed |= item.get("error") is not None or item.get("type") in (
+                "error", "response.failed", "response.cancelled"
+            ) or status in ("failed", "cancelled")
+            if not self.chat:
+                self.terminal |= status in ("completed", "incomplete", "failed", "cancelled")
+            choices = item.get("choices")
+            if isinstance(choices, list):
+                for choice in choices[:64]:
+                    if not isinstance(choice, dict):
+                        continue
+                    reason = choice.get("finish_reason")
+                    if self.chat and isinstance(reason, str) and reason:
+                        self.terminal = True
+                    self.failed |= reason in ("error", "failed", "cancelled")
+
+    def finish(self):
+        if not self.streaming and not self.oversized:
+            self.inspect(self.buffer)
+        return self.failed or (self.streaming and not self.terminal)
+
+
 class RelayState:
     def __init__(
         self, config, *, directory, opener=None, now=None, sleep=None, jitter=None
@@ -185,6 +260,19 @@ class RelayState:
         ):
             raise ValueError("Bounded provider retry settings required")
         self.project_id = config.get("project_id")
+        self.shared_route_throttle = None
+        throttle_config = config.get("shared_route_throttle")
+        if throttle_config is not None:
+            if (
+                not isinstance(throttle_config, dict)
+                or set(throttle_config) - {"url", "token", "route_key", "preview_token"}
+                or not {"url", "token", "route_key"} <= set(throttle_config)
+                or any(not isinstance(value, str) or not value for value in throttle_config.values())
+            ):
+                raise ValueError("A fixed shared route throttle configuration is required")
+            from simready_bench.route_throttle import RouteThrottleClient
+
+            self.shared_route_throttle = RouteThrottleClient(**throttle_config)
         self.directory = Path(directory)
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.opener = opener or urllib.request.build_opener(NoRedirect())
@@ -200,6 +288,9 @@ class RelayState:
         self.scope_requests = {}
         self.scope_counters = {}
         self.scope_limits = {}
+        self.calls = 0
+        self.scope_calls = {}
+        self.maximum_transport_requests = self.maximum_requests * self.maximum_attempts
         ledger = self.directory / "ledger.json"
         if ledger.exists():
             if (
@@ -222,6 +313,8 @@ class RelayState:
                     "maximum_condition_requests", self.maximum_condition_requests
                 )
                 != self.maximum_condition_requests
+                or previous.get("maximum_transport_requests", self.maximum_transport_requests)
+                != self.maximum_transport_requests
             ):
                 raise ValueError("The existing relay allowance cannot change")
             self.requests = previous["generation_requests"]
@@ -232,7 +325,7 @@ class RelayState:
             self.scope_limits = previous.get("condition_limits", {})
             if (
                 type(self.requests) is not int
-                or not 0 <= self.requests <= self.maximum_requests
+                or not 0 <= self.requests <= self.maximum_transport_requests
                 or type(self.counters) is not int
                 or not 0 <= self.counters <= 4 * self.maximum_requests
             ):
@@ -255,7 +348,7 @@ class RelayState:
                 ):
                     raise ValueError("The existing condition allowance is invalid")
             for counts, multiplier in (
-                (self.scope_requests, 1),
+                (self.scope_requests, self.maximum_attempts),
                 (self.scope_counters, 4),
             ):
                 if any(
@@ -270,6 +363,23 @@ class RelayState:
                 or sum(self.scope_counters.values()) > self.counters
             ):
                 raise ValueError("The existing relay counters are inconsistent")
+            # Older ledgers counted attempts as calls. Preserve their authority
+            # conservatively rather than refunding historical, ambiguous outcomes.
+            self.calls = previous.get("model_calls", self.requests)
+            self.scope_calls = previous.get("condition_model_calls", dict(self.scope_requests))
+            if (
+                type(self.calls) is not int
+                or not 0 <= self.calls <= self.maximum_requests
+                or not isinstance(self.scope_calls, dict)
+                or any(
+                    scope not in self.scope_limits
+                    or type(count) is not int
+                    or not 0 <= count <= self.scope_limits[scope]
+                    for scope, count in self.scope_calls.items()
+                )
+                or sum(self.scope_calls.values()) > self.calls
+            ):
+                raise ValueError("The existing model call counters are invalid")
         self.save()
 
     def save(self):
@@ -284,6 +394,10 @@ class RelayState:
             "condition_generation_requests": self.scope_requests,
             "condition_input_counter_requests": self.scope_counters,
             "condition_limits": self.scope_limits,
+            "model_calls": self.calls,
+            "condition_model_calls": self.scope_calls,
+            "maximum_transport_requests": self.maximum_transport_requests,
+            "accounting_version": 2,
         }
         temporary = self.directory / "ledger.tmp"
         temporary.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
@@ -293,39 +407,48 @@ class RelayState:
     def admit(self, route, *, scope=None, limit=None, deadline=None):
         with self.lock:
             if self.now() >= min(self.expires_at, deadline or self.expires_at):
-                raise ValueError("Model authority has expired")
+                raise RelayAllowanceError("Model authority has expired")
             counter = route == "/responses/input_tokens"
             if (counter and self.counters >= 4 * self.maximum_requests) or (
-                not counter and self.requests >= self.maximum_requests
+                not counter and self.calls >= self.maximum_requests
             ):
-                raise ValueError("Model request allowance is exhausted")
+                raise RelayAllowanceError("Model request allowance is exhausted")
+            if not counter and self.requests >= self.maximum_transport_requests:
+                raise RelayAllowanceError("Model transport attempt allowance is exhausted")
             if scope is not None:
                 if self.requests != sum(self.scope_requests.values()):
-                    raise ValueError(
+                    raise RelayAllowanceError(
                         "Existing unscoped requests require their original relay protocol"
                     )
                 if not isinstance(scope, str) or not re.fullmatch(
                     r"[A-Za-z0-9._-]{1,160}", scope
                 ):
-                    raise ValueError("A literal condition allowance is required")
+                    raise RelayAllowanceError("A literal condition allowance is required")
                 if (
                     type(limit) is not int
                     or not 1 <= limit <= self.maximum_condition_requests
                 ):
-                    raise ValueError(
+                    raise RelayAllowanceError(
                         "A bounded condition request allowance is required"
                     )
                 if scope in self.scope_limits and self.scope_limits[scope] != limit:
-                    raise ValueError("A condition request allowance cannot change")
+                    raise RelayAllowanceError("A condition request allowance cannot change")
                 self.scope_limits[scope] = limit
                 counts = self.scope_counters if counter else self.scope_requests
-                if counts.get(scope, 0) >= (4 * limit if counter else limit):
-                    raise ValueError("Condition request allowance is exhausted")
+                if (counter and counts.get(scope, 0) >= 4 * limit) or (
+                    not counter and self.scope_calls.get(scope, 0) >= limit
+                ):
+                    raise RelayAllowanceError("Condition request allowance is exhausted")
+                if not counter and counts.get(scope, 0) >= limit * self.maximum_attempts:
+                    raise RelayAllowanceError("Condition transport attempt allowance is exhausted")
                 counts[scope] = counts.get(scope, 0) + 1
             if counter:
                 self.counters += 1
             else:
                 self.requests += 1
+                self.calls += 1
+                if scope is not None:
+                    self.scope_calls[scope] = self.scope_calls.get(scope, 0) + 1
             ordinal = self.counters if counter else self.requests
             request_limit = 4 * self.maximum_requests if counter else self.maximum_requests
             event = {
@@ -335,6 +458,7 @@ class RelayState:
                 "request_kind": "input_token_count" if counter else "generation",
                 "request_ordinal": ordinal,
                 "request_limit": request_limit,
+                "model_call_reserved": not counter,
             }
             if scope is not None:
                 event["condition_scope"] = scope
@@ -346,6 +470,12 @@ class RelayState:
 
     def finish(self, event, status, **fields):
         with self.lock:
+            if status != "completed" and event.get("model_call_reserved"):
+                self.calls -= 1
+                scope = event.get("condition_scope")
+                if scope is not None:
+                    self.scope_calls[scope] -= 1
+                event["model_call_reserved"] = False
             event.update(status=status, finished_at=self.now(), **fields)
             self.save()
 
@@ -357,8 +487,10 @@ class RelayState:
                     and self.scope_counters.get(scope, 0) < 4 * limit
                 )
             return (
-                self.requests < self.maximum_requests
-                and self.scope_requests.get(scope, 0) < limit
+                self.calls < self.maximum_requests
+                and self.scope_calls.get(scope, 0) < limit
+                and self.requests < self.maximum_transport_requests
+                and self.scope_requests.get(scope, 0) < limit * self.maximum_attempts
             )
 
 
@@ -400,7 +532,7 @@ class Relay(http.server.BaseHTTPRequestHandler):
         except Exception:
             pass
 
-    def _prefix(self, response, state, deadline):
+    def _prefix(self, response, state, deadline, lease=None):
         content_type = response.headers.get("Content-Type", "").lower()
         if response.status not in RETRYABLE_STATUS and (
             response.status != 200
@@ -412,11 +544,13 @@ class Relay(http.server.BaseHTTPRequestHandler):
             getattr(getattr(response, "fp", None), "raw", None), "_sock", None
         )
         while len(prefix) <= PROBE_BYTES:
+            if lease is not None:
+                lease.ensure_active()
             remaining = deadline - state.now()
             if remaining <= 0:
                 raise TimeoutError("Model request deadline reached")
             if sock is not None and sock.fileno() >= 0:
-                sock.settimeout(min(300, remaining))
+                sock.settimeout(min(300, remaining, lease.lease_seconds / 2 if lease else 300))
             chunk = getattr(response, "read1", response.read)(
                 min(4096, PROBE_BYTES + 1 - len(prefix))
             )
@@ -495,6 +629,7 @@ class Relay(http.server.BaseHTTPRequestHandler):
         response = None
         event = None
         sent_headers = False
+        lease = None
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -509,23 +644,45 @@ class Relay(http.server.BaseHTTPRequestHandler):
             attempts = 0
             while True:
                 event = None
+                if state.shared_route_throttle is not None:
+                    lease = state.shared_route_throttle.acquire(
+                        timeout=min(300, max(0.001, deadline - state.now()))
+                    )
                 event = state.admit(route, scope=scope, limit=limit, deadline=deadline)
                 attempts += 1
                 self._emit_event(
                     state, "model_request_started", event, attempt=attempts
                 )
+                if lease is not None:
+                    lease.ensure_active()
                 try:
                     response = state.opener.open(
-                        request, timeout=min(300, max(0.001, deadline - state.now()))
+                        request, timeout=min(
+                            300, max(0.001, deadline - state.now()),
+                            lease.lease_seconds / 2 if lease else 300,
+                        )
                     )
                 except urllib.error.HTTPError as error:
                     response = error
+                if lease is not None:
+                    lease.set_on_lost(response.close)
+                    lease.ensure_active()
                 event["http_status"] = response.status
-                prefix, rejected = self._prefix(response, state, deadline)
+                for header, field in (
+                    ("Retry-After", "retry_after"),
+                    ("RateLimit", "rate_limit"),
+                    ("RateLimit-Policy", "rate_limit_policy"),
+                ):
+                    if response.headers.get(header):
+                        event[field] = response.headers[header][:1024]
+                prefix, rejected = self._prefix(response, state, deadline, lease)
                 delay = max(
                     state.jitter(min(30, 2 ** (attempts - 1))),
                     _retry_after(response.headers.get("Retry-After"), state.now()),
+                    _rate_limit_reset(response.headers.get("RateLimit")),
                 )
+                if rejected:
+                    state.finish(event, "retryable_rejection", retry_delay_seconds=delay)
                 if not (
                     rejected
                     and scope is not None
@@ -535,7 +692,6 @@ class Relay(http.server.BaseHTTPRequestHandler):
                     < min(deadline, started + state.maximum_retry_seconds)
                 ):
                     break
-                state.finish(event, "retryable_rejection", retry_delay_seconds=delay)
                 self._emit_event(
                     state,
                     "model_request_retrying",
@@ -543,6 +699,9 @@ class Relay(http.server.BaseHTTPRequestHandler):
                     attempt=attempts,
                     retry_delay_seconds=delay,
                 )
+                if lease is not None:
+                    lease.finish(status_code=response.status, headers=dict(response.headers))
+                    lease = None
                 response.close()
                 response = None
                 state.sleep(delay)
@@ -564,6 +723,8 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 )
             self.end_headers()
             sent_headers = True
+            outcome = _ResponseOutcome(response.headers.get("Content-Type", ""), route)
+            outcome.feed(prefix)
             if prefix:
                 self.wfile.write(prefix)
                 self.wfile.flush()
@@ -572,6 +733,8 @@ class Relay(http.server.BaseHTTPRequestHandler):
             )
             streaming_started = time.monotonic()
             while True:
+                if lease is not None:
+                    lease.ensure_active()
                 remaining = min(
                     1800 - (time.monotonic() - streaming_started),
                     deadline - state.now(),
@@ -579,13 +742,17 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 if remaining <= 0:
                     raise TimeoutError("Model request deadline reached")
                 if sock is not None and sock.fileno() >= 0:
-                    sock.settimeout(min(300, remaining))
+                    sock.settimeout(min(300, remaining, lease.lease_seconds / 2 if lease else 300))
                 chunk = getattr(response, "read1", response.read)(4096)
                 if not chunk:
                     break
+                outcome.feed(chunk)
                 self.wfile.write(chunk)
                 self.wfile.flush()
-            state.finish(event, "completed")
+            if lease is not None:
+                lease.ensure_active()
+            failed = rejected or not 200 <= response.status < 300 or outcome.finish()
+            state.finish(event, "inference_failed" if failed else "completed")
             self._emit_event(
                 state, "model_request_finished", event, attempt=attempts
             )
@@ -595,7 +762,7 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 self._emit_event(
                     state, "model_request_failed", event, attempt=attempts
                 )
-        except ValueError as error:
+        except RelayAllowanceError as error:
             if event is not None:
                 state.finish(
                     event, "allowance_exhausted", error_type=type(error).__name__
@@ -608,7 +775,12 @@ class Relay(http.server.BaseHTTPRequestHandler):
                     error_type=type(error).__name__,
                 )
             if not sent_headers:
-                self.send_error(400)
+                body = json.dumps({"error": {"code": "relay_allowance_exhausted", "type": "invalid_request_error", "message": str(error)}}).encode("utf-8")
+                self.send_response(409)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
         except Exception as error:
             if event is not None:
                 state.finish(event, "transport_error", error_type=type(error).__name__)
@@ -622,8 +794,15 @@ class Relay(http.server.BaseHTTPRequestHandler):
             if not sent_headers:
                 self.send_error(502)
         finally:
-            if response is not None:
-                response.close()
+            try:
+                if lease is not None:
+                    lease.finish(
+                        status_code=response.status if response is not None else None,
+                        headers=dict(response.headers) if response is not None else None,
+                    )
+            finally:
+                if response is not None:
+                    response.close()
 
 
 def main(path):

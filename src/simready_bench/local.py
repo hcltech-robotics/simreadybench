@@ -584,7 +584,9 @@ def reconstruction_status(evaluation, records, *, normal_stop=False, recovery=No
                 "episode_admission_closed",
                 "inference_deadline_exceeded",
                 "inference_budget_exhausted",
+                "inference_attempt_budget_exhausted",
                 "project_request_budget_exhausted",
+                "project_attempt_budget_exhausted",
                 "project_spend_budget_exhausted",
             }
         ):
@@ -619,7 +621,8 @@ def complete_trial_result(result, job_result, *, normal_stop):
     native_error = native_terminal_failure(result, normal_stop=normal_stop)
     if native_error is not None:
         result.update(error_type="NativeActorError", error_code=native_error["error_code"],
-                      failure_scope="infrastructure", automatic_retry=False)
+                      failure_scope="infrastructure", automatic_retry=False,
+                      termination_reason="inference_failed")
         status = "infrastructure_error"
     hold = infrastructure_hold(result, normal_stop=normal_stop)
     if hold is not None:

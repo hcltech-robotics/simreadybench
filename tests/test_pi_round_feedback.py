@@ -58,7 +58,7 @@ for (let i = 0; i < Number(process.argv[2]); i += 1) {
     abortsBeforeEnd: aborts,
   });
   previous = first;
-  hooks.get("turn_end")({}, ctx);
+  hooks.get("turn_end")({message: {role: "assistant", stopReason: "toolUse"}}, ctx);
   rounds.at(-1).abortsAfterEnd = aborts;
 }
 console.log(JSON.stringify({
@@ -192,6 +192,15 @@ def test_continuation_uses_same_hard_turn_budget(tmp_path):
 def test_existing_protocol_does_not_continue_length(tmp_path):
     result = exercise_stops(tmp_path, [assistant_stop("length")], enabled=False)
     assert result["followUps"] == []
+
+
+def test_inference_failures_do_not_consume_authoring_rounds(tmp_path):
+    result = exercise_stops(tmp_path, [assistant_stop("error")] * 64 + [
+        assistant_stop("length"), assistant_stop("aborted"), assistant_stop("length"),
+    ], turns=2)
+    assert len(result["followUps"]) == 1
+    assert result["counts"][-3:] == [1, 1, 1]
+    assert result["aborts"] == 1
 
 
 @pytest.mark.parametrize("value", [None, "true", 1])

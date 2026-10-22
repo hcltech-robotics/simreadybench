@@ -12,7 +12,78 @@ from test_gateway_terminal_response import (
     serve,
     CompletedHandlerGateway,
     actor_and_controller,
+    configuration,
+    request,
 )
+
+
+@pytest.mark.parametrize("failure_status", [200, 400, 429, 500, 503])
+def test_failed_inference_releases_model_round_but_retains_attempt(tmp_path, monkeypatch, failure_status):
+    async def run():
+        _, controller = actor_and_controller(tmp_path, 1)
+        generated = []
+        app = web.Application()
+
+        async def generate(incoming):
+            generated.append(await incoming.json())
+            if len(generated) == 1:
+                return web.json_response({"error": {"message": "Inference failed"}}, status=failure_status)
+            return web.json_response({"status": "completed", "output": []})
+
+        async def reserve(self, payload, *args, **kwargs):
+            return {"request_sha256": "a" * 64}
+
+        monkeypatch.setattr(CompletedHandlerGateway, "reserve_request_cost", reserve)
+        app.router.add_post("/v1/responses", generate)
+        async with serve(app) as upstream:
+            gateway = CompletedHandlerGateway(controller, configuration(upstream, 1))
+            token = gateway.issue_episode_token("episode")
+            async with serve(gateway.runner()) as local, aiohttp.ClientSession() as client:
+                assert (await request(client, gateway, local, token))[0] == failure_status
+                assert controller.get_episode("episode").inference_calls_used == 0
+                assert (await request(client, gateway, local, token))[0] == 200
+                assert controller.get_episode("episode").inference_calls_used == 1
+                assert (await request(client, gateway, local, token))[0] == 429
+            assert len(generated) == len(gateway.records()) == 2
+            with sqlite3.connect(gateway.db_path) as db:
+                assert db.execute("SELECT requests_used,attempts_used FROM budgets").fetchone() == (1, 2)
+
+    asyncio.run(run())
+
+
+def test_gateway_transport_cap_survives_restart_and_duplicate_settlement(tmp_path):
+    from simready_bench.engine.inference_gateway import GatewayDenied
+
+    _, controller = actor_and_controller(tmp_path, 2)
+    config = configuration("http://127.0.0.1:1234", 1)
+    gateway = CompletedHandlerGateway(controller, config)
+    for attempt in range(4):
+        record = {"gateway_request_id": str(attempt), "status": "admitted"}
+        job, _ = gateway._admit("episode", record)
+        record.update(status="completed", upstream_status=429)
+        gateway._save(job, record)
+        gateway._save(job, record)
+        assert controller.get_episode("episode").inference_calls_used == 0
+        gateway = CompletedHandlerGateway(controller, config)
+    with pytest.raises(GatewayDenied, match="project_attempt_budget_exhausted"):
+        gateway._check_request_capacity("episode")
+    with sqlite3.connect(gateway.db_path) as db:
+        assert db.execute("SELECT requests_used,attempts_used FROM budgets").fetchone() == (0, 4)
+
+
+def test_controller_failed_attempts_are_bounded_and_inflight_rounds_reserved(tmp_path):
+    from simready_bench.engine.controller import AdmissionError
+
+    _, controller = actor_and_controller(tmp_path, 1)
+    for attempt in range(4):
+        job = controller.reserve_inference("episode", str(attempt))
+        assert controller.get_episode("episode").inference_calls_used == 1
+        with pytest.raises(AdmissionError, match="inference_budget_exhausted"):
+            controller.reserve_inference("episode", "parallel-" + str(attempt))
+        controller.complete_job(job.job_id, {"status": "transport_failed"})
+        assert controller.get_episode("episode").inference_calls_used == 0
+    with pytest.raises(AdmissionError, match="inference_attempt_budget_exhausted"):
+        controller.reserve_inference("episode", "one-too-many")
 
 
 @pytest.mark.parametrize("provider_status", [200, 400])

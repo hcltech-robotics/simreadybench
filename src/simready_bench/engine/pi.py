@@ -320,12 +320,14 @@ class PiAgent(Pi):
   }});
 
   pi.on("turn_end", (event, ctx) => {{
+    const message = event.message;
+    if (message?.role !== "assistant" || message.stopReason === "error"
+        || message.stopReason === "aborted") return;
     completedTurns += 1;
     if (completedTurns >= maxTurns) {{
       ctx.abort();
       return;
     }}
-    const message = event.message;
     if (continueOnLength && message?.role === "assistant" && message.stopReason === "length"
         && !message.content.some((part) => part.type === "toolCall")) {{
       // Pi already continues truncated tool calls after rejecting their arguments.

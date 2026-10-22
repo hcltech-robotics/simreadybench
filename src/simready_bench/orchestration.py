@@ -618,6 +618,7 @@ def coordinate_daytona(
     state.setdefault("condition_not_before", {})
     state["blocked_conditions"] = {}
     errors = []
+    shared_route_throttle = None
     with _observer_guard:
         previous = _live_observers.get(str(output))
         if previous is not None and any(
@@ -726,6 +727,7 @@ def coordinate_daytona(
             runtime_images=runtime_images,
             on_report=callback,
             stop_requested=stop_event.is_set,
+            shared_route_throttle=shared_route_throttle,
         )
 
     try:
@@ -739,6 +741,14 @@ def coordinate_daytona(
                         rows[0]['evidence'].get('hold_reason', 'collection_integrity_failure'))
             raise RecoveryLimitReached('Collection or observation is held with retained evidence')
         index = ReportIndex(output, manifest, on_report)
+        from simready_bench.daytona_route_throttle import ensure_route_throttle, requires_route_throttle
+
+        if requires_route_throttle(policy=policy, manifest=manifest):
+            shared_route_throttle = ensure_route_throttle(
+                policy=policy, manifest=manifest, client=get_client(),
+                cpu_snapshot=cpu_snapshot, runtime_images=runtime_images,
+                output_dir=output,
+            )
         while True:
             active = set(futures.values())
             owned = set()
@@ -1083,3 +1093,15 @@ def coordinate_daytona(
                 thread.is_alive() for thread in pool.threads
             ):
                 _live_observers.pop(str(output), None)
+        if shared_route_throttle is not None and not any(
+            thread.is_alive() for thread in pool.threads
+        ):
+            deliveries = [batch / "daytona-delivery.json" for batch in _batches(output)]
+            if all(not path.is_file() or _read(path).get("cleanup_confirmed") is True for path in deliveries):
+                from simready_bench.daytona_route_throttle import release_route_throttle
+
+                try:
+                    release_route_throttle(shared_route_throttle, owner=output, client=get_client())
+                except Exception as error:
+                    state["route_throttle_cleanup"] = {"status": "pending", "error_type": type(error).__name__}
+                    _save(state_path, state)
