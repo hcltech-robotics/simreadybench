@@ -89,7 +89,7 @@ $$
 
 ![Kinematic fidelity combines moving-joint and fixed-constraint recovery through their geometric mean.](../site/assets/kinematic-fidelity.png)
 
-Equivalent axis signs, reversed limits, exchanged joint endpoints and pivots shifted along the same hinge line describe the same motion and retain the same score. Unsupported reference constraints and ambiguous body correspondence remain unknown. A reference with no joints is N/A when the candidate also has none, while additional candidate joints score zero.
+Equivalent axis signs, reversed limits, exchanged joint endpoints and pivots shifted along the same hinge line describe the same motion and retain the same score. Unsupported reference constraints remain unknown. Ambiguous candidate body correspondence receives zero credit. A reference with no joints is N/A when the candidate also has none, while additional candidate joints score zero.
 
 This evaluates authored forward kinematics. The detailed report also retains the individual USD joint checks, body states, counts, motion errors and fixed-attachment measurements.
 
