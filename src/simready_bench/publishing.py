@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import csv
+from functools import lru_cache
 import hashlib
 from importlib.resources import files
 import io
@@ -699,6 +700,20 @@ def _viewer_protocol(row, settings, run_id):
     }
 
 
+@lru_cache(maxsize=2)
+def _missing_viewer_capture(role):
+    """Give missing images an explicit display value in the Hub viewer."""
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (384, 384), "#f1f3f5")
+    draw = ImageDraw.Draw(image)
+    draw.text((192, 182), role.capitalize() + " capture", fill="#495057", anchor="mm")
+    draw.text((192, 202), "Unavailable", fill="#495057", anchor="mm")
+    stream = io.BytesIO()
+    image.save(stream, format="PNG")
+    return stream.getvalue()
+
+
 def _viewer_captures(row, run_id, image_reader):
     """Embed a shared camera from the published comparison captures."""
     captures = {role: {} for role in ("reference", "candidate")}
@@ -713,7 +728,12 @@ def _viewer_captures(row, run_id, image_reader):
     if not available:
         available = set(captures["reference"]) | set(captures["candidate"])
     camera = next((view for view in ("isometric", "front", "side", "top") if view in available), "")
-    result = {"reference_image": None, "candidate_image": None, "capture_view": camera}
+    # The Hub renders null Image values as "Not supported with pagination yet".
+    # Keep missing evidence explicit without changing the source measurements.
+    result = {role + "_image": {
+        "bytes": _missing_viewer_capture(role), "path": role + "-capture-unavailable.png",
+    } for role in captures}
+    result["capture_view"] = camera
     if camera and not callable(image_reader):
         raise ValueError("An image reader is required to embed viewer captures")
     for role in captures:
@@ -904,7 +924,7 @@ def render_viewer_card(existing, index):
         config.pop("default", None)
         configs.append(config)
     generated = [{
-        "config_name": "all", "default": True,
+        "config_name": "all",
         "data_files": [{"split": "test", "path": sorted(run["viewer_scores"] for run in index["runs"].values())}],
         "features": _viewer_features(index["columns"]),
     }]
@@ -917,6 +937,8 @@ def render_viewer_card(existing, index):
             generated.append({"config_name": axis, "features": _viewer_features(index["columns"]), "data_files": [
                 {"split": split, "path": sorted(paths)} for split, paths in sorted(groups.items())
             ]})
+    default = next((config for config in generated if config["config_name"] == "by_model"), generated[0])
+    default["default"] = True
     metadata.update(configs=generated + configs, simreadybench_viewer=3)
     return "---\n" + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False) + "---\n" + body
 

@@ -785,7 +785,8 @@ async def _condition(condition, prepared, resolved, root, controller, *, shared_
         "inference": min(budgets["agent_seconds"], 1800),
     }
     root.mkdir(mode=448)
-    task = root / "task"
+    task = root / "tasks" / condition["asset_id"]
+    task.parent.mkdir(mode=448)
     shutil.copytree(prepared["task_path"], task)
     public = task / "environment/public"
     _dimensions(public)
@@ -1274,27 +1275,50 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None,
         controller = bounded_controller_class()(root / "controller")
         results = []
         from simready_bench.local_route_throttle import local_route_throttles
+        from simready_bench.harbor_index import refresh_asset_index
 
-        with local_route_throttles(resolved) as throttles:
-            outcomes = _condition_results(resolved, prepared, root, controller, ledger, workers, throttles)
-            try:
-                order = {condition["condition_id"]: index for index, condition in enumerate(resolved["conditions"])}
-                async for index, c, result, cached in outcomes:
-                    if not cached:
-                        ledger.complete(c["condition_id"], result)
-                    results.append(result)
-                    results.sort(key=lambda item: order[item["condition_id"]])
-                    progress = _write_progress(root, resolved, results, ledger.records())
-                    if on_progress is not None:
-                        on_progress(root, progress)
-            finally:
-                await outcomes.aclose()
+        index_stop = asyncio.Event()
+
+        async def refresh_viewer():
+            while True:
+                try:
+                    await asyncio.to_thread(refresh_asset_index, root, resolved["conditions"])
+                except (OSError, ValueError):
+                    __import__("logging").getLogger(__name__).exception("Harbor asset index refresh failed")
+                if index_stop.is_set():
+                    return
+                try:
+                    await asyncio.wait_for(index_stop.wait(), timeout=2)
+                except TimeoutError:
+                    pass
+
+        index_task = asyncio.create_task(refresh_viewer())
+
+        try:
+            with local_route_throttles(resolved) as throttles:
+                outcomes = _condition_results(resolved, prepared, root, controller, ledger, workers, throttles)
+                try:
+                    order = {condition["condition_id"]: index for index, condition in enumerate(resolved["conditions"])}
+                    async for index, c, result, cached in outcomes:
+                        if not cached:
+                            ledger.complete(c["condition_id"], result)
+                        results.append(result)
+                        results.sort(key=lambda item: order[item["condition_id"]])
+                        progress = _write_progress(root, resolved, results, ledger.records())
+                        if on_progress is not None:
+                            on_progress(root, progress)
+                finally:
+                    await outcomes.aclose()
+        finally:
+            index_stop.set()
+            await index_task
         summary = {
             "schema": "simready-bench-matrix-result-v1",
             "configuration_sha256": resolved["configuration_sha256"],
-            "harbor_jobs_directory": str(root / "native-jobs"),
+            "harbor_jobs_directory": str(root / "harbor-assets"),
+            "harbor_execution_jobs_directory": str(root / "native-jobs"),
             "harbor_viewer_command": __import__("shlex").join(
-                ["harbor", "view", str(root / "native-jobs")]
+                ["harbor", "view", str(root / "harbor-assets"), "--jobs"]
             ),
             "planned_conditions": len(resolved["conditions"]),
             "completed_conditions": sum(

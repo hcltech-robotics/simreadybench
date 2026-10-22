@@ -60,6 +60,8 @@ Controller progress and evaluation events are available with `tail -n 30 -F /wor
 
 Local execution uses Linux amd64 with Docker. On Windows, use an Ubuntu WSL shell. Install the validator and configure the actor, verifier and CPU rendering images:
 
+The Harbor viewer groups local trials by reference asset, with one job row per asset and separate trials for its models, harnesses and repetitions. The matrix result records `harbor_jobs_directory` and `harbor_viewer_command`. This asset index retains the original trial identities, rewards and trajectories, while `harbor_execution_jobs_directory` contains the individual execution jobs.
+
 ```sh
 python -m pip install '.[validator]'
 simready-bench benchmark nvidia-25 \
