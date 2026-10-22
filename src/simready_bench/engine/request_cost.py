@@ -205,6 +205,16 @@ def supports_hf_application_spend_cap(config):
     )
 
 
+def _hf_input_bound_matches(maximum_input_tokens, context, *, native_output_limits):
+    if type(maximum_input_tokens) is not int:
+        return False
+    # The documented context is an input upper bound whether output is capped
+    # per request or left at the provider's native maximum.
+    if maximum_input_tokens == context:
+        return True
+    return not native_output_limits and context <= maximum_input_tokens <= 262144
+
+
 async def verify_hf_context_bound(
     config, payload, *, maximum_input_tokens, deadline_at
 ):
@@ -228,13 +238,9 @@ async def verify_hf_context_bound(
     ):
         raise CostDenied("project_budget_unavailable")
     context = HF_PRICING[config.model].context_length
-    if (
-        type(maximum_input_tokens) is not int
-        or not context <= maximum_input_tokens <= 262144
-        or (
-            getattr(config, "native_output_limits", False)
-            and maximum_input_tokens != context
-        )
+    if not _hf_input_bound_matches(
+        maximum_input_tokens, context,
+        native_output_limits=getattr(config, "native_output_limits", False),
     ):
         raise CostDenied("hf_input_limit_unverifiable")
     if not isinstance(payload, dict) or payload.get("model") != config.model:
@@ -678,10 +684,8 @@ class CostLedger:
         ):
             raise CostDenied("hf_context_evidence_required")
         context = route.pricing.context_length
-        if (
-            type(maximum_input_tokens) is not int
-            or not context <= maximum_input_tokens <= 262144
-            or (native_output_limits and maximum_input_tokens != context)
+        if not _hf_input_bound_matches(
+            maximum_input_tokens, context, native_output_limits=native_output_limits,
         ):
             raise CostDenied("hf_input_limit_unverifiable")
         if type(native_output_limits) is not bool:
