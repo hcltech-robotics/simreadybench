@@ -364,7 +364,7 @@ def _provider_authorities(resolved):
                 )
 
 
-def _gateway(condition, resolved, *, allocation_id=None):
+def _gateway(condition, resolved, *, allocation_id=None, shared_route_throttle=None):
     from simready_bench.engine.inference_gateway import GatewayConfig, ProjectBudget
 
     model = condition["model"]
@@ -387,6 +387,8 @@ def _gateway(condition, resolved, *, allocation_id=None):
         transport["model_spec"] = provider["model_spec"]
     if provider.get("hf_router_relay") is not None:
         transport["hf_router_relay"] = provider["hf_router_relay"]
+    if shared_route_throttle is not None:
+        transport["shared_route_throttle"] = shared_route_throttle
     keyref = provider.get("api_key_env")
     key = os.environ.get(keyref, "") if keyref else ""
     projectref = provider.get("project_id_env")
@@ -519,6 +521,62 @@ def _controller_images(task, runtime):
     return images
 
 
+class LocalRuntimePreflightError(RuntimeError):
+    """The local Docker runtime cannot execute the declared matrix."""
+
+
+def _redacted_runtime_diagnostic(value):
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    text = str(value or "")
+    for name, secret in os.environ.items():
+        if len(secret) >= 4 and re.search(r"TOKEN|KEY|SECRET|PASSWORD", name, re.I):
+            text = text.replace(secret, "[redacted]")
+    text = re.sub(r"(https?://)[^\s/@]+:[^\s/@]+@", r"\1[redacted]@", text)
+    text = re.sub(r"(?i)Bearer\s+[^\s]+", "Bearer [redacted]", text)
+    return text[:4096]
+
+
+def preflight_runtime_images(runtime, root):
+    """Check declared Docker images once, before reserving condition authority."""
+    runtime = runtime or {}
+    profile = runtime.get("shared_profile", {})
+    images = {}
+    for role, image in (
+        ("actor", profile.get("actor_image")),
+        ("verifier", profile.get("verifier_image")),
+        ("fidelity", runtime.get("fidelity_image")),
+        ("illustration", runtime.get("illustration_image")),
+    ):
+        if image:
+            images.setdefault(image, []).append(role)
+    if not images:
+        return
+    directory = Path(root) / "private"
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    diagnostic = directory / "runtime-preflight.json"
+    checks = []
+    for image, roles in images.items():
+        command = ["docker", "image", "inspect", "--format", "{{.Id}}", image]
+        check = {"roles": roles, "image": image, "command": command}
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+            check.update(returncode=result.returncode, available=result.returncode == 0,
+                         stdout=_redacted_runtime_diagnostic(result.stdout),
+                         stderr=_redacted_runtime_diagnostic(result.stderr))
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            check.update(returncode=None, available=False, error_type=type(exc).__name__,
+                         stderr=_redacted_runtime_diagnostic(getattr(exc, "stderr", None) or str(exc)))
+        checks.append(check)
+    write_json(diagnostic, {"schema": "simready-bench-local-runtime-preflight-v1", "checks": checks})
+    unavailable = [role for check in checks if not check["available"] for role in check["roles"]]
+    if unavailable:
+        raise LocalRuntimePreflightError(
+            "Local Docker runtime images are unavailable for " + ", ".join(unavailable)
+            + ". Command, exit status and redacted output are retained in " + str(diagnostic)
+        )
+
+
 def _native_failure(job_result, *, normal_stop=False):
     """Keep provider and harness failures distinct from configured actor limits."""
     trials = getattr(job_result, "trial_results", None) or []
@@ -584,7 +642,9 @@ def reconstruction_status(evaluation, records, *, normal_stop=False, recovery=No
                 "episode_admission_closed",
                 "inference_deadline_exceeded",
                 "inference_budget_exhausted",
+                "inference_attempt_budget_exhausted",
                 "project_request_budget_exhausted",
+                "project_attempt_budget_exhausted",
                 "project_spend_budget_exhausted",
             }
         ):
@@ -619,7 +679,8 @@ def complete_trial_result(result, job_result, *, normal_stop):
     native_error = native_terminal_failure(result, normal_stop=normal_stop)
     if native_error is not None:
         result.update(error_type="NativeActorError", error_code=native_error["error_code"],
-                      failure_scope="infrastructure", automatic_retry=False)
+                      failure_scope="infrastructure", automatic_retry=False,
+                      termination_reason="inference_failed")
         status = "infrastructure_error"
     hold = infrastructure_hold(result, normal_stop=normal_stop)
     if hold is not None:
@@ -707,7 +768,7 @@ def _retain_failed_submission(result, root, controller, bridge, submission):
         )
 
 
-async def _condition(condition, prepared, resolved, root, controller):
+async def _condition(condition, prepared, resolved, root, controller, *, shared_route_throttle=None):
     from harbor.job import Job
     from harbor.models.job.config import JobConfig
     from harbor.models.task.config import TaskConfig
@@ -724,7 +785,8 @@ async def _condition(condition, prepared, resolved, root, controller):
         "inference": min(budgets["agent_seconds"], 1800),
     }
     root.mkdir(mode=448)
-    task = root / "task"
+    task = root / "tasks" / condition["asset_id"]
+    task.parent.mkdir(mode=448)
     shutil.copytree(prepared["task_path"], task)
     public = task / "environment/public"
     _dimensions(public)
@@ -778,7 +840,7 @@ async def _condition(condition, prepared, resolved, root, controller):
     )
     services = native_services_class()(
         bridge,
-        _gateway(condition, resolved, allocation_id=allocation_id),
+        _gateway(condition, resolved, allocation_id=allocation_id, shared_route_throttle=shared_route_throttle),
         task_inputs=[
             ReferenceTaskInput(
                 task,
@@ -803,10 +865,12 @@ async def _condition(condition, prepared, resolved, root, controller):
 
     async def guard():
         while True:
-            if shutil.disk_usage("/").free < 5 * 1024**3:
+            root_low = shutil.disk_usage("/").free < 5 * 1024**3
+            work_low = shutil.disk_usage(root).free < 1024**3
+            if root_low or work_low:
                 for eid in list(bridge._episodes):
                     await bridge.request_stop(eid, "infrastructure_disk_guard")
-                raise RuntimeError("Five-GiB root reserve crossed")
+                raise RuntimeError("Five-GiB root reserve crossed" if root_low else "One-GiB work storage reserve crossed")
             for episode_id, environment in list(bridge._episodes.items()):
                 verifier = services.verifiers.get(episode_id)
                 if verifier is not None and (
@@ -1030,9 +1094,115 @@ def _write_progress(root, resolved, results, allowance):
     return record
 
 
-async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None):
+_worker_stop = None
+
+
+def _initialise_condition_worker(stop):
+    global _worker_stop
+    _worker_stop = stop
+
+
+def _condition_process(condition, prepared, resolved, root, controller_root, throttle):
+    """Keep Harbor's native bridge hooks within one condition process."""
+    async def execute():
+        if _worker_stop is not None and _worker_stop.is_set():
+            raise RuntimeError("The local coordinator stopped before condition execution")
+        controller = bounded_controller_class()(controller_root)
+        options = {"shared_route_throttle": throttle} if throttle is not None else {}
+        task = asyncio.create_task(_condition(condition, prepared, resolved, root, controller, **options))
+
+        async def watch_stop():
+            while True:
+                if _worker_stop is not None and _worker_stop.is_set():
+                    task.cancel()
+                    return
+                await asyncio.sleep(0.25)
+
+        watcher = asyncio.create_task(watch_stop())
+        try:
+            return await task
+        finally:
+            watcher.cancel()
+            await asyncio.gather(watcher, return_exceptions=True)
+
+    return asyncio.run(execute())
+
+
+async def _condition_results(resolved, prepared, root, controller, ledger, workers, throttles):
+    """Admit at most one condition per worker and retain each completed outcome."""
+    conditions = iter(enumerate(resolved["conditions"]))
+
+    def admit(index, condition):
+        if shutil.disk_usage(root).free < 1024**3:
+            raise RuntimeError("At least 1 GiB of free work storage is required before admitting another condition")
+        admission = ledger.reserve(condition["condition_id"], condition["settings"]["budgets"]["maximum_spend_usd"])
+        if admission["status"] == "completed":
+            return admission["result"]
+        if admission["status"] != "new":
+            raise RuntimeError("Previously admitted incomplete condition requires operator investigation; no automatic paid retry")
+        return None
+
+    if workers == 1:
+        for index, condition in conditions:
+            result = admit(index, condition)
+            cached = result is not None
+            if result is None:
+                throttle = throttles.get((condition["model"]["provider_ref"], condition["model"]["model_id"]))
+                options = {"shared_route_throttle": throttle} if throttle is not None else {}
+                try:
+                    result = await _condition(condition, prepared[condition["condition_id"]], resolved, root / ("c" + str(index)), controller, **options)
+                except Exception as exc:
+                    result = _condition_failure(condition, root / ("c" + str(index)), exc)
+            yield index, condition, result, cached
+        return
+
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    context = multiprocessing.get_context("spawn")
+    stop = context.Event()
+    pool = ProcessPoolExecutor(max_workers=min(workers, len(resolved["conditions"])), mp_context=context, initializer=_initialise_condition_worker, initargs=(stop,))
+    loop = asyncio.get_running_loop()
+    pending = {}
+
+    def submit_one():
+        try:
+            index, condition = next(conditions)
+        except StopIteration:
+            return
+        result = admit(index, condition)
+        if result is None:
+            future = loop.run_in_executor(pool, _condition_process, condition, prepared[condition["condition_id"]], resolved, root / ("c" + str(index)), root / "controller", throttles.get((condition["model"]["provider_ref"], condition["model"]["model_id"])))
+        else:
+            future = loop.create_future()
+            future.set_result(result)
+        pending[future] = index, condition, result is not None
+
+    try:
+        for _ in range(min(workers, len(resolved["conditions"]))):
+            submit_one()
+        while pending:
+            done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for future in sorted(done, key=lambda item: pending[item][0]):
+                index, condition, cached = pending.pop(future)
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    result = _condition_failure(condition, root / ("c" + str(index)), exc)
+                yield index, condition, result, cached
+                submit_one()
+    finally:
+        stop.set()
+        for future in pending:
+            future.cancel()
+        # Child cancellation runs the native actor stop and service cleanup
+        # before the route throttle or work tree can be released.
+        await asyncio.to_thread(pool.shutdown, wait=True, cancel_futures=True)
+
+
+async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None, workers=1):
     resolved = checked_resolved(resolved, policy)
-    runtime_policy(resolved, execute=True)
+    runtime = runtime_policy(resolved, execute=True)
     _provider_authorities(resolved)
     root = confined_work_dir(work_dir, fresh=True, ram_only=True)
     root.mkdir(mode=448, parents=True)
@@ -1040,6 +1210,7 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None)
         _ownership["work_root"] = str(root)
     if len(str(root)) + 65 > 106:
         raise ValueError("Short RAM work directory required for private Unix sockets")
+    preflight_runtime_images(runtime, root)
     authorized = [
         c
         for c in resolved["conditions"]
@@ -1103,41 +1274,51 @@ async def _run(resolved, *, work_dir, policy, on_progress=None, _ownership=None)
         )
         controller = bounded_controller_class()(root / "controller")
         results = []
-        for index, c in enumerate(resolved["conditions"]):
-            admission = ledger.reserve(
-                c["condition_id"], c["settings"]["budgets"]["maximum_spend_usd"]
-            )
-            if admission["status"] == "completed":
-                results.append(admission["result"])
-                continue
-            if admission["status"] != "new":
-                raise RuntimeError(
-                    "Previously admitted incomplete condition requires operator investigation; no automatic paid retry"
-                )
-            trialroot = root / ("c" + str(index))
-            try:
-                result = await _condition(
-                    c, prepared[c["condition_id"]], resolved, trialroot, controller
-                )
-            except Exception as exc:
-                result = _condition_failure(c, trialroot, exc)
-                ledger.complete(c["condition_id"], result)
-                results.append(result)
-                progress = _write_progress(root, resolved, results, ledger.records())
-                if on_progress is not None:
-                    on_progress(root, progress)
-                continue
-            ledger.complete(c["condition_id"], result)
-            results.append(result)
-            progress = _write_progress(root, resolved, results, ledger.records())
-            if on_progress is not None:
-                on_progress(root, progress)
+        from simready_bench.local_route_throttle import local_route_throttles
+        from simready_bench.harbor_index import refresh_asset_index
+
+        index_stop = asyncio.Event()
+
+        async def refresh_viewer():
+            while True:
+                try:
+                    await asyncio.to_thread(refresh_asset_index, root, resolved["conditions"])
+                except (OSError, ValueError):
+                    __import__("logging").getLogger(__name__).exception("Harbor asset index refresh failed")
+                if index_stop.is_set():
+                    return
+                try:
+                    await asyncio.wait_for(index_stop.wait(), timeout=2)
+                except TimeoutError:
+                    pass
+
+        index_task = asyncio.create_task(refresh_viewer())
+
+        try:
+            with local_route_throttles(resolved) as throttles:
+                outcomes = _condition_results(resolved, prepared, root, controller, ledger, workers, throttles)
+                try:
+                    order = {condition["condition_id"]: index for index, condition in enumerate(resolved["conditions"])}
+                    async for index, c, result, cached in outcomes:
+                        if not cached:
+                            ledger.complete(c["condition_id"], result)
+                        results.append(result)
+                        results.sort(key=lambda item: order[item["condition_id"]])
+                        progress = _write_progress(root, resolved, results, ledger.records())
+                        if on_progress is not None:
+                            on_progress(root, progress)
+                finally:
+                    await outcomes.aclose()
+        finally:
+            index_stop.set()
+            await index_task
         summary = {
             "schema": "simready-bench-matrix-result-v1",
             "configuration_sha256": resolved["configuration_sha256"],
-            "harbor_jobs_directory": str(root / "native-jobs"),
+            "harbor_jobs_directory": str(root / "harbor-assets"),
+            "harbor_execution_jobs_directory": str(root / "native-jobs"),
             "harbor_viewer_command": __import__("shlex").join(
-                ["harbor", "view", str(root / "native-jobs")]
+                ["harbor", "view", str(root / "harbor-assets"), "--jobs"]
             ),
             "planned_conditions": len(resolved["conditions"]),
             "completed_conditions": sum(
@@ -1226,6 +1407,8 @@ def _blocked_result(resolved, work_dir, exc):
                 "seed": condition.get("seed"),
             }
         )
+        if old is None and isinstance(exc, LocalRuntimePreflightError):
+            rows[-1].update(error_code="local_runtime_image_unavailable", error_message=str(exc))
     return {
         "schema": "simready-bench-matrix-result-v1",
         "configuration_sha256": resolved["configuration_sha256"],
@@ -1346,7 +1529,9 @@ def _retire_unrun_local(resolved, result, ownership):
         )
 
 
-def run(resolved, *, work_dir, policy, on_progress=None):
+def run(resolved, *, work_dir, policy, on_progress=None, workers=1):
+    from simready_bench.parallel import validate_workers
+    validate_workers(workers)
     ownership = {}
     try:
         result = asyncio.run(
@@ -1356,6 +1541,7 @@ def run(resolved, *, work_dir, policy, on_progress=None):
                 policy=policy,
                 on_progress=on_progress,
                 _ownership=ownership,
+                workers=workers,
             )
         )
     except BaseException as exc:

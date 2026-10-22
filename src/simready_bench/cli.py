@@ -51,6 +51,8 @@ def main(argv=None):
     command.add_argument("--repetitions", type=int, default=4)
     command.add_argument('--tool-protocol', choices=('legacy', 'bounded-v1'), default=None,
                          help='Tool execution contract (default for new runs: bounded-v1)')
+    command.add_argument('--continue-on-length', action='store_true',
+                         help='Continue truncated Pi responses within the original inference allowance')
     command.add_argument(
         "--authoring-turns", type=int, choices=range(1, 129), default=None,
         metavar="1..128", help="Maximum inference turns per reconstruction (default: 64)",
@@ -60,10 +62,10 @@ def main(argv=None):
         type=_positive_integer,
         default=1,
         metavar="N",
-        help="Positive number of simultaneous Daytona workers within your allocation",
+        help="Positive number of simultaneous local or Daytona workers within your allocation",
     )
     command.add_argument(
-        "--reasoning", choices=("low", "medium", "high", "xhigh", "max")
+        "--reasoning", choices=("off", "low", "medium", "high", "xhigh", "max")
     )
     command.add_argument(
         "--max-output-tokens", type=_positive_integer, default=None, metavar="N",
@@ -164,6 +166,7 @@ def main(argv=None):
             "authoring_turns",
             "max_output_tokens",
             "tool_protocol",
+            "continue_on_length",
             "workers",
             "max_retries",
             "retry_delay_seconds",

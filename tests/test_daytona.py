@@ -392,7 +392,7 @@ def test_relay_forwards_count_and_generation_exactly_without_exposing_key(
         )
         with pytest.raises(urllib.error.HTTPError) as exhausted:
             post("/v1/responses", raw)
-        assert exhausted.value.code == 400 and len(upstream.requests) == 2
+        assert exhausted.value.code == 409 and len(upstream.requests) == 2
         with pytest.raises(urllib.error.HTTPError) as unauthorised:
             post("/v1/responses", raw, token="wrong")
         assert unauthorised.value.code == 403

@@ -1,6 +1,7 @@
 """Generated reference views belong to the saved local run's immutable inputs."""
 
 import hashlib
+import copy
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,6 +11,99 @@ import pytest
 from simready_bench import benchmark as workflow
 from simready_bench import resume
 from test_resume import portable
+
+
+@pytest.mark.parametrize("tamper", [False, True])
+def test_acquired_local_source_is_frozen_before_failure_and_saved_recovery(
+    tmp_path, monkeypatch, tamper
+):
+    from simready_bench import sources
+
+    template, _, _ = workflow.reference_manifest("NV25")
+    template["assets"] = template["assets"][:1]
+    template["source"]["packages"] = [template["assets"][0]["id"]]
+    assert template["assets"][0].get("source_view")
+    monkeypatch.setattr(workflow, "reference_manifest", lambda reference: (copy.deepcopy(template), tmp_path, False))
+    monkeypatch.setenv("OPENAI_API_KEY", "fixture-key")
+    output = tmp_path / "run"
+    acquisitions = []
+
+    def prepare_policy(**options):
+        policy = {
+            "roots": {name: str(output / name) for name in ("assets", "skills", "input_views", "private_manifests")},
+            "providers": {"selected": options["provider"]},
+            "limits": {"maximum_spend_usd": 10},
+            "runtime": {},
+        }
+        (output / "operator.json").write_text(json.dumps(policy))
+        return policy
+
+    def acquire(source, *, base_dir, assets_root):
+        acquisitions.append(source)
+        asset = template["assets"][0]
+        for name in {asset["usd"], asset["source_view"], *asset.get("dependencies", [])}:
+            path = Path(assets_root) / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"frozen source bytes")
+
+    class VerifiedInputs(RuntimeError):
+        pass
+
+    publications = []
+
+    def publish(*args, **kwargs):
+        publications.append(args)
+        if len(publications) == 2:
+            raise VerifiedInputs("Saved recovery verified the acquired inputs")
+        return None
+
+    def execute(manifest, **options):
+        assert len(acquisitions) == 1
+        assert options["_inputs_prepared"] is True
+        saved = resume._read(output / "run.json")
+        assert saved["inputs"]["assets"]
+        assert saved["inputs"] == {name: resume._tree(output / name) for name in saved["inputs"]}
+        spec = resume._read(output / "run-spec.json")
+        assert spec
+        if tamper:
+            (output / "assets" / manifest["assets"][0]["usd"]).write_bytes(b"changed source bytes")
+        raise ModuleNotFoundError("Preparation dependency unavailable")
+
+    monkeypatch.setattr(workflow, "prepare_policy", prepare_policy)
+    monkeypatch.setattr(sources, "import_source", acquire)
+    monkeypatch.setattr(workflow, "execute_local_reported", execute)
+    monkeypatch.setattr(workflow, "publication_callback", publish)
+    def recover(reference, **options):
+        assert options.pop("_initial_failure") is True
+        return resume._resume_once(reference, **options)
+
+    monkeypatch.setattr(resume, "resume_benchmark", recover)
+    expected = ValueError if tamper else VerifiedInputs
+    message = "staged benchmark input files have changed" if tamper else "verified the acquired inputs"
+    with pytest.raises(expected, match=message):
+        workflow.benchmark("NV25", model="gpt-6.1-sol", deploy="local", output_dir=output,
+                           repetitions=1, maximum_spend_usd=10, workers=24, max_retries=1)
+    assert len(acquisitions) == 1
+
+
+@pytest.mark.parametrize("prepared", [False, True])
+def test_direct_local_execution_acquires_inputs_unless_prepared(tmp_path, monkeypatch, prepared):
+    from simready_bench import config, local, sources
+
+    events = []
+    manifest = {"source": {"kind": "fixture"}}
+    monkeypatch.setattr(sources, "import_source", lambda *args, **kwargs: events.append("source"))
+    monkeypatch.setattr(workflow, "prepare_source_views", lambda *args: events.append("views"))
+    monkeypatch.setattr(config, "validate_policy", lambda policy, **kwargs: policy)
+
+    def resolve(*args, **kwargs):
+        raise RuntimeError("Reached input resolution")
+
+    monkeypatch.setattr(config, "resolve_experiment", resolve)
+    with pytest.raises(RuntimeError, match="Reached input resolution"):
+        workflow.execute_local(manifest, policy={"roots": {"assets": str(tmp_path)}},
+                               output_dir=tmp_path, _inputs_prepared=prepared)
+    assert events == ([] if prepared else ["source", "views"])
 
 
 @pytest.mark.parametrize("asset_count", [1, 2])

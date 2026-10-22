@@ -388,7 +388,8 @@ def test_root_card_retains_methodology_metadata_and_other_viewer_configs(publica
         "config_name": "other",
         "data_files": "other.csv",
     }
-    assert data["configs"][0]["config_name"] == "all" and data["configs"][0]["default"]
+    assert data["configs"][0]["config_name"] == "all" and not data["configs"][0].get("default")
+    assert [config["config_name"] for config in data["configs"] if config.get("default")] == ["by_model"]
     assert data["configs"][0]["data_files"] == [{"split": "test", "path": ["viewer/new-model/scores.parquet"]}]
     assert {item["name"]: item["dtype"] for item in data["configs"][0]["features"]}["input_tokens"] == "float64"
     assert data["configs"][1]["data_files"] == [
@@ -649,7 +650,7 @@ def test_mixed_viewer_factors_route_each_row_without_changing_csv_values():
         "all", "by_model", "by_harness", "by_skills", "by_reference_set",
         "by_protocol", "by_reasoning", "by_asset",
     ]
-    assert [item["config_name"] for item in configs if item.get("default")] == ["all"]
+    assert [item["config_name"] for item in configs if item.get("default")] == ["by_model"]
     for axis, column in (("by_model", "requested_model"), ("by_harness", "harness_id"),
                          ("by_skills", "skill_set_id"), ("by_asset", "asset_id")):
         groups = index["runs"]["matrix"]["groups"][axis]
@@ -730,7 +731,7 @@ def test_viewer_split_collisions_never_rename_existing_groups():
     assert repeated == index
 
 
-def test_viewer_images_select_a_shared_camera_and_keep_missing_captures_null():
+def test_viewer_images_select_a_shared_camera_and_display_missing_captures():
     readout, raw, _ = viewer_fixture()
     first = readout["results"][0]
     first["images"] = [
@@ -749,7 +750,8 @@ def test_viewer_images_select_a_shared_camera_and_keep_missing_captures_null():
     assert records[0]["capture_view"] == "front"
     assert records[0]["reference_image"] == {"bytes": captures[next(iter(captures))], "path": "reference-front.png"}
     assert records[0]["candidate_image"] == {"bytes": captures[list(captures)[1]], "path": "candidate-front.png"}
-    assert all(record["reference_image"] is None and record["candidate_image"] is None
+    assert all(record["reference_image"]["path"] == "reference-capture-unavailable.png"
+               and record["candidate_image"]["path"] == "candidate-capture-unavailable.png"
                and record["capture_view"] == "" for record in records[1:])
     assert readout == before
     config = yaml.safe_load(render_viewer_card("# Card\n", index).split("---\n", 2)[1])["configs"][0]
@@ -768,8 +770,12 @@ def test_viewer_images_select_a_shared_camera_and_keep_missing_captures_null():
                 if image:
                     assert ":" not in image["path"] and "/" not in image["path"]
                     with Image.open(io.BytesIO(image["bytes"])) as decoded:
-                        assert decoded.size == (8, 6)
-                        assert decoded.getpixel((0, 0)) == ((255, 0, 0) if role == "reference" else (0, 0, 255))
+                        if image["path"].endswith("-unavailable.png"):
+                            assert decoded.size == (384, 384)
+                            assert len(decoded.getcolors()) > 1
+                        else:
+                            assert decoded.size == (8, 6)
+                            assert decoded.getpixel((0, 0)) == ((255, 0, 0) if role == "reference" else (0, 0, 255))
     with pytest.raises(ValueError, match="image reader"):
         build_viewer_update("paired", readout, raw)
     first["images"][1]["path"] = "../outside.png"

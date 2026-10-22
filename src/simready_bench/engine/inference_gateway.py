@@ -63,6 +63,7 @@ class GatewayConfig:
     model_spec: dict | None = field(default=None, repr=False)
     strip_native_output_fields: bool = False
     hf_router_relay: dict | None = field(default=None, repr=False)
+    shared_route_throttle: dict | None = field(default=None, repr=False)
 
     def __post_init__(self):
         if self.hf_router_relay is not None:
@@ -318,6 +319,7 @@ class _Telemetry:
         self.response_ids = set()
         self.finish_reasons = set()
         self.response_statuses = set()
+        self.provider_error = False
         self.response_identity_overflow = False
 
     def _bounded_value(self, target, value, *, identity=False):
@@ -339,6 +341,8 @@ class _Telemetry:
         if isinstance(value.get("response"), dict):
             candidates.append(value["response"])
         for item in candidates:
+            if item.get("error") is not None or item.get("type") == "error":
+                self.provider_error = True
             self._bounded_value(self.response_ids, item.get("id"), identity=True)
             self._bounded_value(self.response_statuses, item.get("status"))
             incomplete = item.get("incomplete_details")
@@ -580,6 +584,13 @@ class InferenceGateway:
             db.executescript(
                 "\n                CREATE TABLE IF NOT EXISTS budgets (\n                    authorization_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,\n                    requests_used INTEGER NOT NULL);\n                CREATE TABLE IF NOT EXISTS requests (\n                    request_id TEXT PRIMARY KEY, episode_id TEXT NOT NULL,\n                    controller_job_id TEXT NOT NULL, record TEXT NOT NULL);\n                CREATE TABLE IF NOT EXISTS stop_requests (\n                    episode_id TEXT NOT NULL, reason TEXT NOT NULL,\n                    callback_status TEXT NOT NULL DEFAULT 'pending',\n                    PRIMARY KEY(episode_id,reason));\n            "
             )
+            if "attempts_used" not in {
+                row["name"] for row in db.execute("PRAGMA table_info(budgets)")
+            }:
+                db.execute(
+                    "ALTER TABLE budgets ADD COLUMN attempts_used INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execute("UPDATE budgets SET attempts_used=requests_used")
             if "callback_status" not in {
                 row["name"] for row in db.execute("PRAGMA table_info(stop_requests)")
             }:
@@ -821,6 +832,8 @@ class InferenceGateway:
                 "messages",
                 "response_format",
                 "reasoning_effort",
+                "thinking",
+                "chat_template_kwargs",
                 "max_tokens"
                 if self.config.hf_router_relay is not None
                 or self.config.upstream_base_url == "https://router.huggingface.co/v1"
@@ -836,6 +849,27 @@ class InferenceGateway:
         )
         if set(data) - allowed:
             raise GatewayDenied(400, "request_option_not_authorized")
+        if "thinking" in data:
+            thinking = data["thinking"]
+            if (
+                not isinstance(thinking, dict)
+                or set(thinking) - {"type", "clear_thinking"}
+                or thinking.get("type") not in ("enabled", "disabled")
+                or ("clear_thinking" in thinking and type(thinking["clear_thinking"]) is not bool)
+            ):
+                raise GatewayDenied(400, "invalid_thinking_setting")
+        if "chat_template_kwargs" in data:
+            thinking = data["chat_template_kwargs"]
+            if (
+                not isinstance(thinking, dict)
+                or set(thinking) - {"enable_thinking", "preserve_thinking"}
+                or type(thinking.get("enable_thinking")) is not bool
+                or (
+                    "preserve_thinking" in thinking
+                    and type(thinking["preserve_thinking"]) is not bool
+                )
+            ):
+                raise GatewayDenied(400, "invalid_thinking_setting")
         affinity = data.get("prompt_cache_key")
         if "prompt_cache_key" in data and (
             not isinstance(affinity, str)
@@ -931,11 +965,13 @@ class InferenceGateway:
         selected = self._budget()
         with closing(self._db()) as db:
             row = db.execute(
-                "SELECT requests_used FROM budgets WHERE authorization_id=?",
+                "SELECT requests_used,attempts_used FROM budgets WHERE authorization_id=?",
                 (selected.authorization_id,),
             ).fetchone()
         if row is not None and row["requests_used"] >= selected.maximum_requests:
             raise GatewayDenied(429, "project_request_budget_exhausted")
+        if row is not None and row["attempts_used"] >= 4 * selected.maximum_requests:
+            raise GatewayDenied(429, "project_attempt_budget_exhausted")
         episode = self.controller.get_episode(episode_id)
         if episode.inference_calls_used >= episode.inference_limit:
             raise AdmissionError("inference_budget_exhausted")
@@ -961,15 +997,19 @@ class InferenceGateway:
             if row and row["fingerprint"] != fingerprint:
                 raise GatewayDenied(503, "budget_authorization_conflict")
             used = row["requests_used"] if row else 0
+            attempts = row["attempts_used"] if row else 0
             if used >= selected.maximum_requests:
                 raise GatewayDenied(429, "project_request_budget_exhausted")
+            if attempts >= 4 * selected.maximum_requests:
+                raise GatewayDenied(429, "project_attempt_budget_exhausted")
             job = self.controller.reserve_inference(
                 episode_id, record["gateway_request_id"]
             )
             db.execute(
-                "INSERT INTO budgets VALUES (?,?,?) ON CONFLICT(authorization_id) DO UPDATE SET requests_used=excluded.requests_used",
-                (selected.authorization_id, fingerprint, used + 1),
+                "INSERT INTO budgets (authorization_id,fingerprint,requests_used,attempts_used) VALUES (?,?,?,?) ON CONFLICT(authorization_id) DO UPDATE SET requests_used=excluded.requests_used,attempts_used=excluded.attempts_used",
+                (selected.authorization_id, fingerprint, used + 1, attempts + 1),
             )
+            record["budget_authorization_id"] = selected.authorization_id
             db.execute(
                 "INSERT INTO requests VALUES (?,?,?,?)",
                 (record["gateway_request_id"], episode_id, job.job_id, _json(record)),
@@ -983,11 +1023,30 @@ class InferenceGateway:
             db.close()
 
     def _save(self, job, record):
+        from .controller import inference_failed
+
         with closing(self._db()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            previous = db.execute(
+                "SELECT record FROM requests WHERE request_id=?",
+                (record["gateway_request_id"],),
+            ).fetchone()
+            if (
+                previous is not None
+                and inference_failed(record)
+                and not inference_failed(json.loads(previous["record"]))
+            ):
+                db.execute(
+                    "UPDATE budgets SET requests_used=MAX(0,requests_used-1) WHERE authorization_id=?",
+                    (record.get(
+                        "budget_authorization_id", self.config.budget.authorization_id
+                    ),),
+                )
             db.execute(
                 "UPDATE requests SET record=? WHERE request_id=?",
                 (_json(record), record["gateway_request_id"]),
             )
+            db.commit()
         try:
             self.controller.complete_job(job.job_id, record)
         except AdmissionError as exc:
@@ -1116,6 +1175,7 @@ class InferenceGateway:
                         "maximum_request_bytes": min(
                             self.config.max_request_bytes, 64 * 1024**2
                         ),
+                        "shared_route_throttle": self.config.shared_route_throttle,
                     },
                     directory=directory,
                 )
@@ -1465,6 +1525,7 @@ class InferenceGateway:
                             provider_response_statuses=sorted(
                                 telemetry.response_statuses
                             ),
+                            provider_error=telemetry.provider_error,
                             provider_response_identity_overflow=telemetry.response_identity_overflow
                             or telemetry.oversized,
                         )
@@ -1472,7 +1533,7 @@ class InferenceGateway:
                         await response.write_eof()
                 return response
         except AdmissionError as exc:
-            if exc.code == "inference_budget_exhausted":
+            if exc.code in {"inference_budget_exhausted", "inference_attempt_budget_exhausted"}:
                 await self._notify(episode_id, exc.code)
                 denial = GatewayDenied(429, exc.code)
             else:
@@ -1481,6 +1542,7 @@ class InferenceGateway:
             denial = exc
             if episode_id is not None and exc.code in (
                 "project_request_budget_exhausted",
+                "project_attempt_budget_exhausted",
                 "project_spend_budget_exhausted",
             ):
                 await self._notify(episode_id, exc.code)

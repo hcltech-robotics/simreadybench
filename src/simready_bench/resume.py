@@ -828,6 +828,7 @@ def resume_benchmark(
     authoring_turns=None,
     max_output_tokens=None,
     tool_protocol=None,
+    continue_on_length=False,
 ):
     """Collect existing executors and retry incomplete work within saved limits."""
     options = dict(locals())
@@ -1009,6 +1010,7 @@ def _resume_once(
     authoring_turns=None,
     max_output_tokens=None,
     tool_protocol=None,
+    continue_on_length=False,
     max_retries=2,
     retry_delay_seconds=5,
     maximum_retry_delay_seconds=60,
@@ -1022,10 +1024,10 @@ def _resume_once(
     from simready_bench.runtime_images import load_images
 
     validate_workers(workers)
-    if deploy != "daytona" and workers != 1:
-        raise ValueError("Parallel workers require Daytona deployment")
     output = Path(os.path.abspath(output_dir))
     original = _read(output / "experiment.json")
+    if continue_on_length and not original.get('authoring_protocol', '').endswith('-continue-length-v1'):
+        raise ValueError('Resume must retain its original length continuation policy')
     if tool_protocol is not None and tool_protocol != original.get('tool_protocol', 'legacy'):
         raise ValueError('Resume must retain its original tool protocol')
     if max_output_tokens is not None and max_output_tokens != original.get("defaults", {}).get("generation", {}).get("max_output_tokens"):
@@ -1301,6 +1303,7 @@ def _resume_once(
             policy=resumed_policy,
             output_dir=batch,
             work_dir=work_dir,
+            **({"workers": workers} if workers != 1 else {}),
             **publication_options,
         )
     except Exception as caught:

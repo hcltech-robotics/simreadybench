@@ -58,7 +58,7 @@ for (let i = 0; i < Number(process.argv[2]); i += 1) {
     abortsBeforeEnd: aborts,
   });
   previous = first;
-  hooks.get("turn_end")({}, ctx);
+  hooks.get("turn_end")({message: {role: "assistant", stopReason: "toolUse"}}, ctx);
   rounds.at(-1).abortsAfterEnd = aborts;
 }
 console.log(JSON.stringify({
@@ -122,3 +122,110 @@ def test_one_round_warns_before_the_first_call_and_stops_after_it(tmp_path):
     assert "submit now" in row["notice"]["content"]
     assert row["abortsBeforeEnd"] == 0
     assert row["abortsAfterEnd"] == result["aborts"] == 1
+
+
+def exercise_stops(tmp_path, stops, *, turns=64, enabled=True):
+    extension = tmp_path / "stops.mjs"
+    extension.write_text(
+        PiAgent._build_max_turns_extension(turns, continue_on_length=enabled),
+        encoding="ascii",
+    )
+    script = tmp_path / "stops-test.mjs"
+    script.write_text(
+        '''import install from "./stops.mjs";
+const hooks = new Map();
+const followUps = [];
+install({ on: (name, handler) => hooks.set(name, handler),
+  sendUserMessage: (content, options) => followUps.push({content, options}) });
+let aborts = 0;
+const ctx = { abort: () => { aborts += 1; } };
+const counts = [];
+for (const message of JSON.parse(process.argv[2])) {
+  hooks.get("turn_end")({message, toolResults: []}, ctx);
+  counts.push(followUps.length);
+}
+console.log(JSON.stringify({followUps, counts, aborts}));
+''',
+        encoding="ascii",
+    )
+    result = subprocess.run(
+        [NODE, str(script), json.dumps(stops)], check=True,
+        capture_output=True, text=True, timeout=15,
+    )
+    return json.loads(result.stdout)
+
+
+def assistant_stop(reason, content=None):
+    return {"role": "assistant", "stopReason": reason, "content": content or []}
+
+
+def test_text_truncation_queues_one_native_follow_up_per_turn(tmp_path):
+    result = exercise_stops(tmp_path, [assistant_stop("length")] * 3)
+    assert result["counts"] == [1, 2, 3]
+    assert result["aborts"] == 0
+    for follow_up in result["followUps"]:
+        assert follow_up["options"] == {"deliverAs": "followUp"}
+        assert "current files and tool results" in follow_up["content"]
+
+
+@pytest.mark.parametrize("reason", ["error", "aborted", "stop", "toolUse"])
+def test_continuation_does_not_change_other_terminal_reasons(tmp_path, reason):
+    result = exercise_stops(tmp_path, [assistant_stop(reason)])
+    assert result["followUps"] == []
+    assert result["aborts"] == 0
+
+
+def test_truncated_tool_call_keeps_native_rejection_and_continuation(tmp_path):
+    result = exercise_stops(tmp_path, [assistant_stop("length", [
+        {"type": "toolCall", "id": "partial", "name": "bash", "arguments": {}},
+    ])])
+    assert result["followUps"] == []
+
+
+def test_continuation_uses_same_hard_turn_budget(tmp_path):
+    result = exercise_stops(tmp_path, [assistant_stop("length")] * 64)
+    assert len(result["followUps"]) == 63
+    assert result["counts"][-2:] == [63, 63]
+    assert result["aborts"] == 1
+
+
+def test_existing_protocol_does_not_continue_length(tmp_path):
+    result = exercise_stops(tmp_path, [assistant_stop("length")], enabled=False)
+    assert result["followUps"] == []
+
+
+def test_inference_failures_do_not_consume_authoring_rounds(tmp_path):
+    result = exercise_stops(tmp_path, [assistant_stop("error")] * 64 + [
+        assistant_stop("length"), assistant_stop("aborted"), assistant_stop("length"),
+    ], turns=2)
+    assert len(result["followUps"]) == 1
+    assert result["counts"][-3:] == [1, 1, 1]
+    assert result["aborts"] == 1
+
+
+@pytest.mark.parametrize("value", [None, "true", 1])
+def test_constructor_rejects_non_boolean_continuation(value):
+    with pytest.raises(ValueError, match="continue_on_length must be a boolean"):
+        PiAgent(continue_on_length=value)
+
+
+def test_continuation_keyword_is_consumed_before_harbor_options(monkeypatch):
+    from harbor.agents.installed.pi import Pi
+    from types import SimpleNamespace
+
+    metadata = {
+        "input": ["text", "image"], "contextWindow": 8192,
+        "maxTokens": 4096, "reasoning": True, "cost_status": "unknown",
+    }
+    seen = []
+    monkeypatch.setattr(Pi, "__init__", lambda self, *args, **kwargs: seen.append(kwargs))
+    monkeypatch.setattr(PiAgent, "_check_reasoning", lambda self: None)
+    monkeypatch.setattr(Pi, "preflight", classmethod(lambda cls, options, env: seen.append(options)))
+    monkeypatch.setattr(PiAgent, "parse_options", classmethod(
+        lambda cls, options, env: SimpleNamespace(thinking="off")
+    ))
+    agent = PiAgent(model_metadata=metadata, continue_on_length=True)
+    assert "const continueOnLength = true" in agent._build_max_turns_extension(64)
+    PiAgent.preflight({"model_metadata": metadata, "continue_on_length": True})
+    assert len(seen) == 2
+    assert all("continue_on_length" not in options for options in seen)

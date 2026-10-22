@@ -45,6 +45,8 @@ def _summary(entry, name, efficiency):
 def _label(entry):
     skills = ", ".join(entry.get("skills") or []) or "no skills"
     protocol = str(entry.get("authoring_protocol") or "unknown protocol")
+    continuation = protocol.endswith('-continue-length-v1')
+    protocol = protocol.removesuffix('-continue-length-v1').removesuffix('-tools-bounded-v1')
     if protocol.startswith("authoring-") and protocol.endswith("-native-output-v1"):
         protocol = (
             protocol.removeprefix("authoring-").removesuffix("-native-output-v1")
@@ -61,6 +63,8 @@ def _label(entry):
             .split("-bounded-output-")
         )
         protocol = turns + " turns, " + format(int(cap), ",") + " output tokens/call"
+    if continuation:
+        protocol += ", continue after truncation"
     return (
         str(entry.get("model", "Unknown model"))
         + "\n"

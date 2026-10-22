@@ -18,6 +18,12 @@ The import uses two CPUs, 8 GiB of memory and 10 GiB of disk by default. Each ac
 
 An operator policy can set `runtime.container_resources` with explicit `cpus` and `memory_mb` values for the actor. Daytona passes these bounds to the executor without changing the controller, validation or rendering limits.
 
+Hugging Face routes share a private inference governor across workers and coordinators using the same authority directory. Each route admits at most four simultaneous inference requests, independently of the worker count. A rate-limit response applies a shared cooldown using `Retry-After` or `RateLimit` headers, with exponential backoff and jitter when neither provides a delay. Routes are identified by provider endpoint, model and credential identity, so other providers retain independent capacity. The governor retains leases and cooldowns across coordinator restarts and is deleted after its final owner releases it and all dependent executors have been deleted.
+
+The governor uses an expiring signed preview restricted to its service port. Before workers launch, the pinned governor container checks the authenticated HTTPS endpoint using the worker network configuration. A failed check reports `shared_route_governor_worker_network_unreachable` and deletes an unshared governor. The Daytona organisation's outbound network policy must permit access to its preview domain.
+
+Failed inference does not consume the authoring-round allowance. Transport attempts remain recorded under a separate finite limit and monetary accounting retains any uncertain spend. A successful response truncated at the per-request token limit consumes one authoring round, including when continuation is enabled.
+
 The snapshot contains Docker, actor and verifier images, the validator environment and Storm/Mesa with its Python interpreter at `/opt/storm/bin/python`. Set the model credential, such as `OPENAI_API_KEY` or `HF_TOKEN`, then pass the saved runtime configuration to the benchmark:
 
 ```sh
@@ -52,7 +58,11 @@ Controller progress and evaluation events are available with `tail -n 30 -F /wor
 
 ## Local
 
-Local execution uses Linux amd64 with Docker. On Windows, use an Ubuntu WSL shell. Install the validator and configure the actor, verifier and CPU rendering images:
+Local execution uses Linux amd64 with Docker. On Windows, use an Ubuntu WSL shell.
+
+The Harbor viewer groups local trials by reference asset, with one job row per asset and separate trials for its models, harnesses and repetitions. The matrix result records `harbor_jobs_directory` and `harbor_viewer_command`. This asset index retains the original trial identities, rewards and trajectories, while `harbor_execution_jobs_directory` contains the individual execution jobs.
+
+Install the validator and configure the actor, verifier and CPU rendering images:
 
 ```sh
 python -m pip install '.[validator]'

@@ -35,6 +35,8 @@ def test_failed_condition_retries_do_not_repeat_zero_or_stop_other_conditions(
     zero_source = []
     monkeypatch.setattr(resume, "_daytona_client", object)
     monkeypatch.setattr(resume, "_retire", lambda *_a, **_kw: None)
+    from simready_bench import daytona_route_throttle
+    monkeypatch.setattr(daytona_route_throttle, "requires_route_throttle", lambda **_options: False)
     monkeypatch.setattr(
         resume, "_remaining",
         lambda *_: (

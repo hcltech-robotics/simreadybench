@@ -68,6 +68,113 @@ def evidence(payload):
     return HFContextEvidence(MODEL, cost.sha(payload), ORIGIN, route, time.time())
 
 
+def native_context_fixture(model, *, native=True):
+    from simready_bench.engine.hf_pricing import HF_PRICING, validate_catalog_route
+
+    price = HF_PRICING[model]
+    cfg = config(cap=10)
+    cfg = replace(cfg, model=model, budget=replace(cfg.budget, model=model),
+                  native_output_limits=native, max_input_tokens=price.context_length,
+                  max_output_tokens=None if native else 4096)
+    doc = catalog()
+    row = doc["data"][0]
+    row["id"] = model.rsplit(":", 1)[0]
+    row["providers"][0].update(provider=model.rsplit(":", 1)[1], context_length=price.context_length,
+                               pricing={"input": price.input_per_million_usd, "output": price.output_per_million_usd})
+    return cfg, validate_catalog_route(doc, model)
+
+
+@pytest.mark.parametrize("model", ["zai-org/GLM-5.3-Flash:baseten", "meta-models/Muse-Spark-Open-816B-A42B:baseten"])
+@pytest.mark.parametrize("native_output", [False, True])
+def test_native_million_token_context_is_verified_and_reserved(tmp_path, monkeypatch, model, native_output):
+    from simready_bench.engine import hf_pricing as hf
+
+    cfg, route = native_context_fixture(model, native=native_output)
+    payload = {"model": model, "messages": []}
+    if not native_output:
+        payload["max_tokens"] = 4096
+
+    async def fetch(*args, **kwargs):
+        return route
+
+    monkeypatch.setattr(hf, "fetch_hf_route", fetch)
+    verified = asyncio.run(cost.verify_hf_context_bound(cfg, payload, maximum_input_tokens=1048576, deadline_at=time.time() + 5))
+    reservation = cost.CostLedger(tmp_path).reserve(budget=cfg.budget, payload=payload, evidence=verified,
+        request_id="native-million", purpose="actor", maximum_input_tokens=1048576, native_output_limits=native_output)
+    assert reservation["declared_maximum_input_tokens"] == 1048576
+    assert reservation["input_token_upper_bound"] == 1048576
+    assert reservation["input_count_verified"] is False
+    assert reservation["actual_cost_usd"] is None
+    if model == "zai-org/GLM-5.3-Flash:baseten" and not native_output:
+        assert reservation["reserved_upper_cost_micro_usd"] == 159335
+
+
+@pytest.mark.parametrize("native,limit", [(True, 262144), (True, 1048575), (True, 1048577), (True, True), (True, None), (False, 262144), (False, 1048577)])
+def test_context_verification_and_reservation_retain_exact_native_and_bounded_caps(tmp_path, monkeypatch, native, limit):
+    from simready_bench.engine import hf_pricing as hf
+
+    model = "zai-org/GLM-5.3-Flash:baseten"
+    cfg, route = native_context_fixture(model, native=native)
+    payload = {"model": model, "messages": [], "max_tokens": 4096}
+    fetched = []
+
+    async def fetch(*args, **kwargs):
+        fetched.append(True)
+        return route
+
+    monkeypatch.setattr(hf, "fetch_hf_route", fetch)
+    with pytest.raises(cost.CostDenied, match="hf_input_limit_unverifiable"):
+        asyncio.run(cost.verify_hf_context_bound(cfg, payload, maximum_input_tokens=limit, deadline_at=time.time() + 5))
+    assert fetched == []
+    verified = hf.HFContextEvidence(model, cost.sha(payload), ORIGIN, route, time.time())
+    with pytest.raises(cost.CostDenied, match="hf_input_limit_unverifiable"):
+        cost.CostLedger(tmp_path).reserve(budget=cfg.budget, payload=payload, evidence=verified,
+            request_id="invalid-bound", purpose="actor", maximum_input_tokens=limit, native_output_limits=native)
+
+
+def test_million_token_native_reservation_rejects_changed_route_pricing(tmp_path):
+    from simready_bench.engine import hf_pricing as hf
+
+    model = "zai-org/GLM-5.3-Flash:baseten"
+    cfg, route = native_context_fixture(model)
+    payload = {"model": model, "messages": [], "max_tokens": 4096}
+    changed = replace(route, pricing=replace(route.pricing, input_per_million_usd="0.16"))
+    verified = hf.HFContextEvidence(model, cost.sha(payload), ORIGIN, changed, time.time())
+    with pytest.raises(cost.CostDenied, match="hf_context_evidence_required"):
+        cost.CostLedger(tmp_path).reserve(budget=cfg.budget, payload=payload, evidence=verified,
+            request_id="changed-price", purpose="actor", maximum_input_tokens=1048576, native_output_limits=True)
+
+
+def test_local_glm_capped_gateway_verifies_and_reserves_its_native_input_context(tmp_path, monkeypatch):
+    from dataclasses import asdict
+    from simready_bench.local import _gateway
+    from simready_bench.engine import hf_pricing as hf
+
+    model = "zai-org/GLM-5.3-Flash:baseten"
+    original, route = native_context_fixture(model, native=False)
+    condition = {"condition_id": "fixture-condition", "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+                 "model": {"model_id": model, "provider_ref": "selected", "adapter": "openai-completions"}, "harness": {"adapter": "pi"},
+                 "settings": {"generation": {"max_output_tokens": 4096}, "budgets": {"maximum_spend_usd": 10, "inference_requests": 64,
+                    "max_input_tokens": 1048576, "max_output_tokens": 4096, "agent_seconds": 1800}}}
+    resolved = {"operator_policy": {"providers": {"selected": {"kind": "huggingface", "api_key_env": "LOCAL_TEST_HF_KEY",
+                    "base_url": ORIGIN + "/v1", "project_budget": asdict(original.budget)}}}}
+    monkeypatch.setenv("LOCAL_TEST_HF_KEY", "fixture-only-no-credential")
+    cfg = _gateway(condition, resolved)
+    assert cfg.max_input_tokens == 1048576 and cfg.max_output_tokens == 4096
+    assert cfg.native_output_limits is False
+    payload = {"model": model, "messages": [], "max_tokens": 4096}
+
+    async def fetch(*args, **kwargs):
+        return route
+
+    monkeypatch.setattr(hf, "fetch_hf_route", fetch)
+    verified = asyncio.run(cost.verify_hf_context_bound(cfg, payload, maximum_input_tokens=cfg.max_input_tokens, deadline_at=time.time() + 5))
+    reserved = cost.CostLedger(tmp_path).reserve(budget=cfg.budget, payload=payload, evidence=verified,
+        request_id="local-capped", purpose="actor", maximum_input_tokens=cfg.max_input_tokens, native_output_limits=cfg.native_output_limits)
+    assert reserved["input_token_upper_bound"] == 1048576 and reserved["max_output_tokens"] == 4096
+    assert reserved["reserved_upper_cost_micro_usd"] == 159335
+
+
 def test_sol_uses_current_higher_cache_write_rate():
     assert cost.upper_cost_micro_usd(64000, 4096, model="gpt-6.1-sol") == 200960
 

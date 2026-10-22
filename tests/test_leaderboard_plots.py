@@ -18,6 +18,15 @@ def test_plot_labels_distinguish_bounded_and_native_output_protocols():
     assert native != bounded
 
 
+def test_continuation_protocol_label_retains_the_per_request_cap():
+    from simready_bench.leaderboard_plots import _label
+
+    entry = {"authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1"}
+    label = _label(entry)
+    assert "64 turns, 4,096 output tokens/call" in label
+    assert "continue after truncation" in label
+
+
 def board():
     return {
         "entries": [

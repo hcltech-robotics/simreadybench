@@ -72,16 +72,14 @@ def test_api_rejects_invalid_worker_count_without_preparing_run(tmp_path, worker
     assert not output.exists()
 
 
-@pytest.mark.parametrize("resume", [False, True])
-def test_local_parallel_workers_are_rejected_before_preparation(tmp_path, resume):
+def test_local_parallel_resume_forwards_worker_count(tmp_path, monkeypatch):
+    from simready_bench import resume
+
     output = tmp_path / "unallocated"
-    with pytest.raises(ValueError, match="Parallel workers require Daytona"):
-        workflow.benchmark(
-            model="gpt-6.1-sol",
-            output_dir=output,
-            workers=2,
-            resume=resume,
-        )
+    seen = []
+    monkeypatch.setattr(resume, "resume_benchmark", lambda *args, **options: seen.append(options) or {"completed_conditions": 0})
+    workflow.benchmark(model="gpt-6.1-sol", output_dir=output, workers=24, resume=True)
+    assert seen[0]["workers"] == 24 and seen[0]["deploy"] == "local"
     assert not output.exists()
 
 
@@ -209,6 +207,8 @@ def test_fresh_failure_enters_saved_recovery_without_new_authority(
 
     monkeypatch.setattr(workflow, "prepare_policy", policy)
     monkeypatch.setattr(workflow, "prepare_source_views", lambda *args: None)
+    from simready_bench import sources
+    monkeypatch.setattr(sources, "import_source", lambda *args, **kwargs: None)
     monkeypatch.setattr(workflow, "publication_callback", lambda *args, **kwargs: None)
     monkeypatch.setattr(workflow, "execute_local_reported", execute)
     monkeypatch.setattr(daytona, "run_daytona", execute)

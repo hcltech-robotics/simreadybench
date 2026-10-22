@@ -99,6 +99,8 @@ def test_cli_dispatches_whole_reference_set_to_selected_executor(
     tmp_path, monkeypatch, capsys, deploy
 ):
     monkeypatch.setenv("OPENAI_API_KEY", "fixture-key-kept-out-of-files")
+    from simready_bench import sources
+    monkeypatch.setattr(sources, "import_source", lambda *args, **kwargs: None)
     output = tmp_path / deploy
     calls = []
 

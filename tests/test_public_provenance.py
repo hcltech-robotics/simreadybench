@@ -104,3 +104,28 @@ def test_later_interventions_preserve_published_attempt_identity(publication, tm
     assert public['results'][0]['execution_provenance'] == first
     assert public['operational_provenance']['entries'][0]['path'] == 'operational-interventions/001.json'
     assert len(hub.commits) == 2
+
+
+def test_resuming_published_canonical_rows_does_not_add_attempt_receipts(publication):
+    from simready_bench import benchmark
+    from simready_bench.provenance import write_run_spec
+
+    manifest, source, hub, row, save = publication
+    current = row(passed=0)
+    current.pop('images')
+    current.pop('traces')
+    current['candidate'].update(directory='original', entrypoint='original/asset.usda')
+    report = save([current])
+    publisher = HuggingFacePublisher('team/results', 'canonical', manifest, api=hub)
+    publisher(report)
+    original = json.loads(hub.files['runs/canonical/results.json'])['results'][0]
+    assert 'execution_provenance' not in original
+
+    write_run_spec(source, build_run_spec(manifest))
+    report = benchmark._aggregate_reports([(source, report)],
+        output_dir=source, planned_conditions=4)
+    resumed = json.loads((source / 'results.json').read_text())['results'][0]
+    assert 'execution_provenance' not in resumed
+    assert resumed['simready_reward'] == current['simready_reward']
+    publisher(report)
+    assert json.loads(hub.files['runs/canonical/results.json'])['results'][0] == original

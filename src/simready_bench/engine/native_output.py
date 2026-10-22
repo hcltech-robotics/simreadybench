@@ -29,23 +29,25 @@ EXTENSION_SOURCE = """export default function (pi) {
 """
 
 
-def authoring_protocol(turns=DEFAULT_AUTHORING_TURNS, max_output_tokens=None, *, tool_protocol='legacy'):
+def authoring_protocol(turns=DEFAULT_AUTHORING_TURNS, max_output_tokens=None, *, tool_protocol='legacy', continue_on_length=False):
     if type(turns) is not int or not 1 <= turns <= MAX_AUTHORING_TURNS:
         raise ValueError("Authoring turns must be an integer between 1 and 128")
     validate_output_cap(max_output_tokens)
+    if type(continue_on_length) is not bool:
+        raise ValueError('Length continuation must be an explicit boolean')
     if tool_protocol not in ('legacy', 'bounded-v1'):
         raise ValueError('Unknown authoring tool protocol')
     output = "native-output" if max_output_tokens is None else "bounded-output-" + str(max_output_tokens)
-    return "authoring-" + str(turns) + "-" + output + "-v1" + ('-tools-bounded-v1' if tool_protocol == 'bounded-v1' else '')
+    return "authoring-" + str(turns) + "-" + output + "-v1" + ('-tools-bounded-v1' if tool_protocol == 'bounded-v1' else '') + ('-continue-length-v1' if continue_on_length else '')
 
 
 def authoring_turns(protocol):
-    match = re.fullmatch(r"authoring-([1-9][0-9]*)-(?:native-output|bounded-output-([1-9][0-9]*))-v1(-tools-bounded-v1)?", protocol or "")
+    match = re.fullmatch(r"authoring-([1-9][0-9]*)-(?:native-output|bounded-output-([1-9][0-9]*))-v1(-tools-bounded-v1)?(-continue-length-v1)?", protocol or "")
     if match is None:
         raise ValueError("Unknown authoring protocol")
     turns = int(match[1])
     cap = int(match[2]) if match[2] is not None else None
-    if authoring_protocol(turns, cap, tool_protocol='bounded-v1' if match[3] else 'legacy') != protocol:
+    if authoring_protocol(turns, cap, tool_protocol='bounded-v1' if match[3] else 'legacy', continue_on_length=bool(match[4])) != protocol:
         raise ValueError("Unknown authoring protocol")
     return turns
 

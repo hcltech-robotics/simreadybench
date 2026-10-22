@@ -1,0 +1,498 @@
+{
+  "entry": {
+    "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+    "benchmark_freeze": {
+      "id": "nvidia-25",
+      "version": "1"
+    },
+    "completed_attempts": 100,
+    "compliance": 89.45217391304348,
+    "composite_scores": {
+      "formal": {
+        "confidence_interval": {
+          "asset_count": 25,
+          "level": 0.95,
+          "lower": 82.2108695652174,
+          "method": "asset_cluster_bootstrap_percentile",
+          "resamples": 10000,
+          "seed": 20261020,
+          "upper": 95.4695652173913
+        },
+        "coverage": 100.0,
+        "earned": 4128,
+        "eligible": 4600,
+        "eligible_assets": 25,
+        "eligible_attempts": 100,
+        "lower_bound": 89.45217391304348,
+        "measured": 4600,
+        "measured_attempts": 100,
+        "measurement_coverage": 100.0,
+        "not_applicable_attempts": 0,
+        "score": 89.45217391304348,
+        "status": "measured",
+        "unknown_attempts": 0,
+        "unknown_eligibility_attempts": 0,
+        "upper_bound": 89.45217391304348
+      },
+      "kinematic": {
+        "confidence_interval": null,
+        "coverage": null,
+        "earned": null,
+        "eligible": null,
+        "eligible_assets": 16,
+        "eligible_attempts": 41,
+        "lower_bound": 2.4914585902287048,
+        "measured": null,
+        "measured_attempts": 41,
+        "measurement_coverage": null,
+        "not_applicable_attempts": 29,
+        "score": null,
+        "status": "unknown",
+        "unknown_attempts": 30,
+        "unknown_eligibility_attempts": 30,
+        "upper_bound": 2.4914585902287048
+      },
+      "visual": {
+        "confidence_interval": null,
+        "coverage": 70.0,
+        "earned": null,
+        "eligible": 170,
+        "eligible_assets": 25,
+        "eligible_attempts": 100,
+        "lower_bound": 6.711749315761423,
+        "measured": 140,
+        "measured_attempts": 70,
+        "measurement_coverage": 82.3529411764706,
+        "not_applicable_attempts": 0,
+        "score": null,
+        "status": "unknown",
+        "unknown_attempts": 30,
+        "unknown_eligibility_attempts": 0,
+        "upper_bound": 36.71174931576142
+      }
+    },
+    "efficiency": {
+      "formal": {
+        "per_elapsed_minute": {
+          "confidence_interval": {
+            "asset_count": 25,
+            "level": 0.95,
+            "lower": 6.782673026290645,
+            "method": "asset_cluster_bootstrap_percentile",
+            "resamples": 10000,
+            "seed": 20261020,
+            "upper": 8.186161746951248
+          },
+          "denominator": "mean_elapsed_seconds_per_measured_eligible_attempt",
+          "denominator_mean": 716.4637755229743,
+          "eligible_assets": 25,
+          "eligible_attempts": 100,
+          "measured_assets": 25,
+          "measured_attempts": 100,
+          "multiplier": 60,
+          "paired_score_mean": 89.45217391304348,
+          "status": "measured",
+          "total_attempts": 100,
+          "unit": "fidelity points per elapsed minute",
+          "usage_coverage_complete": true,
+          "value": 7.491139982429587
+        },
+        "per_inference_usd": {
+          "confidence_interval": null,
+          "denominator": "mean_inference_cost_usd_per_measured_eligible_attempt",
+          "denominator_mean": null,
+          "eligible_assets": 25,
+          "eligible_attempts": 100,
+          "measured_assets": 0,
+          "measured_attempts": 0,
+          "multiplier": 1,
+          "paired_score_mean": null,
+          "status": "unknown",
+          "total_attempts": 100,
+          "unit": "fidelity points per USD of pricing-derived inference cost",
+          "usage_coverage_complete": false,
+          "value": null
+        },
+        "per_million_tokens": {
+          "confidence_interval": {
+            "asset_count": 25,
+            "level": 0.95,
+            "lower": 66.561007667304,
+            "method": "asset_cluster_bootstrap_percentile",
+            "resamples": 10000,
+            "seed": 20261020,
+            "upper": 84.79513296582758
+          },
+          "denominator": "mean_total_tokens_per_measured_eligible_attempt",
+          "denominator_mean": 1199033.2727272727,
+          "eligible_assets": 25,
+          "eligible_attempts": 100,
+          "measured_assets": 25,
+          "measured_attempts": 99,
+          "multiplier": 1000000,
+          "paired_score_mean": 90.35573122529644,
+          "status": "measured",
+          "total_attempts": 100,
+          "unit": "fidelity points per million tokens",
+          "usage_coverage_complete": false,
+          "value": 75.35715086519404
+        }
+      },
+      "kinematic": {
+        "per_elapsed_minute": {
+          "confidence_interval": {
+            "asset_count": 16,
+            "level": 0.95,
+            "lower": 7.884437113239107e-05,
+            "method": "asset_cluster_bootstrap_percentile",
+            "resamples": 10000,
+            "seed": 20261020,
+            "upper": 0.5932947316953672
+          },
+          "denominator": "mean_elapsed_seconds_per_measured_eligible_attempt",
+          "denominator_mean": 778.5678835625692,
+          "eligible_assets": 16,
+          "eligible_attempts": 41,
+          "measured_assets": 16,
+          "measured_attempts": 41,
+          "multiplier": 60,
+          "paired_score_mean": 2.4914585902287048,
+          "status": "measured",
+          "total_attempts": 100,
+          "unit": "fidelity points per elapsed minute",
+          "usage_coverage_complete": true,
+          "value": 0.19200318760863555
+        },
+        "per_inference_usd": {
+          "confidence_interval": null,
+          "denominator": "mean_inference_cost_usd_per_measured_eligible_attempt",
+          "denominator_mean": null,
+          "eligible_assets": 16,
+          "eligible_attempts": 41,
+          "measured_assets": 0,
+          "measured_attempts": 0,
+          "multiplier": 1,
+          "paired_score_mean": null,
+          "status": "unknown",
+          "total_attempts": 100,
+          "unit": "fidelity points per USD of pricing-derived inference cost",
+          "usage_coverage_complete": false,
+          "value": null
+        },
+        "per_million_tokens": {
+          "confidence_interval": {
+            "asset_count": 16,
+            "level": 0.95,
+            "lower": 0.000704903343787002,
+            "method": "asset_cluster_bootstrap_percentile",
+            "resamples": 10000,
+            "seed": 20261020,
+            "upper": 6.01567835050239
+          },
+          "denominator": "mean_total_tokens_per_measured_eligible_attempt",
+          "denominator_mean": 1361855.2,
+          "eligible_assets": 16,
+          "eligible_attempts": 41,
+          "measured_assets": 16,
+          "measured_attempts": 40,
+          "multiplier": 1000000,
+          "paired_score_mean": 2.5537450549844225,
+          "status": "measured",
+          "total_attempts": 100,
+          "unit": "fidelity points per million tokens",
+          "usage_coverage_complete": false,
+          "value": 1.8751957293142638
+        }
+      },
+      "visual": {
+        "per_elapsed_minute": {
+          "confidence_interval": {
+            "asset_count": 25,
+            "level": 0.95,
+            "lower": 0.45094715779084715,
+            "method": "asset_cluster_bootstrap_percentile",
+            "resamples": 10000,
+            "seed": 20261020,
+            "upper": 1.1702689683511678
+          },
+          "denominator": "mean_elapsed_seconds_per_measured_eligible_attempt",
+          "denominator_mean": 720.7414003529336,
+          "eligible_assets": 25,
+          "eligible_attempts": 100,
+          "measured_assets": 25,
+          "measured_attempts": 70,
+          "multiplier": 60,
+          "paired_score_mean": 9.588213308230605,
+          "status": "measured",
+          "total_attempts": 100,
+          "unit": "fidelity points per elapsed minute",
+          "usage_coverage_complete": false,
+          "value": 0.7981958552847473
+        },
+        "per_inference_usd": {
+          "confidence_interval": null,
+          "denominator": "mean_inference_cost_usd_per_measured_eligible_attempt",
+          "denominator_mean": null,
+          "eligible_assets": 25,
+          "eligible_attempts": 100,
+          "measured_assets": 0,
+          "measured_attempts": 0,
+          "multiplier": 1,
+          "paired_score_mean": null,
+          "status": "unknown",
+          "total_attempts": 100,
+          "unit": "fidelity points per USD of pricing-derived inference cost",
+          "usage_coverage_complete": false,
+          "value": null
+        },
+        "per_million_tokens": {
+          "confidence_interval": {
+            "asset_count": 25,
+            "level": 0.95,
+            "lower": 4.560932726577489,
+            "method": "asset_cluster_bootstrap_percentile",
+            "resamples": 10000,
+            "seed": 20261020,
+            "upper": 12.149827637701637
+          },
+          "denominator": "mean_total_tokens_per_measured_eligible_attempt",
+          "denominator_mean": 1191707.9855072463,
+          "eligible_assets": 25,
+          "eligible_attempts": 100,
+          "measured_assets": 25,
+          "measured_attempts": 69,
+          "multiplier": 1000000,
+          "paired_score_mean": 9.727172921393368,
+          "status": "measured",
+          "total_attempts": 100,
+          "unit": "fidelity points per million tokens",
+          "usage_coverage_complete": false,
+          "value": 8.162379575943708
+        }
+      }
+    },
+    "fidelity": {
+      "joints": {
+        "coverage": null,
+        "earned": null,
+        "eligible": null,
+        "eligible_attempts": 28,
+        "lower_bound": 34.944348794175596,
+        "measured": null,
+        "measured_attempts": 28,
+        "measurement_coverage": null,
+        "not_applicable_attempts": 42,
+        "score": null,
+        "status": "unknown",
+        "unknown_attempts": 30,
+        "unknown_eligibility_attempts": 30,
+        "upper_bound": 34.944348794175596
+      },
+      "materials": {
+        "coverage": null,
+        "earned": null,
+        "eligible": null,
+        "eligible_attempts": 70,
+        "lower_bound": 8.278514182059883,
+        "measured": null,
+        "measured_attempts": 70,
+        "measurement_coverage": null,
+        "not_applicable_attempts": 0,
+        "score": null,
+        "status": "unknown",
+        "unknown_attempts": 30,
+        "unknown_eligibility_attempts": 30,
+        "upper_bound": 8.278514182059883
+      },
+      "rigid_parts": {
+        "coverage": null,
+        "earned": null,
+        "eligible": null,
+        "eligible_attempts": 70,
+        "lower_bound": 28.89083970091531,
+        "measured": null,
+        "measured_attempts": 70,
+        "measurement_coverage": null,
+        "not_applicable_attempts": 0,
+        "score": null,
+        "status": "unknown",
+        "unknown_attempts": 30,
+        "unknown_eligibility_attempts": 30,
+        "upper_bound": 28.89083970091531
+      },
+      "shape": {
+        "coverage": null,
+        "earned": null,
+        "eligible": null,
+        "eligible_attempts": 70,
+        "lower_bound": 37.19489499006607,
+        "measured": null,
+        "measured_attempts": 70,
+        "measurement_coverage": null,
+        "not_applicable_attempts": 0,
+        "score": null,
+        "status": "unknown",
+        "unknown_attempts": 30,
+        "unknown_eligibility_attempts": 30,
+        "upper_bound": 37.19489499006607
+      }
+    },
+    "harness": "pi",
+    "inference_requests_per_attempt": 64,
+    "mandatory": {
+      "completion_bonus": 4.2,
+      "coverage": 100.0,
+      "eligible": 4600,
+      "failed": 472,
+      "lower_bound": 89.45217391304348,
+      "measured": 4600,
+      "measured_attempts": 100,
+      "passed": 4128,
+      "reported_attempts": 100,
+      "score": 89.45217391304348,
+      "unknown": 0,
+      "unknown_attempts": 0,
+      "upper_bound": 89.45217391304348
+    },
+    "max_output_tokens": 4096,
+    "model": "zai-org/GLM-5.3-Flash:baseten",
+    "optional": {
+      "confidence_interval": null,
+      "coverage": 90.0,
+      "eligible": 5100,
+      "eligible_assets": 25,
+      "failed": 1388,
+      "lower_bound": 62.78431372549019,
+      "measured": 4590,
+      "measured_attempts": 90,
+      "passed": 3202,
+      "reported_attempts": 100,
+      "score": null,
+      "unknown": 510,
+      "unknown_attempts": 10,
+      "upper_bound": 72.7843137254902
+    },
+    "output_limit": "bounded",
+    "profile": {
+      "id": "Robotics-Prop",
+      "version": "4.0.0"
+    },
+    "reasoning_effort": "low",
+    "reference_count": 25,
+    "reference_revision": "f4860aa0c75607adb50a78bf96e77510bffc040f",
+    "reference_set": "NV25",
+    "repetitions": 4,
+    "results_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/main/runs/nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021/report.html",
+    "skills": [],
+    "success": {
+      "mandatory_pass_per_attempt": {
+        "measured": 100,
+        "passed": 84,
+        "percent": 84.0,
+        "total": 100
+      },
+      "mandatory_pass_within_four": {
+        "measured": 25,
+        "passed": 25,
+        "percent": 100.0,
+        "total": 25
+      }
+    },
+    "usage": {
+      "compute_cost_usd": {
+        "mean": null,
+        "measured_attempts": 0,
+        "measured_mean": null,
+        "measured_total": null,
+        "total": null,
+        "total_attempts": 100
+      },
+      "elapsed_seconds": {
+        "mean": 716.4637755229743,
+        "measured_attempts": 100,
+        "measured_mean": 716.4637755229743,
+        "measured_total": 71646.37755229743,
+        "total": 71646.37755229743,
+        "total_attempts": 100
+      },
+      "inference_calls_used": {
+        "mean": 48.16,
+        "measured_attempts": 100,
+        "measured_mean": 48.16,
+        "measured_total": 4816,
+        "total": 4816,
+        "total_attempts": 100
+      },
+      "inference_cost_usd": {
+        "mean": null,
+        "measured_attempts": 0,
+        "measured_mean": null,
+        "measured_total": null,
+        "total": null,
+        "total_attempts": 100
+      },
+      "input_tokens": {
+        "mean": null,
+        "measured_attempts": 99,
+        "measured_mean": 1178250.7878787878,
+        "measured_total": 116646828,
+        "total": null,
+        "total_attempts": 100
+      },
+      "model_request_errors": {
+        "mean": null,
+        "measured_attempts": 99,
+        "measured_mean": 0,
+        "measured_total": 0,
+        "total": null,
+        "total_attempts": 100
+      },
+      "model_request_seconds": {
+        "mean": null,
+        "measured_attempts": 99,
+        "measured_mean": 664.0546596875295,
+        "measured_total": 65741.41130906541,
+        "total": null,
+        "total_attempts": 100
+      },
+      "output_tokens": {
+        "mean": null,
+        "measured_attempts": 99,
+        "measured_mean": 20782.484848484848,
+        "measured_total": 2057466,
+        "total": null,
+        "total_attempts": 100
+      },
+      "total_cost_usd": {
+        "mean": null,
+        "measured_attempts": 0,
+        "measured_mean": null,
+        "measured_total": null,
+        "total": null,
+        "total_attempts": 100
+      },
+      "total_tokens": {
+        "mean": null,
+        "measured_attempts": 99,
+        "measured_mean": 1199033.2727272727,
+        "measured_total": 118704294,
+        "total": null,
+        "total_attempts": 100
+      },
+      "validation_calls_used": {
+        "mean": 3.93,
+        "measured_attempts": 100,
+        "measured_mean": 3.93,
+        "measured_total": 393,
+        "total": 393,
+        "total_attempts": 100
+      }
+    }
+  },
+  "schema": "simreadybench-leaderboard-snapshot/v1",
+  "source": {
+    "dataset": "hcltech-robotics/simreadybench",
+    "leaderboard_path": "leaderboard.json",
+    "revision": "dd48ce4bb201a6bfd5b30250937203b7682652b4"
+  }
+}

@@ -43,6 +43,7 @@ HF_PRICING = MappingProxyType(
         "meta-models/Muse-Spark-Open-816B-A42B:baseten": HFPrice(1048576, "1.25", "4.25"),
         "zai-org/GLM-4.6V-Flash:novita": HFPrice(131072, "0.30", "0.90"),
         "zai-org/GLM-5.3-Flash:baseten": HFPrice(1048576, "0.15", "0.50"),
+        "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten": HFPrice(1048576, "0.20", "0.50"),
         "stepfun-ai/Step-3.7-Flash:deepinfra": HFPrice(262144, "0.20", "1.15"),
     }
 )

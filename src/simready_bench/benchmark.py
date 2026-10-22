@@ -357,11 +357,14 @@ def compose_experiment(
     authoring_turns=DEFAULT_AUTHORING_TURNS,
     max_output_tokens=None,
     tool_protocol='legacy',
+    continue_on_length=False,
 ):
     from simready_bench.engine.native_output import validate_output_cap
 
     validate_output_cap(max_output_tokens)
-    protocol = authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol)
+    protocol = authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol, continue_on_length=continue_on_length)
+    if continue_on_length and harness != 'pi':
+        raise ValueError('Continuation after length requires the Pi harness')
     if type(repetitions) is not int or not 1 <= repetitions <= 1000:
         raise ValueError("Repetitions must be between 1 and 1000")
     result = copy.deepcopy(manifest)
@@ -754,7 +757,7 @@ def publish_report(work_dir, output_dir, *, results):
     return report
 
 
-def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=None):
+def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=None, workers=1, _inputs_prepared=False):
     """Acquire references, run the Harbor matrix and export scores and captures."""
     from simready_bench.config import resolve_experiment, validate_policy
     from simready_bench.preparation import write_json
@@ -768,7 +771,7 @@ def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=No
         if work_dir
         else Path("/dev/shm") / ("srb-" + uuid4().hex[:10])
     )
-    if manifest.get("source"):
+    if not _inputs_prepared and manifest.get("source"):
         try:
             import_source(
                 manifest["source"], base_dir=output, assets_root=policy["roots"]["assets"]
@@ -776,7 +779,8 @@ def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=No
         except Exception as error:
             error._simready_source_acquisition_failure = True
             raise
-    prepare_source_views(manifest, policy, output)
+    if not _inputs_prepared:
+        prepare_source_views(manifest, policy, output)
     (output / "experiment.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
@@ -802,6 +806,8 @@ def execute_local(manifest, *, policy, output_dir, work_dir=None, on_progress=No
         progress_options = (
             {"on_progress": on_progress} if on_progress is not None else {}
         )
+        if workers != 1:
+            progress_options["workers"] = workers
         result = runner.run(resolved, work_dir=work, policy=trusted, **progress_options)
     except Exception as error:
         result = getattr(error, "result", None)
@@ -860,7 +866,10 @@ def _aggregate_reports(
             ) != str(Path(report["results"]).absolute()):
                 continue
             row = copy.deepcopy(source)
-            if spec is not None and row.get('status') == 'completed':
+            # Canonical rows may already be published without an attempt receipt.
+            # Resuming must retain that provenance identity as well as the score.
+            if (spec is not None and row.get('status') == 'completed'
+                    and (attempt != output or row.get('execution_provenance'))):
                 from simready_bench.provenance import (
                     build_attempt_provenance, load_attempt_provenance,
                     provenance_fields, write_attempt_provenance,
@@ -997,6 +1006,7 @@ def execute_local_sequential(
     work_dir=None,
     on_progress=None,
     on_asset_start=None,
+    _inputs_prepared=False,
 ):
     """Evaluate each reference, export its artefacts and release temporary data."""
     output = _absolute(output_dir)
@@ -1064,6 +1074,8 @@ def execute_local_sequential(
             progress_options = (
                 {"on_progress": on_progress} if on_progress is not None else {}
             )
+            if _inputs_prepared:
+                progress_options["_inputs_prepared"] = True
             value = execute_local(
                 experiment,
                 policy=policy,
@@ -1195,10 +1207,13 @@ def freeze_execution_spec(output, manifest, policy, *, wheel=None, runtime_image
     output = Path(output)
     normalized = copy.deepcopy(manifest)
     for skill in normalized.get('skill_sets', []):
-        skill['closure'] = _closure(Path(policy['roots']['skills']), skill.get('paths', []), 'skills', allow_directories=True)
+        skill['closure'] = _closure(Path(policy['roots']['skills']), skill.get('paths', []), 'skill', allow_directories=True)
     for asset in normalized.get('assets', []):
         if (Path(policy['roots']['assets']) / asset['usd']).is_file():
-            asset['closure'] = _closure(Path(policy['roots']['assets']), [asset['usd'], *asset.get('dependencies', [])], 'reference')
+            asset['closure'] = _closure(Path(policy['roots']['assets']), [asset['usd'], *asset.get('dependencies', [])], 'asset')
+            asset['input_view_closure'] = _closure(
+                Path(policy['roots']['input_views']), asset.get('input_views', []), 'input view'
+            )
     conditions = []
     plan = condition_plan(manifest)
     for asset, harness, model, skill in itertools.product(*(manifest[key] for key in ('assets', 'harnesses', 'models', 'skill_sets'))):
@@ -1223,7 +1238,7 @@ def freeze_execution_spec(output, manifest, policy, *, wheel=None, runtime_image
 
 
 def execute_local_reported(
-    manifest, *, policy, output_dir, work_dir=None, on_report=None
+    manifest, *, policy, output_dir, work_dir=None, on_report=None, workers=1, _inputs_prepared=False
 ):
     """Export and announce each reconstruction while the local run continues."""
     from simready_bench.controller_runner import ControllerReporter
@@ -1252,8 +1267,12 @@ def execute_local_reported(
                     flush=True,
                 )
 
-    execute = execute_local_sequential if len(manifest["assets"]) > 1 else execute_local
+    execute = execute_local_sequential if len(manifest["assets"]) > 1 and workers == 1 else execute_local
     options = {"on_progress": progress}
+    if _inputs_prepared:
+        options["_inputs_prepared"] = True
+    if workers != 1:
+        options["workers"] = workers
     if execute is execute_local_sequential:
         options["on_asset_start"] = reporter.asset_started
     try:
@@ -1295,6 +1314,7 @@ def benchmark(
     authoring_turns=None,
     max_output_tokens=None,
     tool_protocol=None,
+    continue_on_length=False,
     provider=None,
     api_key_env=None,
     model_metadata=None,
@@ -1321,8 +1341,6 @@ def benchmark(
     if not dispatch_pending and not resume:
         raise ValueError("Collecting existing executors requires resume")
     validate_workers(workers)
-    if deploy == "local" and workers > 1:
-        raise ValueError("Parallel workers require Daytona deployment")
     if resume:
         from simready_bench.resume import resume_benchmark
 
@@ -1339,6 +1357,7 @@ def benchmark(
             authoring_turns=authoring_turns,
             max_output_tokens=max_output_tokens,
             tool_protocol=tool_protocol,
+            continue_on_length=continue_on_length,
             provider=provider,
             api_key_env=api_key_env,
             model_metadata=model_metadata,
@@ -1358,7 +1377,9 @@ def benchmark(
         )
     authoring_turns = DEFAULT_AUTHORING_TURNS if authoring_turns is None else authoring_turns
     tool_protocol = ('bounded-v1' if harness == 'pi' else 'legacy') if tool_protocol is None else tool_protocol
-    authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol)
+    authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol, continue_on_length=continue_on_length)
+    if continue_on_length and harness != 'pi':
+        raise ValueError('Continuation after length requires the Pi harness')
     authoring_protocol(authoring_turns, max_output_tokens)
     output = _absolute(output_dir)
     if output.exists() or output.is_symlink():
@@ -1488,6 +1509,7 @@ def benchmark(
         authoring_turns=authoring_turns,
         max_output_tokens=max_output_tokens,
         tool_protocol=tool_protocol,
+        continue_on_length=continue_on_length,
     )
     effective_policy = prepare_policy(
         output_dir=output,
@@ -1501,10 +1523,7 @@ def benchmark(
         max_output_tokens=max_output_tokens,
         maximum_attempts=maximum_attempts if original is None else 1,
     )
-    if deploy == "local" and any(
-        not asset.get("source_view") and not asset.get("input_views")
-        for asset in experiment["assets"]
-    ):
+    if deploy == "local":
         if experiment.get("source"):
             from simready_bench.sources import import_source
 
@@ -1514,6 +1533,10 @@ def benchmark(
                 assets_root=effective_policy["roots"]["assets"],
             )
         prepare_source_views(experiment, effective_policy, output)
+        freeze_execution_spec(
+            output, experiment, effective_policy,
+            wheel=wheel, runtime_images=images,
+        )
     (output / "experiment.json").write_text(
         json.dumps(experiment, indent=2) + "\n", encoding="utf-8"
     )
@@ -1564,6 +1587,8 @@ def benchmark(
                 output_dir=output,
                 work_dir=work_dir,
                 on_report=on_report,
+                _inputs_prepared=True,
+                **({"workers": workers} if workers != 1 else {}),
             )
     except Exception:
         if not max_retries:
@@ -1585,6 +1610,7 @@ def benchmark(
         authoring_turns=authoring_turns,
         max_output_tokens=max_output_tokens,
         tool_protocol=tool_protocol,
+        continue_on_length=continue_on_length,
         provider=provider,
         api_key_env=api_key_env,
         work_dir=work_dir,

@@ -44,6 +44,35 @@ class _InvalidCandidate(Exception):
     pass
 
 
+def inference_failed(result):
+    """Release a model-round reservation only on recorded inference failure."""
+    return isinstance(result, dict) and (
+        result.get("status") in {"transport_failed", "cancelled", "failed"}
+        or result.get("provider_error") is True
+        or (
+            result.get("upstream_status") is not None
+            and result["upstream_status"] != 200
+        )
+        or bool(
+            set(result.get("provider_response_statuses", ())) & {"failed", "cancelled"}
+        )
+        or "error" in result.get("provider_finish_reasons", ())
+    )
+
+
+def _inference_used(db, episode_id):
+    return sum(
+        (
+            not inference_failed(json.loads(row["result_json"]))
+            if row["result_json"] is not None else True
+        )
+        for row in db.execute(
+            "SELECT result_json FROM jobs WHERE episode_id=? AND kind='inference'",
+            (episode_id,),
+        )
+    )
+
+
 class _Connection(sqlite3.Connection):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -229,7 +258,7 @@ class Controller:
                 },
                 validation_calls_used=counts.get("validation", 0),
                 preview_calls_used=counts.get("preview", 0),
-                inference_calls_used=counts.get("inference", 0),
+                inference_calls_used=_inference_used(db, episode_id),
             )
 
     def start_episode(self, episode_id):
@@ -538,8 +567,11 @@ class Controller:
                 "SELECT count(*) FROM jobs WHERE episode_id=? AND kind=?",
                 (episode_id, kind),
             ).fetchone()[0]
-            if count >= episode[f"{kind}_limit"]:
+            used = _inference_used(db, episode_id) if kind == "inference" else count
+            if used >= episode[f"{kind}_limit"]:
                 raise AdmissionError(f"{kind}_budget_exhausted")
+            if kind == "inference" and count >= 4 * episode["inference_limit"]:
+                raise AdmissionError("inference_attempt_budget_exhausted")
             admitted_at = time.time()
             deadline_at = min(
                 episode["deadline_at"],
@@ -582,7 +614,7 @@ class Controller:
         return self._reserve(episode_id, request_id, "preview", snapshot)
 
     def reserve_inference(self, episode_id, request_id):
-        """Use a fresh ID for EVERY upstream attempt, including model retries/compaction."""
+        """Retain each transport attempt while reserving its potential model round."""
         return self._reserve(episode_id, request_id, "inference")
 
     def complete_job(self, job_id, result):

@@ -200,6 +200,8 @@ def test_recovered_request_requires_native_actor_submission_and_evaluation(tmp_p
             result["actor_stop_receipt"] = vars(bridge._controlled_receipts["episode"])
             complete_trial_result(result, native_result(None), normal_stop=True)
             assert result["status"] == expected
+            if stop == "error":
+                assert result["termination_reason"] == "inference_failed"
             if expected == "completed":
                 assert result["official_reward"] == 1
                 assert result["request_recovery"]["resolved_request_ids"] == ["old"]

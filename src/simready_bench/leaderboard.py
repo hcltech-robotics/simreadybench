@@ -204,7 +204,11 @@ def _output_policy(row, manifest, model, protocol):
         if cap is not None or limit == "bounded":
             raise ValueError("A bounded leaderboard output requires its authoring protocol")
         return {}
-    if authoring_protocol(authoring_turns(protocol), cap) != protocol:
+    if authoring_protocol(
+        authoring_turns(protocol), cap,
+        tool_protocol='bounded-v1' if '-tools-bounded-v1' in protocol else 'legacy',
+        continue_on_length=protocol.endswith('-continue-length-v1'),
+    ) != protocol:
         raise ValueError("A leaderboard output cap differs from its authoring protocol")
     expected_limit = "provider-native" if cap is None else "bounded"
     if limit not in (None, expected_limit) or (

@@ -1161,6 +1161,62 @@ def _verify_final_reconstruction_receipts(output, record):
     record["collected_reconstruction_manifests"] = verified
 
 
+def _validate_relay_ledger(relay, record):
+    fields = {
+        "model",
+        "generation_requests",
+        "input_counter_requests",
+        "maximum_requests",
+        "maximum_condition_requests",
+        "expires_at",
+        "events",
+        "condition_generation_requests",
+        "condition_input_counter_requests",
+        "condition_limits",
+    }
+    version_two = relay.get("accounting_version") == 2
+    if version_two:
+        fields |= {"accounting_version", "model_calls", "condition_model_calls", "maximum_transport_requests"}
+        if set(relay) != fields:
+            raise ValueError("The retained relay ledger changed its original scope")
+        if (
+            type(relay["maximum_transport_requests"]) is not int
+            or relay["maximum_transport_requests"] != 4 * record["planned_requests"]
+            or type(relay["model_calls"]) is not int
+            or not 0 <= relay["model_calls"] <= record["planned_requests"]
+            or not isinstance(relay["condition_model_calls"], dict)
+            or any(
+                scope not in relay["condition_limits"] or type(count) is not int
+                or not 0 <= count <= relay["condition_limits"][scope]
+                for scope, count in relay["condition_model_calls"].items()
+            )
+            or sum(relay["condition_model_calls"].values()) > relay["model_calls"]
+        ):
+            raise ValueError("The retained relay model call counters are invalid")
+    if (
+        set(relay) != fields
+        or relay["maximum_requests"] != record["planned_requests"]
+        or any(
+            key in record and record[key] != relay[field]
+            for key, field in (
+                ("model", "model"),
+                ("maximum_condition_requests", "maximum_condition_requests"),
+                ("parent_expires_at", "expires_at"),
+            )
+        )
+    ):
+        raise ValueError("The retained relay ledger changed its original scope")
+    for field, multiplier in (
+        ("generation_requests", 4 if version_two else 1),
+        ("input_counter_requests", 4),
+    ):
+        if (
+            type(relay[field]) is not int
+            or not 0 <= relay[field] <= multiplier * relay["maximum_requests"]
+        ):
+            raise ValueError("The retained relay request counters are invalid")
+
+
 def _collect_executor(sandbox, record, output, *, clean, save):
     """Download only final output, controller records and the allowance ledger."""
     incoming = output / (".daytona-collection-" + uuid4().hex)
@@ -1184,40 +1240,7 @@ def _collect_executor(sandbox, record, output, *, clean, save):
             if relay_path.stat().st_size > 32 * 1024**2:
                 raise ValueError("The retained relay ledger exceeds its size bound")
             relay = json.loads(relay_path.read_bytes())
-            fields = {
-                "model",
-                "generation_requests",
-                "input_counter_requests",
-                "maximum_requests",
-                "maximum_condition_requests",
-                "expires_at",
-                "events",
-                "condition_generation_requests",
-                "condition_input_counter_requests",
-                "condition_limits",
-            }
-            if (
-                set(relay) != fields
-                or relay["maximum_requests"] != record["planned_requests"]
-                or any(
-                    key in record and record[key] != relay[field]
-                    for key, field in (
-                        ("model", "model"),
-                        ("maximum_condition_requests", "maximum_condition_requests"),
-                        ("parent_expires_at", "expires_at"),
-                    )
-                )
-            ):
-                raise ValueError("The retained relay ledger changed its original scope")
-            for field, multiplier in (
-                ("generation_requests", 1),
-                ("input_counter_requests", 4),
-            ):
-                if (
-                    type(relay[field]) is not int
-                    or not 0 <= relay[field] <= multiplier * relay["maximum_requests"]
-                ):
-                    raise ValueError("The retained relay request counters are invalid")
+            _validate_relay_ledger(relay, record)
             digest = hashlib.sha256(relay_path.read_bytes()).hexdigest()
             accounting = staged / "output/accounting"
             accounting.mkdir(parents=True, mode=0o700, exist_ok=True)
@@ -1713,6 +1736,7 @@ def run_daytona(
     runtime_images=None,
     on_report=None,
     stop_requested=None,
+    shared_route_throttle=None,
 ):
     """Run the full matrix remotely, retain its report and remove the executor."""
     from daytona import (
@@ -1824,6 +1848,7 @@ def run_daytona(
         _json(delivery, record)
 
     client = Daytona(DaytonaConfig(api_key=key))
+    owns_route_throttle = False
     # Reserve all planned requests before deriving a child or creating compute.
     record["parent_allocation"] = ParentAuthorityLedger(
         policy["runtime"]["authority_state_dir"]
@@ -1852,6 +1877,16 @@ def run_daytona(
         collected = True
 
     try:
+        if shared_route_throttle is None:
+            from .daytona_route_throttle import ensure_route_throttle, requires_route_throttle
+
+            if requires_route_throttle(policy=policy, manifest=manifest):
+                shared_route_throttle = ensure_route_throttle(
+                    policy=policy, manifest=manifest, client=client,
+                    cpu_snapshot=cpu_snapshot, runtime_images=runtime_images,
+                    output_dir=output,
+                )
+                owns_route_throttle = True
         sandbox = client.create(
             CreateSandboxFromSnapshotParams(
                 name="simready-benchmark-" + run_id[:12],
@@ -1904,6 +1939,17 @@ def run_daytona(
             ],
             "expires_at": parent.expires_at,
         }
+        if shared_route_throttle is not None:
+            from . import route_throttle
+
+            sandbox.fs.upload_file(
+                str(Path(route_throttle.__file__)),
+                "/run/simready-benchmark/route_throttle.py",
+            )
+            relay_config["shared_route_throttle"] = {
+                key: shared_route_throttle[key]
+                for key in ("url", "token", "route_key", "preview_token")
+            }
         sandbox.fs.upload_file(
             json.dumps(relay_config).encode(), "/run/simready-benchmark/provider.json"
         )
@@ -2079,6 +2125,13 @@ def run_daytona(
             except DaytonaObservationError:
                 record["cleanup_confirmed"] = False
         record["seconds"] = time.monotonic() - started
+        if owns_route_throttle and (record.get("cleanup_confirmed") or sandbox is None):
+            from .daytona_route_throttle import release_route_throttle
+
+            try:
+                release_route_throttle(shared_route_throttle, owner=output, client=client)
+            except Exception as error:
+                record["route_throttle_cleanup_error"] = type(error).__name__
         save()
         if collected and result is not None:
             publication_failed = not _notify_report(
