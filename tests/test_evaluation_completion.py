@@ -41,6 +41,7 @@ def test_missing_capture_blocks_completion_but_empty_candidate_is_explicitly_ina
     value['images'].pop()
     assert evaluation_completion(value, captures_enabled=True, views=['front'])['missing'] == ['captures']
     value['fidelity']['alignment'] = None
+    value['fidelity']['components']['shape']['score_percent'] = 0
     state = evaluation_completion(value, captures_enabled=True, views=['front'])
     assert state['complete']
     assert state['captures'] == 'not_applicable_no_alignable_candidate'
@@ -74,5 +75,16 @@ def test_current_worker_failure_cannot_enter_leaderboard():
 
     manifest, result = run()
     result['results'][0]['fidelity'] = {'status': 'unknown', 'error_type': 'RuntimeError'}
+    with pytest.raises(ValueError, match='Every applicable fidelity measurement'):
+        leaderboard_entry(result, manifest=manifest, results_url='https://example.org/results')
+
+
+def test_omitted_fidelity_cannot_bypass_admission_or_runtime_defaults():
+    from test_leaderboard import run
+    from simready_bench.leaderboard import leaderboard_entry
+
+    manifest, result = run()
+    manifest['defaults'].pop('fidelity')
+    result['results'][0].pop('fidelity')
     with pytest.raises(ValueError, match='Every applicable fidelity measurement'):
         leaderboard_entry(result, manifest=manifest, results_url='https://example.org/results')

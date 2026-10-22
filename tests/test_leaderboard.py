@@ -16,6 +16,7 @@ def run():
     )
     manifest["repetitions"] = 4
     manifest["defaults"]["generation"]["reasoning_effort"] = "medium"
+    manifest['defaults']['illustrations']['renderer'] = 'none'
     rows = []
     for asset in manifest["assets"]:
         for repetition in range(4):
@@ -49,7 +50,9 @@ def run():
                         },
                     },
                     "fidelity": {
+                        'status': 'measured',
                         "components": {
+                            'kinematics': {'status': 'not_applicable', 'score_percent': None},
                             "shape": {
                                 "score_percent": 50,
                                 "earned": 0.5,
@@ -303,10 +306,10 @@ def test_unknown_optional_attempt_preserves_bounds_without_averaging_it_away():
 def test_missing_fidelity_eligibility_is_unknown_rather_than_inapplicable():
     manifest, result = run()
     del result["results"][0]["fidelity"]["components"]["shape"]
-    entry = leaderboard_entry(
-        result, manifest=manifest, results_url="https://example.org/results"
-    )
-    shape = entry["fidelity"]["shape"]
+    with pytest.raises(ValueError, match='Every applicable fidelity measurement'):
+        leaderboard_entry(result, manifest=manifest, results_url='https://example.org/results')
+    from simready_bench.leaderboard import _fidelity_summary
+    shape = _fidelity_summary([row['fidelity']['components'].get('shape', {}) for row in result['results']])
     assert shape["score"] is None
     assert shape["coverage"] is None
     assert shape["eligible"] is None

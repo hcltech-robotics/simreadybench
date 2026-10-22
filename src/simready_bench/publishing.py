@@ -553,8 +553,13 @@ def _stage_row(row, source, stage):
 
     public["composite_scores"] = composite_scores(row)
     comparison = _comparison_metadata(row)
+    illustrations = {key: deepcopy(row['illustrations'][key]) for key in (
+        'status', 'renderer', 'renderer_plugin', 'renderer_memory_mb', 'warnings',
+    ) if key in (row.get('illustrations') or {})}
     if comparison is not None:
-        public["illustrations"] = comparison
+        illustrations.update(comparison)
+    if illustrations:
+        public['illustrations'] = illustrations
     public["candidate"] = _stage_candidate(row["candidate"], source, stage, prefix)
     public["images"], public["traces"] = [], []
     for kind in ("images", "traces"):

@@ -429,6 +429,7 @@ def compact_report(value):
                     "status",
                     "renderer",
                     "renderer_plugin",
+                    "renderer_memory_mb",
                     "rig",
                     "rig_sha256",
                     "scoring",

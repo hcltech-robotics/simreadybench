@@ -84,3 +84,29 @@ def test_repair_rejects_unbound_authority(publication, damage):
         request['condition_ids'] = []
     with pytest.raises(ValueError, match='Explicit evaluation recovery'):
         _evaluation_recovery(previous, previous, request, 'head-1')
+
+
+def test_publisher_retains_render_status_when_checking_capture_completion(publication):
+    import hashlib
+    from test_publishing import _png
+    from test_publication_metadata import with_comparison, rig_hash
+
+    manifest, report, hub, row, save = publication
+    manifest['defaults']['fidelity'] = {'enabled': True}
+    manifest['defaults']['illustrations'] = {'renderer': 'storm-llvmpipe', 'views': ['front']}
+    value = with_comparison(row())
+    value['illustrations'].update(status='rendered', renderer='storm-llvmpipe')
+    rig = value['illustrations']['rig']
+    rig['views'] = {'front': rig['views']['front']}
+    value['illustrations']['rig_sha256'] = rig_hash(rig)
+    raw = _png()
+    (report / 'evidence/matched.png').write_bytes(raw)
+    value['images'] = [{**value['images'][0], 'view': role + ' / front',
+                        'sha256': hashlib.sha256(raw).hexdigest(), 'bytes': len(raw)}
+                       for role in ('reference', 'candidate')]
+    publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
+    publisher(save([value]))
+    public = json.loads(hub.files['runs/run-a/results.json'])
+    assert public['results'][0]['illustrations']['status'] == 'rendered'
+    assert public['results'][0]['evaluation_completion']['complete']
+    assert public['evaluated_conditions'] == 1

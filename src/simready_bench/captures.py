@@ -129,6 +129,10 @@ def _render_final(condition, cfg, runtime, snapshot, root, *, alignment=None):
             "status": "unavailable",
             "warnings": ["Operator has not bound an immutable CPU illustration image."],
         }
+    memory_mb = runtime.get('illustration_memory_mb', 4096)
+    if type(memory_mb) is not int or not 512 <= memory_mb <= 16384:
+        raise ValueError('Bounded illustration memory between 512 and 16384 MiB required')
+    base['renderer_memory_mb'] = memory_mb
     if "validator_reference" not in cfg:
         return {
             **base,
@@ -179,7 +183,7 @@ def _render_final(condition, cfg, runtime, snapshot, root, *, alignment=None):
         "--cpus",
         "2",
         "--memory",
-        "2g",
+        str(memory_mb) + 'm',
         "--shm-size",
         "256m",
         "--tmpfs",

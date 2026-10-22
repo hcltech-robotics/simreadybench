@@ -18,7 +18,9 @@ def evaluation_completion(row, *, fidelity_enabled=True, captures_enabled=False,
     capture_status = 'disabled'
     if captures_enabled:
         if fidelity.get('status') == 'measured' and (
-            fidelity.get('candidate_invalid') is True or fidelity.get('alignment') is None
+            fidelity.get('candidate_invalid') is True
+            or ('alignment' in fidelity and fidelity['alignment'] is None
+                and fidelity.get('components', {}).get('shape', {}).get('score_percent') == 0)
         ):
             capture_status = 'not_applicable_no_alignable_candidate'
         else:
