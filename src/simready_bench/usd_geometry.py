@@ -146,15 +146,23 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
             return None
         return {**template, "uv": coords}
 
+    def shader_input_value(shader, name, default=None):
+        # Shader inputs are ordinary authored properties, not guaranteed schema
+        # attributes. Calling Get() on a missing UsdShade.Input can raise a Tf
+        # error before the independent geometry and joint metrics are computed.
+        value = shader.GetInput(name)
+        value = value.Get() if value else None
+        return default if value is None else value
+
     def texture_descriptor(inp):
         source = inp.GetConnectedSource()
         if not source:
             return None
         node = UsdShade.Shader(source[0].GetPrim())
         channel = str(source[1])
-        if node.GetIdAttr().Get() != "UsdUVTexture":
+        if not node or node.GetIdAttr().Get() != "UsdUVTexture":
             return None
-        asset = node.GetInput("file").Get()
+        asset = shader_input_value(node, "file")
         resolved = getattr(asset, "resolvedPath", "")
         if not resolved:
             return None
@@ -169,14 +177,18 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
         )
         if not file.is_relative_to(allowed):
             return None
-        st = node.GetInput("st").GetConnectedSource()
+        st_input = node.GetInput("st")
+        st = st_input.GetConnectedSource() if st_input else None
         if not st:
             return None
         reader = UsdShade.Shader(st[0].GetPrim())
-        if reader.GetIdAttr().Get() != "UsdPrimvarReader_float2":
+        if not reader or reader.GetIdAttr().Get() != "UsdPrimvarReader_float2":
             return None
-        name = str(reader.GetInput("varname").Get())
-        colour_space = str(node.GetInput("sourceColorSpace").Get() or "auto")
+        name = shader_input_value(reader, "varname")
+        if not name:
+            return None
+        name = str(name)
+        colour_space = str(shader_input_value(node, "sourceColorSpace", "auto"))
         cache_key = (str(file), colour_space)
         if cache_key not in texture_cache:
             from PIL import Image
@@ -199,12 +211,13 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
         if channels is None:
             return None
         wrap = [
-            str(node.GetInput("wrap" + axis).Get() or "repeat") for axis in ("S", "T")
+            str(shader_input_value(node, "wrap" + axis, "repeat"))
+            for axis in ("S", "T")
         ]
         if any(w not in ("repeat", "clamp") for w in wrap):
             return None
-        scale = node.GetInput("scale").Get()
-        bias = node.GetInput("bias").Get()
+        scale = shader_input_value(node, "scale")
+        bias = shader_input_value(node, "bias")
         return name, {
             "texture": texture_cache[cache_key],
             "channels": channels,
