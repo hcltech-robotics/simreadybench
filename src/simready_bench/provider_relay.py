@@ -238,6 +238,8 @@ class RelayState:
         self.expires_at = config["expires_at"]
         self.maximum_attempts = config.get("maximum_attempts", 4)
         self.maximum_retry_seconds = config.get("maximum_retry_seconds", 120)
+        self.queue_wait_timeout_seconds = config.get("queue_wait_timeout_seconds", 900)
+        self.provider_timeout_seconds = config.get("provider_timeout_seconds", 1800)
         self.native_output_only = config.get("native_output_only", True)
         self.maximum_request_bytes = config.get("maximum_request_bytes", 32 * 1024**2)
         self.sandbox_id = config.get("sandbox_id")
@@ -256,6 +258,9 @@ class RelayState:
             or type(self.maximum_retry_seconds) not in (int, float)
             or not math.isfinite(self.maximum_retry_seconds)
             or not 0 < self.maximum_retry_seconds <= 300
+            or any(type(value) not in (int, float) or not math.isfinite(value)
+                   or not 0 < value <= 1800 for value in (
+                       self.queue_wait_timeout_seconds, self.provider_timeout_seconds))
             or self.sandbox_id is not None
             and (
                 not isinstance(self.sandbox_id, str)
@@ -487,6 +492,7 @@ class RelayState:
 
     def finish(self, event, status, **fields):
         with self.lock:
+            fields.setdefault("provider_request_seconds", max(0, self.now() - event["started_at"]))
             if status != "completed" and event.get("model_call_reserved"):
                 self.calls -= 1
                 scope = event.get("condition_scope")
@@ -540,6 +546,9 @@ class Relay(http.server.BaseHTTPRequestHandler):
             "status": event.get("status"),
             "http_status": event.get("http_status"),
             "elapsed_seconds": max(0, now - started_at),
+            "queue_wait_seconds": event.get("queue_wait_seconds", 0),
+            "provider_request_seconds": event.get("provider_request_seconds", max(0, now - started_at)),
+            "end_to_end_elapsed_seconds": event.get("end_to_end_elapsed_seconds"),
         }
         if attempt is not None:
             value["attempt"] = attempt
@@ -640,6 +649,15 @@ class Relay(http.server.BaseHTTPRequestHandler):
             )
             if not math.isfinite(deadline) or deadline <= state.now():
                 raise ValueError("A live bounded request deadline is required")
+            provider_timeout = float(self.headers.get(
+                "X-SimReady-Provider-Timeout", state.provider_timeout_seconds))
+            queue_timeout = float(self.headers.get(
+                "X-SimReady-Queue-Timeout", state.queue_wait_timeout_seconds))
+            if any(not math.isfinite(value) or not 0 < value <= bound for value, bound in (
+                (provider_timeout, state.provider_timeout_seconds),
+                (queue_timeout, state.queue_wait_timeout_seconds),
+            )):
+                raise ValueError("Bounded queue and provider timeouts required")
         except (ValueError, TypeError):
             self.send_error(400)
             return
@@ -659,13 +677,21 @@ class Relay(http.server.BaseHTTPRequestHandler):
             )
             started = state.now()
             attempts = 0
+            queue_seconds = 0.0
+            provider_seconds = 0.0
             while True:
                 event = None
+                queued_at = state.now()
                 if state.shared_route_throttle is not None:
                     lease = state.shared_route_throttle.acquire(
-                        timeout=min(300, max(0.001, deadline - state.now()))
+                        timeout=min(queue_timeout, max(0.001, deadline - state.now()))
                     )
+                queued_seconds = max(0, state.now() - queued_at)
+                queue_seconds += queued_seconds
+                provider_started = state.now()
+                provider_deadline = min(deadline, provider_started + provider_timeout)
                 event = state.admit(route, scope=scope, limit=limit, deadline=deadline)
+                event["queue_wait_seconds"] = queued_seconds
                 attempts += 1
                 self._emit_event(
                     state, "model_request_started", event, attempt=attempts
@@ -675,7 +701,7 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 try:
                     response = state.opener.open(
                         request, timeout=min(
-                            300, max(0.001, deadline - state.now()),
+                            300, max(0.001, provider_deadline - state.now()),
                             lease.lease_seconds / 2 if lease else 300,
                         )
                     )
@@ -692,14 +718,15 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 ):
                     if response.headers.get(header):
                         event[field] = response.headers[header][:1024]
-                prefix, rejected = self._prefix(response, state, deadline, lease)
+                prefix, rejected = self._prefix(response, state, provider_deadline, lease)
                 delay = max(
                     state.jitter(min(30, 2 ** (attempts - 1))),
                     _retry_after(response.headers.get("Retry-After"), state.now()),
                     _rate_limit_reset(response.headers.get("RateLimit")),
                 )
                 if rejected:
-                    state.finish(event, "retryable_rejection", retry_delay_seconds=delay)
+                    state.finish(event, "retryable_rejection", retry_delay_seconds=delay,
+                                 provider_request_seconds=max(0, state.now() - provider_started))
                 if not (
                     rejected
                     and scope is not None
@@ -721,6 +748,7 @@ class Relay(http.server.BaseHTTPRequestHandler):
                     lease = None
                 response.close()
                 response = None
+                provider_seconds += max(0, state.now() - provider_started)
                 state.sleep(delay)
             self.send_response(response.status)
             for name in (
@@ -734,6 +762,9 @@ class Relay(http.server.BaseHTTPRequestHandler):
                 if response.headers.get(name):
                     self.send_header(name, response.headers[name])
             self.send_header("X-SimReady-Upstream-Attempts", str(attempts))
+            self.send_header("X-SimReady-Queue-Wait-Seconds", str(queue_seconds))
+            self.send_header("X-SimReady-Provider-Elapsed-Seconds", str(
+                provider_seconds + max(0, state.now() - provider_started)))
             if scope is not None:
                 self.send_header(
                     "X-SimReady-Scope-Requests", str(state.scope_requests.get(scope, 0))
@@ -754,7 +785,7 @@ class Relay(http.server.BaseHTTPRequestHandler):
                     lease.ensure_active()
                 remaining = min(
                     1800 - (time.monotonic() - streaming_started),
-                    deadline - state.now(),
+                    provider_deadline - state.now(),
                 )
                 if remaining <= 0:
                     raise TimeoutError("Model request deadline reached")
@@ -769,7 +800,9 @@ class Relay(http.server.BaseHTTPRequestHandler):
             if lease is not None:
                 lease.ensure_active()
             failed = rejected or not 200 <= response.status < 300 or outcome.finish()
-            state.finish(event, "inference_failed" if failed else "completed")
+            state.finish(event, "inference_failed" if failed else "completed",
+                         provider_request_seconds=max(0, state.now() - provider_started),
+                         end_to_end_elapsed_seconds=max(0, state.now() - started))
             self._emit_event(
                 state, "model_request_finished", event, attempt=attempts
             )
@@ -808,8 +841,27 @@ class Relay(http.server.BaseHTTPRequestHandler):
                     attempt=attempts,
                     error_type=type(error).__name__,
                 )
+            else:
+                self._emit_event(state, "model_request_queue_failed", {
+                    "path": route, "request_kind": "generation",
+                    "condition_scope": scope, "started_at": started,
+                    "status": "queue_failed", "provider_request_seconds": None,
+                    "queue_wait_seconds": max(0, state.now() - started),
+                    "end_to_end_elapsed_seconds": max(0, state.now() - started),
+                }, error_type=type(error).__name__)
             if not sent_headers:
-                self.send_error(502)
+                body = b'{"error":{"code":"provider_relay_transport_error"}}'
+                self.send_response(502)
+                if event is None:
+                    self.send_header("X-SimReady-Queue-Wait-Seconds", str(max(0, state.now() - started)))
+                else:
+                    self.send_header("X-SimReady-Queue-Wait-Seconds", str(queue_seconds))
+                    self.send_header("X-SimReady-Provider-Elapsed-Seconds", str(
+                        provider_seconds + max(0, state.now() - provider_started)))
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
         finally:
             try:
                 if lease is not None:

@@ -53,6 +53,7 @@ class GatewayConfig:
     max_request_bytes: int = 64 * 1024 * 1024
     max_concurrency: int = 4
     request_timeout_seconds: float = 1800
+    queue_wait_timeout_seconds: float = 900
     max_connections: int = 16
     header_timeout_seconds: float = 5.0
     listen_backlog: int = 16
@@ -198,6 +199,10 @@ class GatewayConfig:
             or self.request_timeout_seconds <= 0
         ):
             raise ValueError("Finite positive request timeout required")
+        if (type(self.queue_wait_timeout_seconds) not in (int, float)
+            or not math.isfinite(self.queue_wait_timeout_seconds)
+            or not 0 < self.queue_wait_timeout_seconds <= 1800):
+            raise ValueError("Finite bounded queue wait timeout required")
         if (
             type(self.header_timeout_seconds) not in (int, float)
             or not math.isfinite(self.header_timeout_seconds)
@@ -1176,6 +1181,8 @@ class InferenceGateway:
                             self.config.max_request_bytes, 64 * 1024**2
                         ),
                         "shared_route_throttle": self.config.shared_route_throttle,
+                        "queue_wait_timeout_seconds": self.config.queue_wait_timeout_seconds,
+                        "provider_timeout_seconds": min(1800, self.config.request_timeout_seconds),
                     },
                     directory=directory,
                 )
@@ -1257,6 +1264,8 @@ class InferenceGateway:
         watchdog, closure = (None, [])
         telemetry, response_hash, response_bytes = (None, None, 0)
         started = time.monotonic()
+        provider_phase_started = None
+        provider_reported_elapsed = 0.0
         try:
             episode_id = self._authenticate(request)
             if (
@@ -1392,9 +1401,21 @@ class InferenceGateway:
                         episode_id, request, asyncio.current_task(), closure
                     )
                 )
+                forwarding_base_url = (
+                    self._provider_relay_base_url or self.config.upstream_base_url
+                )
+                private_transport = forwarding_base_url.startswith(
+                    ("http://127.0.0.1:", "http://localhost:")
+                )
+                queued_transport = private_transport and (
+                    self._provider_relay_marker is not None
+                    or self.config.hf_router_relay is not None
+                    or self.config.shared_route_throttle is not None
+                )
+                queue_allowance = self.config.queue_wait_timeout_seconds if queued_transport else 0
                 remaining = min(
                     job.deadline_at - time.time(),
-                    self._request_time_limit - (time.monotonic() - started),
+                    self._request_time_limit + queue_allowance - (time.monotonic() - started),
                     self._budget().expires_at - time.time(),
                 )
                 if remaining <= 0:
@@ -1412,12 +1433,6 @@ class InferenceGateway:
                     headers["Authorization"] = "Bearer " + self.config.upstream_api_key
                 if self.config.upstream_project_id is not None:
                     headers["OpenAI-Project"] = self.config.upstream_project_id
-                forwarding_base_url = (
-                    self._provider_relay_base_url or self.config.upstream_base_url
-                )
-                private_transport = forwarding_base_url.startswith(
-                    ("http://127.0.0.1:", "http://localhost:")
-                )
                 if self._provider_relay_marker is not None:
                     headers["Authorization"] = "Bearer " + self._provider_relay_marker
                     headers.pop("OpenAI-Project", None)
@@ -1438,10 +1453,15 @@ class InferenceGateway:
                                     time.time() + remaining,
                                 )
                             ),
+                            "X-SimReady-Provider-Timeout": str(min(1800, self._request_time_limit)),
+                            "X-SimReady-Queue-Timeout": str(self.config.queue_wait_timeout_seconds),
                         }
                     )
                 url = forwarding_base_url.rstrip("/") + self.config.paths[request.path]
                 async with asyncio.timeout(remaining):
+                    if not queued_transport:
+                        record["queue_wait_seconds"] = 0.0
+                        provider_phase_started = time.monotonic()
                     async with self._session.post(
                         url,
                         data=raw,
@@ -1452,6 +1472,20 @@ class InferenceGateway:
                         ),
                     ) as upstream:
                         record["observed_upstream_status"] = upstream.status
+                        if private_transport:
+                            for header, field in (
+                                ("X-SimReady-Queue-Wait-Seconds", "queue_wait_seconds"),
+                                ("X-SimReady-Provider-Elapsed-Seconds", "provider_request_seconds"),
+                            ):
+                                try:
+                                    observed = float(upstream.headers.get(header, ""))
+                                except ValueError:
+                                    continue
+                                if math.isfinite(observed) and 0 <= observed <= remaining:
+                                    record[field] = observed
+                            if record.get("provider_request_seconds") is not None:
+                                provider_reported_elapsed = record["provider_request_seconds"]
+                                provider_phase_started = time.monotonic()
                         for header, field in (
                             ("X-SimReady-Upstream-Attempts", "upstream_attempts"),
                             (
@@ -1593,6 +1627,10 @@ class InferenceGateway:
                 if record["status"] == "admitted":
                     record["status"] = "transport_failed"
                 record["elapsed_seconds"] = time.monotonic() - started
+                if provider_phase_started is not None:
+                    record["provider_request_seconds"] = (
+                        provider_reported_elapsed + time.monotonic() - provider_phase_started
+                    )
                 if denial is not None:
                     record["error_code"] = denial.code
                 await asyncio.to_thread(self._save, job, record)

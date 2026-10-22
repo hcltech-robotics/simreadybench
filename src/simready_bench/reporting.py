@@ -163,6 +163,8 @@ def _compact_requests(records):
         "status",
         "api_path",
         "elapsed_seconds",
+        "queue_wait_seconds",
+        "provider_request_seconds",
         "upstream_status",
         "observed_upstream_status",
         "error_code",
@@ -307,6 +309,9 @@ def _statistics(condition):
         if complete
         else None,
         "compute_cost_usd": condition.get("compute_cost_usd"),
+        **{field: total(field, [record.get(field) for record in requests])
+           if complete else None
+           for field in ("queue_wait_seconds", "provider_request_seconds")},
         "inference_cost_usd": sum(prices) if complete and prices and all(
             price is not None for price in prices
         ) else None,
@@ -479,7 +484,7 @@ def compact_report(value):
                 key: statistics[key]
                 for key in (*USAGE_FIELDS, "inference_attempts_used", "priced_requests",
                             "measured_pricing_derived_cost_usd", "pricing_derived_cost_complete",
-                            "inference_cost_kind")
+                            "inference_cost_kind", "queue_wait_seconds", "provider_request_seconds")
                 if key in statistics
             }
             if row.get("inference_cost_kind") is None and statistics.get("inference_cost_kind"):
