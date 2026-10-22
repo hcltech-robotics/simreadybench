@@ -135,8 +135,11 @@ The [leaderboard](https://huggingface.co/datasets/hcltech-robotics/simreadybench
 | Model | Reasoning | Harness | Reconstructions | Formal fidelity, 95% CI | Visual fidelity, 95% CI | Kinematic fidelity, 95% CI | Mandatory pass rate |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [GLM-5.3-Flash](leaderboard/nv25-glm53-flash-low-20261021.json) | Low | Pi | 100/100 | 89.45 [82.21, 95.47] | 10.05 [5.92, 14.48] | 1.62 [0.00, 4.91] | 84/100 |
+| [Nemotron-3.5-Super-VL-120B-A12B-NVFP4](leaderboard/nv25-nemotron35-vl-nvfp4-off-20261022.json) | Off | Pi | 100/100 | 57.84 [49.13, 66.26] | 3.96 [2.13, 6.01] | 0.00282 [0.000003, 0.00756] | 6/100 |
 
 The GLM run uses four reconstructions of each NV25 asset, 64 productive authoring calls, a 4,096-token cap per response, bounded tools and continuation after length-limited responses. All 25 assets have at least one mandatory pass among their four reconstructions. Visual fidelity is measured for all 100 reconstructions, and kinematic fidelity for all 63 applicable reconstructions. The other 37 are N/A. Paired captures cover all 88 reconstructions with alignable surfaces. The separate optional score is 62.78/100 with 100% outcome coverage. The ten invalid submissions receive zero optional credit, matching their mandatory treatment. The [machine-readable result](leaderboard/nv25-glm53-flash-low-20261021.json) retains the measurements and confidence intervals.
+
+The Nemotron run uses the same authoring protocol with thinking off. All 100 reconstructions have formal and visual measurements, and all 62 applicable reconstructions have kinematic outcomes. The other 38 are N/A. Malformed candidate joints and ambiguous candidate body correspondence receive zero credit without inferred motion. The separate optional score has 99.92% outcome coverage and bounds of 47.80-47.88.
 
 ## Authors and citation
 
