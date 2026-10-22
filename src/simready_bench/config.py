@@ -571,7 +571,9 @@ def validate_manifest(value, *, base_dir, policy=None):
     protocol = m.get("authoring_protocol", AUTHORING_PROTOCOL)
     turns = authoring_turns(protocol)
     tool_protocol = m.get('tool_protocol', 'legacy')
-    if tool_protocol not in ('legacy', 'bounded-v1') or protocol.endswith('-tools-bounded-v1') != (tool_protocol == 'bounded-v1'):
+    continue_on_length = protocol.endswith('-continue-length-v1')
+    tool_identity = protocol.removesuffix('-continue-length-v1')
+    if tool_protocol not in ('legacy', 'bounded-v1') or tool_identity.endswith('-tools-bounded-v1') != (tool_protocol == 'bounded-v1'):
         raise ValueError('Authoring and tool protocol must match')
     m["authoring_protocol"] = protocol
     if "source" in m:
@@ -711,6 +713,8 @@ def validate_manifest(value, *, base_dir, policy=None):
                 entry = normalize_native_harness(entry)
                 if tool_protocol == 'bounded-v1' and entry.get('adapter') != 'pi':
                     raise ValueError('Bounded tools require the Pi harness')
+                if continue_on_length and entry.get('adapter') != 'pi':
+                    raise ValueError('Continuation after length requires the Pi harness')
                 if entry.get("adapter") not in ("pi", "harbor"):
                     raise ValueError("Use pi or an installed native Harbor harness")
             elif label == "models":
@@ -969,7 +973,7 @@ def resolve_experiment(value, *, base_dir, policy=None):
         cap = settings["generation"].get("max_output_tokens")
         from simready_bench.engine.native_output import authoring_protocol
 
-        if m["authoring_protocol"] != authoring_protocol(turns, cap, tool_protocol=m.get('tool_protocol', 'legacy')):
+        if m["authoring_protocol"] != authoring_protocol(turns, cap, tool_protocol=m.get('tool_protocol', 'legacy'), continue_on_length=m['authoring_protocol'].endswith('-continue-length-v1')):
             raise ValueError("Authoring protocol and output token cap must match")
         if settings["budgets"]["max_output_tokens"] != cap:
             raise ValueError("Generation and budget output token caps must match")
