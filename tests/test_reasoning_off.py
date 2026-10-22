@@ -88,3 +88,49 @@ def test_resume_cannot_enable_length_continuation(tmp_path):
     with pytest.raises(ValueError, match='original length continuation policy'):
         _resume_once('NV25', model='fixture', harness='pi', deploy='daytona',
                      output_dir=tmp_path, continue_on_length=True)
+
+
+@pytest.mark.parametrize('value', ['unknown', None, True, 1, {}, []])
+def test_model_compatibility_rejects_unknown_thinking_format(setup, value):
+    root, manifest, policy = setup
+    manifest['models'][0]['metadata'].setdefault('compat', {})['thinkingFormat'] = value
+    with pytest.raises(ValueError, match='Unsupported thinkingFormat'):
+        resolve_experiment(manifest, base_dir=root, policy=policy)
+
+
+def test_glm_cli_metadata_resolves_to_native_pi_without_inference(monkeypatch, tmp_path):
+    import json
+    from simready_bench.cli import main
+    from simready_bench import parallel
+
+    metadata = {
+        'contextWindow': 1048576, 'maxTokens': 4096,
+        'input': ['text', 'image'], 'reasoning': True,
+        'compat': {'supportsReasoningEffort': True, 'supportsMaxOutputTokens': True,
+                   'thinkingFormat': 'zai'},
+    }
+    metadata_path = tmp_path / 'metadata.json'
+    metadata_path.write_text(json.dumps(metadata))
+    asset = tmp_path / 'asset.usda'
+    asset.write_text('#usda 1.0\ndef Xform "Asset" {}\n')
+    reference = tmp_path / 'reference.json'
+    reference.write_text(json.dumps({'assets': [{'id': 'fixture', 'usd': 'asset.usda', 'dependencies': []}]}))
+    captured = []
+    def execute(manifest, **options):
+        resolved = resolve_experiment(manifest, base_dir=options['output_dir'], policy=options['policy'])
+        condition = resolved['conditions'][0]
+        captured.append(agent_config(condition, bridge_id='fixture', skill_dirs=[]))
+        return {'completed_conditions': 1, 'planned_conditions': 1, 'results': []}
+    monkeypatch.setenv('HF_TOKEN', 'fixture-only')
+    monkeypatch.setattr(parallel, 'run_parallel_daytona', execute)
+    assert main(['benchmark', str(reference), '--model', 'zai-org/GLM-5.3-Flash:baseten',
+                 '--provider', 'huggingface', '--model-metadata', str(metadata_path),
+                 '--deploy', 'daytona', '--output-dir', str(tmp_path / 'run'),
+                 '--reasoning', 'off', '--max-output-tokens', '4096',
+                 '--continue-on-length', '--repetitions', '1', '--workers', '24']) == 0
+    native = captured[0]['kwargs']
+    assert native['model_metadata']['compat']['thinkingFormat'] == 'zai'
+    assert native['model_metadata']['maxTokens'] == 4096
+    assert native['thinking'] == 'off'
+    assert native['continue_on_length'] is True
+    assert native['max_turns'] == 64

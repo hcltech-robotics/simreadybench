@@ -803,6 +803,7 @@ def validate_manifest(value, *, base_dir, policy=None):
                         "supportsReasoningEffort",
                         "supportsMaxOutputTokens",
                         "maxTokensField",
+                        "thinkingFormat",
                     },
                     "model compatibility",
                 )
@@ -814,6 +815,12 @@ def validate_manifest(value, *, base_dir, policy=None):
                     "max_completion_tokens",
                 ):
                     raise ValueError("Unsupported maxTokensField")
+                if "thinkingFormat" in compat and compat["thinkingFormat"] not in (
+                    "openai", "openrouter", "deepseek", "together", "baseten",
+                    "zai", "qwen", "chat-template", "qwen-chat-template",
+                    "string-thinking", "ant-ling",
+                ):
+                    raise ValueError("Unsupported thinkingFormat")
                 if (
                     entry["adapter"] == "openai-responses"
                     and "maxTokensField" in compat
