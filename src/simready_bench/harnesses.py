@@ -269,6 +269,7 @@ def agent_config(condition, bridge_id, skill_dirs):
                 else {}
             ),
             "model_metadata": metadata,
+            **({"continue_on_length": True} if condition.get('authoring_protocol', '').endswith('-continue-length-v1') else {}),
             "native_bridge_id": bridge_id,
             "version": "0.85.1",
             "native_output_policy": NATIVE_OUTPUT_POLICY

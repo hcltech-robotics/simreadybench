@@ -682,13 +682,13 @@ def _viewer_protocol(row, settings, run_id):
     effective = row.get("effective_settings") or {}
     generation = effective.get("generation", row.get("generation", {}))
     policy, cap = generation.get("output_limit"), generation.get("max_output_tokens")
-    bounded = re.fullmatch(r"authoring-[1-9][0-9]*-bounded-output-([1-9][0-9]*)-v1", protocol or "")
+    bounded = re.fullmatch(r"authoring-[1-9][0-9]*-bounded-output-([1-9][0-9]*)-v1(?:-tools-bounded-v1)?(?:-continue-length-v1)?", protocol or "")
     if bounded:
         expected = int(bounded[1])
         if policy not in (None, "bounded") or cap not in (None, expected):
             raise ValueError("Viewer output settings differ from the authoring protocol")
         policy, cap = "bounded", expected
-    elif re.fullmatch(r"authoring-[1-9][0-9]*-native-output-v1", protocol or ""):
+    elif re.fullmatch(r"authoring-[1-9][0-9]*-native-output-v1(?:-tools-bounded-v1)?(?:-continue-length-v1)?", protocol or ""):
         if policy not in (None, "provider-native") or cap is not None:
             raise ValueError("Viewer output settings differ from the authoring protocol")
         policy = "provider-native"

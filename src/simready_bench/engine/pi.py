@@ -7,6 +7,7 @@ import json
 import math
 import os
 import re
+from functools import partial
 from uuid import UUID
 from pathlib import Path
 import shlex
@@ -181,8 +182,16 @@ class PiAgent(Pi):
         native_bridge_id=None,
         native_output_policy="bounded",
         tool_protocol="legacy",
+        continue_on_length=False,
         **kwargs,
     ):
+        if type(continue_on_length) is not bool:
+            raise ValueError("continue_on_length must be a boolean")
+        self.continue_on_length = continue_on_length
+        if continue_on_length:
+            self._build_max_turns_extension = partial(
+                type(self)._build_max_turns_extension, continue_on_length=True
+            )
         _compatibility(version)
         _native_options(native_bridge_id, kwargs.get("extra_env"))
         if native_bridge_id is not None:
@@ -281,10 +290,11 @@ class PiAgent(Pi):
             return None
 
     @staticmethod
-    def _build_max_turns_extension(max_turns: int) -> str:
-        """Show each round's remaining calls using the same counter as Pi's stop."""
+    def _build_max_turns_extension(max_turns: int, *, continue_on_length=False) -> str:
+        """Bound native turns and continue output truncation through Pi's queue."""
         return f"""export default function (pi) {{
   const maxTurns = {max_turns};
+  const continueOnLength = {json.dumps(continue_on_length)};
   let completedTurns = 0;
   const noticeType = "simready-authoring-round";
 
@@ -309,10 +319,21 @@ class PiAgent(Pi):
     }}] }};
   }});
 
-  pi.on("turn_end", (_event, ctx) => {{
+  pi.on("turn_end", (event, ctx) => {{
     completedTurns += 1;
     if (completedTurns >= maxTurns) {{
       ctx.abort();
+      return;
+    }}
+    const message = event.message;
+    if (continueOnLength && message?.role === "assistant" && message.stopReason === "length"
+        && !message.content.some((part) => part.type === "toolCall")) {{
+      // Pi already continues truncated tool calls after rejecting their arguments.
+      // A text-only truncation needs a native follow-up to keep the same run alive.
+      pi.sendUserMessage(
+        "Your previous response reached the per-request output limit. Continue the task from the current files and tool results. Keep individual responses concise, save the required asset files and submit within the remaining authoring rounds.",
+        {{ deliverAs: "followUp" }},
+      );
     }}
   }});
 }}
@@ -373,6 +394,8 @@ class PiAgent(Pi):
         from simready_bench.engine.tool_protocol import validate_tool_protocol
 
         tool_protocol = validate_tool_protocol(options.pop("tool_protocol", "legacy"))
+        if type(options.pop("continue_on_length", False)) is not bool:
+            raise ValueError("continue_on_length must be a boolean")
         if tool_protocol != "legacy" and bridge_id is None:
             raise ValueError("Bounded tool protocol requires native lifecycle binding")
         _native_options(bridge_id, env)

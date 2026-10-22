@@ -357,11 +357,14 @@ def compose_experiment(
     authoring_turns=DEFAULT_AUTHORING_TURNS,
     max_output_tokens=None,
     tool_protocol='legacy',
+    continue_on_length=False,
 ):
     from simready_bench.engine.native_output import validate_output_cap
 
     validate_output_cap(max_output_tokens)
-    protocol = authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol)
+    protocol = authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol, continue_on_length=continue_on_length)
+    if continue_on_length and harness != 'pi':
+        raise ValueError('Continuation after length requires the Pi harness')
     if type(repetitions) is not int or not 1 <= repetitions <= 1000:
         raise ValueError("Repetitions must be between 1 and 1000")
     result = copy.deepcopy(manifest)
@@ -1295,6 +1298,7 @@ def benchmark(
     authoring_turns=None,
     max_output_tokens=None,
     tool_protocol=None,
+    continue_on_length=False,
     provider=None,
     api_key_env=None,
     model_metadata=None,
@@ -1339,6 +1343,7 @@ def benchmark(
             authoring_turns=authoring_turns,
             max_output_tokens=max_output_tokens,
             tool_protocol=tool_protocol,
+            continue_on_length=continue_on_length,
             provider=provider,
             api_key_env=api_key_env,
             model_metadata=model_metadata,
@@ -1358,7 +1363,9 @@ def benchmark(
         )
     authoring_turns = DEFAULT_AUTHORING_TURNS if authoring_turns is None else authoring_turns
     tool_protocol = ('bounded-v1' if harness == 'pi' else 'legacy') if tool_protocol is None else tool_protocol
-    authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol)
+    authoring_protocol(authoring_turns, max_output_tokens, tool_protocol=tool_protocol, continue_on_length=continue_on_length)
+    if continue_on_length and harness != 'pi':
+        raise ValueError('Continuation after length requires the Pi harness')
     authoring_protocol(authoring_turns, max_output_tokens)
     output = _absolute(output_dir)
     if output.exists() or output.is_symlink():
@@ -1488,6 +1495,7 @@ def benchmark(
         authoring_turns=authoring_turns,
         max_output_tokens=max_output_tokens,
         tool_protocol=tool_protocol,
+        continue_on_length=continue_on_length,
     )
     effective_policy = prepare_policy(
         output_dir=output,
@@ -1585,6 +1593,7 @@ def benchmark(
         authoring_turns=authoring_turns,
         max_output_tokens=max_output_tokens,
         tool_protocol=tool_protocol,
+        continue_on_length=continue_on_length,
         provider=provider,
         api_key_env=api_key_env,
         work_dir=work_dir,
