@@ -42,7 +42,7 @@ class SampledMaterials:
 
 
 def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2):
-    from pxr import Gf, Usd, UsdGeom, UsdPhysics, UsdShade
+    from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics, UsdShade
 
     stage = Usd.Stage.Open(str(path))
     if not stage:
@@ -82,6 +82,7 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
     storage_bytes = 0
     bodies = {}
     joints = []
+    unobserved_joints = []
     unsupported = []
     face_hashes = {}
     visible = 0
@@ -357,6 +358,34 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
             }
         if prim.IsA(UsdPhysics.Joint):
             joint = UsdPhysics.Joint(prim)
+            endpoints = []
+            problems = []
+            for index in (0, 1):
+                name = "physics:body" + str(index)
+                relationship = prim.GetRelationship(name)
+                authored = relationship.GetPropertyStack() if relationship else []
+                if authored and isinstance(authored[0], Sdf.AttributeSpec):
+                    problems.append(name + " must be a relationship, not an attribute")
+                    endpoints.append([])
+                    continue
+                paths = relationship.GetTargets() if relationship else []
+                endpoints.append(paths)
+                if len(paths) > 1:
+                    problems.append(name + " has multiple relationship targets")
+                elif paths and not stage.GetPrimAtPath(paths[0]):
+                    problems.append(name + " has an unresolved relationship target")
+            if problems:
+                reason = "Unobserved joint connectivity: " + ", ".join(problems)
+                warning(prim, reason)
+                warned[(str(prim.GetPath()), reason, False)]["kinematics"] = True
+                unobserved_joints.append(
+                    {
+                        "path": str(prim.GetPath()),
+                        "type": prim.GetTypeName(),
+                        "reasons": problems,
+                    }
+                )
+                continue
             targets = []
             anchors = []
             axes = []
@@ -364,7 +393,7 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
             axis_name = prim.GetAttribute("physics:axis").Get()
             axis = {"X": 0, "Y": 1, "Z": 2}.get(str(axis_name))
             for index in (0, 1):
-                paths = prim.GetRelationship("physics:body" + str(index)).GetTargets()
+                paths = endpoints[index]
                 body = stage.GetPrimAtPath(paths[0]) if paths else None
                 if paths and not body:
                     raise ValueError("Unresolved joint relationship target")
@@ -601,7 +630,7 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
         if triangles
         else np.empty((0, 3, 3))
     )
-    if len(bodies) > 256 or len(joints) > 512:
+    if len(bodies) > 256 or len(joints) + len(unobserved_joints) > 512:
         raise ValueError("CPU body/joint resource bound exceeded")
     return {
         "schema": VERSION,
@@ -611,6 +640,13 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
         "surface_storage_bytes": storage_bytes,
         "bodies": bodies,
         "joints": joints,
+        **(
+            {"kinematic_observation": {
+                "status": "unknown", "unobserved_joints": unobserved_joints,
+                "reason": "Malformed authored joint connectivity cannot be inferred",
+            }}
+            if unobserved_joints else {}
+        ),
         "eligibility": {
             "visible_prims": visible,
             "supported_prims": supported,

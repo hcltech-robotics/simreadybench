@@ -78,6 +78,65 @@ def write(
     stage.GetRootLayer().Save()
 
 
+@pytest.mark.parametrize("endpoint", ["body0", "body1"])
+@pytest.mark.parametrize("joint_kind", ["revolute", "fixed"])
+@pytest.mark.parametrize("malformation", ["attribute", "multiple", "unresolved"])
+def test_malformed_joint_relationship_preserves_independent_measurements(
+    tmp_path, endpoint, joint_kind, malformation
+):
+    source, candidate = tmp_path / "source.usda", tmp_path / "candidate.usda"
+    write(source)
+    write(candidate)
+    stage = Usd.Stage.Open(str(candidate))
+    prim = stage.GetPrimAtPath("/AnyJointName")
+    if joint_kind == "fixed":
+        prim.SetTypeName("PhysicsFixedJoint")
+    name = "physics:" + endpoint
+    prim.RemoveProperty(name)
+    if malformation == "attribute":
+        prim.CreateAttribute(name, Sdf.ValueTypeNames.String).Set("/Body")
+    elif malformation == "multiple":
+        prim.CreateRelationship(name).SetTargets(["/Body", "/Body/Surface"])
+    else:
+        prim.CreateRelationship(name).SetTargets(["/DoesNotExist"])
+    stage.GetRootLayer().Save()
+    before = hashlib.sha256(candidate.read_bytes()).hexdigest()
+    reference, actual = observe(source), observe(candidate)
+    assert actual["joints"] == []
+    unobserved = actual["kinematic_observation"]
+    assert unobserved["status"] == "unknown"
+    assert unobserved["unobserved_joints"][0]["path"] == "/AnyJointName"
+    assert any(
+        row.get("kinematics") is True and row["geometry"] is False
+        for row in actual["eligibility"]["unsupported"]
+    )
+    for first, second in ((reference, actual), (actual, reference)):
+        result = compare(first, second, settings({"samples": 128}))
+        assert result["components"]["shape"]["score_percent"] == 100
+        assert result["components"]["materials"]["score_percent"] == 100
+        for component in ("joints", "kinematics"):
+            measured = result["components"][component]
+            assert measured["status"] == "unknown"
+            assert measured["score_percent"] is None
+            assert measured["earned"] is None
+            assert measured["lower_bound_percent"] == 0
+            assert measured["upper_bound_percent"] == 100
+        group = "fixed_constraints" if joint_kind == "fixed" else "moving_joints"
+        assert result["components"]["kinematics"]["groups"][group]["status"] == "unknown"
+    assert hashlib.sha256(candidate.read_bytes()).hexdigest() == before
+
+
+def test_absent_joint_endpoint_remains_a_valid_world_attachment(tmp_path):
+    path = tmp_path / "world-attached.usda"
+    write(path)
+    observation = observe(path)
+    assert "kinematic_observation" not in observation
+    assert observation["joints"][0]["bodies"] == ["/Body", None]
+    result = compare(observation, observation, settings({"samples": 128}))
+    assert result["components"]["joints"]["score_percent"] == 100
+    assert result["components"]["kinematics"]["score_percent"] == 100
+
+
 def test_native_equivalent_geometry_units_names_joints_and_materials(tmp_path):
     source = tmp_path / "source.usda"
     candidate = tmp_path / "equivalent.usda"

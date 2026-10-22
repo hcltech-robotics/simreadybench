@@ -919,6 +919,26 @@ def compare(reference, candidate, cfg, *, candidate_invalid=False):
             earned=None,
             reason="Ambiguous body correspondence; fixed reference criteria retained without inferred credit",
         )
+    unobserved = [
+        {"role": role, **joint}
+        for role, observation in (("reference", reference), ("candidate", candidate or {}))
+        for joint in observation.get("kinematic_observation", {}).get("unobserved_joints", [])
+    ]
+    if unobserved:
+        reason = "Malformed authored joint connectivity; no inferred kinematic credit"
+        unknown = {
+            "status": "unknown", "score_percent": None, "earned": None,
+            "eligible": None, "coverage_fraction": None,
+            "lower_bound_percent": 0, "upper_bound_percent": 100, "reason": reason,
+        }
+        joints.update(unknown, unobserved_joints=unobserved)
+        kinematics.update(unknown, unobserved_joints=unobserved)
+        affected = {
+            "fixed_constraints" if joint["type"] == "PhysicsFixedJoint" else "moving_joints"
+            for joint in unobserved
+        }
+        for name in affected:
+            kinematics["groups"][name].update(unknown)
     complete_reference = (
         not source_unsupported
         and reference["eligibility"].get("visible_prims", 0) > 0
