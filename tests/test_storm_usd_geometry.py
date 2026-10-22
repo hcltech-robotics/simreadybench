@@ -5,6 +5,65 @@ import math
 import pytest
 
 
+@pytest.mark.parametrize(
+    "variant", ["identity", "defaults", "scale", "rotation", "translation", "connected"]
+)
+def test_identity_uv_compatibility_preserves_coordinates_and_source(
+    tmp_path, variant
+):
+    from pxr import Gf, Sdf, Usd, UsdShade
+    from simready_bench.storm import _identity_texture_transforms, _stage
+
+    path = tmp_path / "identity-uv.usda"
+    original = Usd.Stage.CreateNew(str(path))
+    material = UsdShade.Material.Define(original, "/Looks/Material")
+    reader = UsdShade.Shader.Define(original, "/Looks/Material/UV")
+    reader.CreateIdAttr("UsdPrimvarReader_float2")
+    reader.CreateInput("varname", Sdf.ValueTypeNames.Token).Set("st")
+    reader.CreateOutput("result", Sdf.ValueTypeNames.Float2)
+    transform = UsdShade.Shader.Define(original, "/Looks/Material/Mapping")
+    transform.CreateIdAttr("UsdTransform2d")
+    transform.CreateInput("in", Sdf.ValueTypeNames.Float2).ConnectToSource(
+        reader.ConnectableAPI(), "result"
+    )
+    transform.CreateOutput("result", Sdf.ValueTypeNames.Float2)
+    if variant != "defaults":
+        transform.CreateInput("scale", Sdf.ValueTypeNames.Float2).Set(
+            Gf.Vec2f(2, 1) if variant == "scale" else Gf.Vec2f(1, 1)
+        )
+        transform.CreateInput("rotation", Sdf.ValueTypeNames.Float).Set(
+            45 if variant == "rotation" else 0
+        )
+        transform.CreateInput("translation", Sdf.ValueTypeNames.Float2).Set(
+            Gf.Vec2f(0.25, 0) if variant == "translation" else Gf.Vec2f(0, 0)
+        )
+    if variant == "connected":
+        transform.GetInput("scale").ConnectToSource(reader.ConnectableAPI(), "result")
+    for name in ("Albedo", "Normal", "ORM"):
+        texture = UsdShade.Shader.Define(
+            original, str(material.GetPath()) + "/" + name
+        )
+        texture.CreateIdAttr("UsdUVTexture")
+        texture.CreateInput("st", Sdf.ValueTypeNames.Float2).ConnectToSource(
+            transform.ConnectableAPI(), "result"
+        )
+    original.GetRootLayer().Save()
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    stage, _ = _stage(path)
+    changes = _identity_texture_transforms(stage)
+    identity = variant in ("identity", "defaults")
+    assert len(changes) == (3 if identity else 0)
+    for name in ("Albedo", "Normal", "ORM"):
+        texture = UsdShade.Shader.Get(
+            stage, "/IllustrationAsset/Looks/Material/" + name
+        )
+        source = texture.GetInput("st").GetConnectedSource()
+        assert source[0].GetPrim().GetName() == ("UV" if identity else "Mapping")
+        assert str(source[1]) == "result"
+    assert _identity_texture_transforms(stage) == []
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
 def test_cross_root_material_binding_and_texture_paths_survive_normalization(tmp_path):
     try:
         from pxr import Sdf, Usd, UsdGeom, UsdShade

@@ -96,6 +96,59 @@ def recover(source, trace=None, pricing=None):
     )
 
 
+def test_flat_token_tariff_prices_full_input_without_requiring_cache_details():
+    record = request('request-1', prompt=1000, completion=200)
+    record['usage'].pop('input_tokens_details')
+    record['usage'].pop('output_tokens_details')
+    pricing = tariff(billing_basis='input_output',
+                     usd_per_million_tokens={'input': '0.15', 'output': '0.5'})
+    result = recover(row([record]), pricing=pricing)
+    assert result['inference_cost_usd'] == pytest.approx(0.00025)
+    assert result['usage_reconstruction']['pricing_derived_cost_complete']
+    assert result['usage_reconstruction']['requests'][0]['cached_tokens'] is None
+
+
+def test_flat_token_tariff_does_not_discount_or_double_count_cached_and_reasoning_tokens():
+    record = request('request-1', prompt=1000, completion=200, cached=900, reasoning=100)
+    pricing = tariff(billing_basis='input_output',
+                     usd_per_million_tokens={'input': '0.15', 'output': '0.5'})
+    assert recover(row([record]), trajectory([record]), pricing)['inference_cost_usd'] == pytest.approx(0.00025)
+
+
+def test_productive_call_count_does_not_hide_failed_requests_or_invent_their_usage():
+    records = [request('success'), {**request('failure'), 'usage': None,
+                                   'partial_usage': {'prompt_tokens': 40, 'completion_tokens': 10},
+                                   'status': 'transport_failed'}]
+    source = row(records, inference_calls_used=1)
+    pricing = tariff(billing_basis='input_output',
+                     usd_per_million_tokens={'input': '0.15', 'output': '0.5'})
+    result = reconstruct_row(source, run_id='run', tariff=pricing, expected_request_count=2)
+    assert result.get('input_tokens') is None
+    assert result.get('inference_cost_usd') is None
+    assert result['model_request_errors'] == 1
+    proof = result['usage_reconstruction']
+    assert proof['productive_calls'] == 1 and proof['recorded_calls'] == 2
+    assert proof['priced_requests'] == 1
+    assert proof['measured_pricing_derived_cost_usd'] == pytest.approx(0.000025)
+    assert not proof['provider_usage_complete']
+
+
+def test_trajectory_can_corroborate_partial_usage_without_making_cost_complete():
+    success, partial = request('success'), request('partial')
+    failed = {**partial, 'usage': None, 'partial_usage': partial['usage'],
+              'status': 'transport_failed'}
+    source = row([success, failed], inference_calls_used=1)
+    trace = trajectory([success, partial])
+    pricing = tariff(billing_basis='input_output',
+                     usd_per_million_tokens={'input': '0.15', 'output': '0.5'})
+    result = reconstruct_row(source, run_id='run', trajectory=trace, tariff=pricing,
+                             expected_request_count=2)
+    assert result['usage_reconstruction']['trajectory_usage_matched']
+    assert not result['usage_reconstruction']['provider_usage_complete']
+    assert not result['usage_reconstruction']['pricing_derived_cost_complete']
+    assert result.get('inference_cost_usd') is None
+
+
 def test_provider_usage_prices_ordinary_cache_and_output_without_double_counting():
     def split(total):
         quotient, remainder = divmod(total, 20)

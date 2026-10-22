@@ -215,6 +215,69 @@ def _alignment_matrix(alignment):
     )
 
 
+def _identity_texture_transforms(stage):
+    """Bypass identity UV transforms in the anonymous illustration stage.
+
+    Storm can generate references to an undefined transform accessor when
+    several textures share a UsdTransform2d node. Removing an identity operation
+    preserves the authored coordinates and avoids that shader compilation path.
+    """
+    from pxr import UsdShade
+
+    changes = []
+    for prim in stage.Traverse():
+        texture = UsdShade.Shader(prim)
+        if not texture or texture.GetIdAttr().Get() != "UsdUVTexture":
+            continue
+        coordinate = texture.GetInput("st")
+        if not coordinate:
+            continue
+        visited = set()
+        for _ in range(64):
+            source = coordinate.GetConnectedSource()
+            if not source or str(source[1]) != "result":
+                break
+            transform = UsdShade.Shader(source[0].GetPrim())
+            if not transform or transform.GetIdAttr().Get() != "UsdTransform2d":
+                break
+            path = str(transform.GetPath())
+            if path in visited:
+                break
+            visited.add(path)
+            identity = True
+            for name, expected in (
+                ("rotation", 0.0),
+                ("scale", (1.0, 1.0)),
+                ("translation", (0.0, 0.0)),
+            ):
+                parameter = transform.GetInput(name)
+                if parameter and parameter.HasConnectedSource():
+                    identity = False
+                    break
+                value = parameter.Get() if parameter else None
+                if value is not None and (
+                    float(value) != expected
+                    if name == "rotation"
+                    else tuple(value) != expected
+                ):
+                    identity = False
+                    break
+            upstream_input = transform.GetInput("in")
+            upstream = upstream_input.GetConnectedSource() if upstream_input else None
+            if not identity or not upstream:
+                break
+            coordinate.ConnectToSource(*upstream)
+            changes.append(
+                {
+                    "texture": str(prim.GetPath()),
+                    "transform": path,
+                    "method": "identity UsdTransform2d bypass",
+                    "coordinates_preserved": True,
+                }
+            )
+    return changes
+
+
 def _materials(stage):
     from pxr import Ar, Gf, Sdf, Usd, UsdShade
 
@@ -345,9 +408,11 @@ def render(request, output):
         )
         stages[role] = (stage, root)
         _, _, unresolved = UsdUtils.ComputeAllDependencies(str(path))
+        compatibility = _identity_texture_transforms(stage)
         materials, approximations = _materials(stage)
         support = material_support(materials, [str(x) for x in unresolved])
         support["approximations"] = approximations
+        support["compatibility"] = compatibility
         material_reports[role] = support
         warnings.extend(role + ": " + w for w in support["warnings"])
     reference, root = stages["reference"]

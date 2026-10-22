@@ -1,8 +1,18 @@
 """Bounded isolated CPU USD analysis, separate from NVIDIA reward and illustrations."""
 
-import json, os, re, subprocess, time, uuid
+import hashlib, json, os, re, subprocess, time, uuid
 from pathlib import Path
 from simready_bench.fidelity import settings
+
+
+class FidelityWorkerError(RuntimeError):
+    def __init__(self, returncode, log):
+        super().__init__('CPU source comparison failed; original log retained privately')
+        self.diagnostics = {
+            'error_code': 'cpu_fidelity_worker_failed',
+            'worker_exit_code': returncode,
+            'worker_log_sha256': hashlib.sha256(log.read_bytes()).hexdigest(),
+        }
 
 
 def _run(condition, cfg, runtime, root, *, operation, snapshot=None, profile=None):
@@ -100,9 +110,7 @@ def _run(condition, cfg, runtime, root, *, operation, snapshot=None, profile=Non
         )
         (output / "worker.log").write_text(process.stdout + process.stderr)
         if process.returncode:
-            raise RuntimeError(
-                "CPU source comparison failed; original log retained privately"
-            )
+            raise FidelityWorkerError(process.returncode, output / 'worker.log')
         result = json.loads((output / "receipt.json").read_text())
         result.update(worker_image=image, seconds=time.monotonic() - started)
         return result
@@ -144,4 +152,5 @@ def evaluate_final(condition, cfg, runtime, snapshot, root, profile):
             "aggregate_score_percent": None,
             "reference_profile": profile,
             "reason": "CPU comparison unavailable; no candidate zero inferred from infrastructure failure",
+            **getattr(exc, 'diagnostics', {}),
         }

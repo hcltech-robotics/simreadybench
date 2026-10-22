@@ -36,7 +36,7 @@ $$
 O = 100\,\frac{p_{\mathrm{optional}}}{51}
 $$
 
-The report includes passed, failed and unmeasured counts, evaluation coverage and per-requirement findings. Partially measured evaluations retain their observed counts and score bounds. Optional requirements do not change the mandatory score or its completion bonus. Their roster and rule implementations are specified in [`nvidia_optional_profile.json`](../src/simready_bench/engine/nvidia_optional_profile.json).
+The report includes passed, failed and unmeasured counts, evaluation coverage and per-requirement findings. Partially measured evaluations retain their observed counts and score bounds. A confirmed invalid candidate receives zero credit under both mandatory and optional scoring, with its requirement outcomes recorded as invalid. An unavailable validator or incomplete rule execution retains unknown outcomes. Optional requirements do not change the mandatory score or its completion bonus. Their roster and rule implementations are specified in [`nvidia_optional_profile.json`](../src/simready_bench/engine/nvidia_optional_profile.json).
 
 ## Visual fidelity
 

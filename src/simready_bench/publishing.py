@@ -323,7 +323,11 @@ def _enrich_previous_metadata(previous, current):
         row = deepcopy(original)
         prior_rig = _comparison_metadata(row)
         next_rig = _comparison_metadata(current[row["condition_id"]])
-        if prior_rig is None and next_rig is not None:
+        if (
+            prior_rig is None and next_rig is not None
+            and (row.get("fidelity") or {}).get("alignment")
+            == (current[row["condition_id"]].get("fidelity") or {}).get("alignment")
+        ):
             row["illustrations"] = next_rig
         if "reasoning_effort" not in row and "reasoning_effort" in current[row["condition_id"]]:
             row["reasoning_effort"] = current[row["condition_id"]]["reasoning_effort"]
@@ -371,6 +375,62 @@ def _signature(rows):
         sort_keys=True,
         allow_nan=False,
     )
+
+
+def _authoring_signature(rows, *, optional_recovery=False):
+    """Bind every published authoring value while allowing evaluation repair."""
+    values = json.loads(_signature(rows))
+    for row in values:
+        if optional_recovery:
+            row["simready"].pop("optional_score", None)
+        for key in list(row):
+            if key in {"fidelity", "illustrations", "images"} or key.startswith(
+                ("fidelity_", "visual_", "kinematic_")
+            ) or (optional_recovery and key.startswith("optional_")):
+                del row[key]
+    return json.dumps(values, sort_keys=True, allow_nan=False)
+
+
+def _evaluation_recovery(previous, current, request, revision):
+    if (
+        not isinstance(request, dict)
+        or request.get("schema") != "simready-evaluation-recovery/v1"
+        or request.get("previous_revision") != revision
+        or not re.fullmatch(r"[a-f0-9]{40}", str(request.get("source_commit", "")))
+        or not re.fullmatch(r"[a-f0-9]{64}", str(request.get("source_tree_sha256", "")))
+        or not isinstance(request.get("reason"), str)
+        or not 1 <= len(request["reason"]) <= 500
+        or set(request.get("condition_ids", [])) != {row["condition_id"] for row in previous}
+    ):
+        raise ValueError("Explicit evaluation recovery requires its pinned revision, source and conditions")
+    optional_recovery = any(
+        isinstance(stage, dict) and stage.get('operation') == 'optional_validation'
+        for stage in request.get('stages', [])
+    )
+    if _authoring_signature(previous, optional_recovery=optional_recovery) != _authoring_signature(current, optional_recovery=optional_recovery):
+        raise ValueError("Evaluation recovery cannot change authoring, formal scores, candidates, traces or usage")
+    receipt = {key: deepcopy(request[key]) for key in (
+        "schema", "previous_revision", "source_commit", "source_tree_sha256", "reason", "condition_ids",
+    )}
+    if 'stages' in request:
+        stages = request['stages']
+        if not isinstance(stages, list) or not 1 <= len(stages) <= 8 or any(
+            not isinstance(stage, dict)
+            or set(stage) != {'operation', 'source_commit', 'source_tree_sha256'}
+            or stage['operation'] not in {'cpu_fidelity', 'captures', 'optional_validation'}
+            or not re.fullmatch(r'[a-f0-9]{40}', str(stage['source_commit']))
+            or not re.fullmatch(r'[a-f0-9]{64}', str(stage['source_tree_sha256']))
+            for stage in stages
+        ):
+            raise ValueError('Evaluation recovery stages require exact evaluator source identities')
+        receipt['stages'] = deepcopy(stages)
+    receipt.update(
+        previous_measurements_sha256=hashlib.sha256(_signature(previous).encode()).hexdigest(),
+        replacement_measurements_sha256=hashlib.sha256(_signature(current).encode()).hexdigest(),
+        authoring_sha256=hashlib.sha256(_authoring_signature(current, optional_recovery=optional_recovery).encode()).hexdigest(),
+        authoring_unchanged=True,
+    )
+    return receipt
 
 
 def _stage_candidate(candidate, source, stage, prefix):
@@ -495,6 +555,7 @@ def _stage_row(row, source, stage):
             "complete_geometry_comparison",
             "alignment",
             "components",
+            "candidate_invalid",
         )
         if key in row.get("fidelity", {})
     }
@@ -502,8 +563,13 @@ def _stage_row(row, source, stage):
 
     public["composite_scores"] = composite_scores(row)
     comparison = _comparison_metadata(row)
+    illustrations = {key: deepcopy(row['illustrations'][key]) for key in (
+        'status', 'renderer', 'renderer_plugin', 'renderer_memory_mb', 'warnings',
+    ) if key in (row.get('illustrations') or {})}
     if comparison is not None:
-        public["illustrations"] = comparison
+        illustrations.update(comparison)
+    if illustrations:
+        public['illustrations'] = illustrations
     public["candidate"] = _stage_candidate(row["candidate"], source, stage, prefix)
     public["images"], public["traces"] = [], []
     for kind in ("images", "traces"):
@@ -943,18 +1009,23 @@ def render_viewer_card(existing, index):
     return "---\n" + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False) + "---\n" + body
 
 
+def validate_publication_ids(repo_id, run_id):
+    """Validate publication identifiers before acquiring benchmark inputs."""
+    if (
+        not isinstance(repo_id, str)
+        or len(repo_id.split("/")) != 2
+        or not all(_NAME.fullmatch(part) for part in repo_id.split("/"))
+    ):
+        raise ValueError("Use a Hugging Face dataset ID in owner/name form")
+    if not isinstance(run_id, str) or not _NAME.fullmatch(run_id):
+        raise ValueError("Use a run identifier of 1 to 96 letters, digits, dots, underscores or hyphens, starting with a letter or digit")
+
+
 class HuggingFacePublisher:
     """Publish one model, harness and skill configuration as results complete."""
 
     def __init__(self, repo_id, run_id, manifest, *, api=None):
-        if (
-            not isinstance(repo_id, str)
-            or len(repo_id.split("/")) != 2
-            or not all(_NAME.fullmatch(part) for part in repo_id.split("/"))
-        ):
-            raise ValueError("Use a Hugging Face dataset ID in owner/name form")
-        if not isinstance(run_id, str) or not _NAME.fullmatch(run_id):
-            raise ValueError("Use a simple run identifier")
+        validate_publication_ids(repo_id, run_id)
         self.repo_id, self.run_id = repo_id, run_id
         self.manifest = deepcopy(manifest)
         self._api, self._private = api, None
@@ -1158,7 +1229,7 @@ class HuggingFacePublisher:
             sources[run_id] = (_json(readout), scores.read_bytes())
         return build_viewer_dataset(sources, index=index, repo_id=self.repo_id, image_reader=image_reader)
 
-    def __call__(self, report, *, final=False):
+    def __call__(self, report, *, final=False, evaluation_recovery=None):
         source = Path(
             report["directory"] if isinstance(report, dict) else report
         ).absolute()
@@ -1194,6 +1265,16 @@ class HuggingFacePublisher:
                     "settings": self.settings,
                     "results": [_stage_row(row, source, run_stage) for row in rows],
                 }
+                if self.manifest.get('defaults', {}).get('fidelity', {}).get('enabled', True):
+                    from simready_bench.completion import evaluation_completion, completion_summary
+                    capture_settings = self.manifest.get('defaults', {}).get('illustrations', {})
+                    for row in public['results']:
+                        row['evaluation_completion'] = evaluation_completion(
+                            row, captures_enabled=capture_settings.get('renderer', 'none') != 'none',
+                            views=capture_settings.get('views', ['isometric', 'front', 'side']),
+                        )
+                    public.update(completion_summary(public['results'], len(self.expected)))
+                    public['partial'] = not public['benchmark_complete']
                 spec = value.get("run_spec")
                 if spec is not None:
                     public["run_spec"] = validate_run_spec(spec)
@@ -1237,18 +1318,20 @@ class HuggingFacePublisher:
                         legacy.update(old_ids)
                     if legacy:
                         public["legacy_settings_conditions"] = sorted(legacy)
-                    if _signature(
-                        _enrich_previous_metadata(old_rows, public["results"])
-                    ) != _signature(
-                        [
-                            row
-                            for row in public["results"]
-                            if row["condition_id"] in old_ids
-                        ]
-                    ):
-                        raise ValueError(
-                            "An already published reconstruction has changed"
-                        )
+                    previous = _enrich_previous_metadata(old_rows, public["results"])
+                    current = [row for row in public["results"] if row["condition_id"] in old_ids]
+                    recoveries = deepcopy(old.get("evaluation_recoveries", []))
+                    if _signature(previous) != _signature(current):
+                        if evaluation_recovery is None:
+                            raise ValueError("An already published reconstruction has changed")
+                        receipt = _evaluation_recovery(previous, current, evaluation_recovery, info.sha)
+                        recoveries.append(receipt)
+                        identifier = hashlib.sha256(json.dumps(receipt, sort_keys=True).encode()).hexdigest()
+                        recovery_path = run_stage / "evaluation-recoveries" / (identifier + ".json")
+                        recovery_path.parent.mkdir(exist_ok=True)
+                        _write_json(recovery_path, receipt)
+                    if recoveries:
+                        public["evaluation_recoveries"] = recoveries
                 _write_json(run_stage / "results.json", public)
                 write_scores(run_stage / "scores.csv", public["results"])
                 (run_stage / "report.html").write_text(
@@ -1271,8 +1354,9 @@ class HuggingFacePublisher:
                     entry = leaderboard_entry(public, manifest=self.manifest, results_url=url)
                 except ValueError:
                     entry = None
+                board["entries"] = [item for item in board["entries"] if item.get("results_url") != url]
                 if entry:
-                    board["entries"] = [item for item in board["entries"] if item.get("results_url") != url] + [entry]
+                    board["entries"].append(entry)
                 _write_json(stage / "leaderboard.json", board)
                 for name, raw in build_benchmark_metadata(render_viewer_card(existing, index), board).items():
                     target = stage.joinpath(*_relative(name).parts)

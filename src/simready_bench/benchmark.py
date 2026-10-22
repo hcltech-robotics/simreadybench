@@ -935,12 +935,15 @@ def _aggregate_reports(
                 row.setdefault("report_path", "report.html")
             rows.append(row)
     completed = sum(row.get("status") == "completed" for row in rows)
+    from simready_bench.completion import completion_summary
+    measurement_summary = completion_summary(rows, planned_conditions)
     summary = {
         "schema": "simready-bench-portable-report-v1",
         "planned_conditions": planned_conditions,
         "attempted_conditions": len(rows),
         "completed_conditions": completed,
-        "partial": completed < planned_conditions,
+        "partial": not measurement_summary['benchmark_complete'],
+        **measurement_summary,
         "scoring_notice": scoring_notice,
         "results": rows,
     }
@@ -1341,6 +1344,10 @@ def benchmark(
     if not dispatch_pending and not resume:
         raise ValueError("Collecting existing executors requires resume")
     validate_workers(workers)
+    if hf_repo:
+        from simready_bench.publishing import validate_publication_ids
+
+        validate_publication_ids(hf_repo, hf_run or _absolute(output_dir).name)
     if resume:
         from simready_bench.resume import resume_benchmark
 

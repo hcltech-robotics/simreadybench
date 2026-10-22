@@ -302,6 +302,10 @@ def compact_report(value):
         "run_spec",
         "operational_provenance",
         "legacy_settings_conditions",
+        "authored_conditions",
+        "evaluated_conditions",
+        "benchmark_complete",
+        "evaluation_recoveries",
     )
     fields = set(SCORE_FIELDS) | {
         "model_id",
@@ -344,6 +348,7 @@ def compact_report(value):
         "protocol_sha256",
         "run_spec_sha256",
         "provenance_coverage",
+        "evaluation_completion",
     }
     fields.update(
         "fidelity_" + component + "_eligible" for component in FIDELITY_COMPONENTS
@@ -424,9 +429,11 @@ def compact_report(value):
                     "status",
                     "renderer",
                     "renderer_plugin",
+                    "renderer_memory_mb",
                     "rig",
                     "rig_sha256",
                     "scoring",
+                    "warnings",
                 )
                 if key in illustrations
             }
@@ -694,7 +701,8 @@ def _fidelity_score(condition, component):
 
 
 def _failure_details(value):
-    if value.get("status") == "completed":
+    completion = value.get('evaluation_completion') or {}
+    if value.get("status") == "completed" and completion.get('complete') is not False:
         return ""
     fields = [
         ("Reason", "blocker"),
@@ -704,6 +712,9 @@ def _failure_details(value):
         ("Details", "error_message"),
     ]
     facts = [(label, value[key]) for label, key in fields if value.get(key) is not None]
+    if completion.get('complete') is False:
+        facts.append(('Missing evaluation', ', '.join(completion.get('missing', []))))
+        facts.append(('Recovery scope', completion.get('recovery_scope')))
     return (
         (
             '<details class="failure"><summary>Failure details</summary>'
@@ -1115,6 +1126,11 @@ def render_html(summary):
         + esc(planned)
         + " reconstruction attempts completed.</p>"
     )
+    if summary.get('evaluated_conditions') is not None:
+        progress += (
+            '<p>' + esc(summary['evaluated_conditions']) + ' of ' + esc(planned)
+            + ' evaluations complete, including applicable fidelity measurements and captures.</p>'
+        )
     return (
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
         "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self'; style-src 'unsafe-inline'\">"
@@ -1334,6 +1350,7 @@ def export_report(work_dir, output_dir, *, results=None):
                 "protocol_sha256",
                 "run_spec_sha256",
                 "provenance_coverage",
+                "evaluation_completion",
             )
         }
         conditions.append(

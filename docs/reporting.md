@@ -4,6 +4,10 @@ The selected output directory contains `report.html` for comparing scores and or
 
 During a run, `reconstructions/report.html` and `reconstructions/scores.csv` update after each completed reconstruction. Each `reconstructions/condition-*/` directory contains that attempt's report and artefacts.
 
+Authoring and evaluation have separate completion counts. `authored_conditions` counts retained submissions, while `evaluated_conditions` counts submissions whose required formal, fidelity and capture stages have finished. `benchmark_complete` requires every condition to finish those stages. Explicit N/A measurements and captures require recorded eligibility evidence. Missing evaluation outputs keep the benchmark partial and prevent leaderboard admission.
+
+Evaluation-only recovery reuses the retained candidate and reference inputs. It preserves authoring traces, formal results, usage and condition identities, and records the evaluation source and previous publication revision in a recovery receipt.
+
 | Result | What to inspect |
 |---|---|
 | Formal fidelity | Mandatory SimReady score, strict profile pass and passed, failed and unmeasured requirements out of 46 |
@@ -23,6 +27,8 @@ When both visual factors are measured, visual fidelity is `sqrt(shape_percent * 
 The underlying factors include surface precision and recall, per-body correspondence, joint motion errors and per-property material matches. The validator report records the findings behind both profile scores. The generated USD is the submitted asset and the Harbor trajectory records its authoring session.
 
 The main table, CSV and published JSON also contain per-reconstruction model requests, validation calls, request errors, elapsed time, summed model request time, input/output token counts and inference/compute costs in USD. Token usage maps provider `prompt_tokens`/`completion_tokens` to `input_tokens`/`output_tokens`. Cached and reasoning token details are included in their provider totals and are not added again. Total tokens require both input and output counts, and total cost requires both inference and compute costs. Missing measurements remain null in JSON, blank in CSV and `Not measured` in the table.
+
+Usage reconciliation compares retained gateway records with trajectory steps and their final totals, deduplicating canonical request IDs. Pricing-derived inference cost uses the verified model/provider route and recorded tariff. Flat input/output tariffs price each full token total once, while tariffs with separate cache rates retain their cache breakdown. Productive authoring calls and total provider requests have separate counts because failed requests do not consume the authoring allowance. Partial stream usage can corroborate a trajectory but does not establish a complete request cost. Reconciliation receipts retain the priced-request subtotal and coverage when a complete run cost is unavailable.
 
 Elapsed time is the duration of one reconstruction. Model request time sums the recorded durations of its admitted requests, including failed requests. Token totals require terminal usage for every admitted request, while missing or partial usage remains unmeasured. The leaderboard displays means per reconstruction, with measured-attempt counts, and reports a mean only when that metric is measured for every reconstruction. These means do not represent the wall time of a parallel run.
 

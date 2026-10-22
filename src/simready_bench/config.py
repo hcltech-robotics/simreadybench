@@ -368,6 +368,7 @@ def validate_policy(value=None, *, base_dir):
             "authority_state_dir",
             "container_resources",
             "illustration_image",
+            "illustration_memory_mb",
             "fidelity_image",
             "executor_stall_seconds",
         },
@@ -375,6 +376,8 @@ def validate_policy(value=None, *, base_dir):
     )
     if "executor_stall_seconds" in runtime:
         _number(runtime["executor_stall_seconds"], "executor stall seconds", 1800, 86400)
+    if 'illustration_memory_mb' in runtime:
+        _number(runtime['illustration_memory_mb'], 'illustration memory MiB', 512, 16384, True)
     if "fidelity_image" in runtime and (
         not isinstance(runtime["fidelity_image"], str)
         or not re.fullmatch("sha256:[0-9a-f]{64}", runtime["fidelity_image"])

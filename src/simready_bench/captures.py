@@ -7,6 +7,12 @@ from pathlib import Path
 VIEWS = ("isometric", "front", "side", "top")
 
 
+def check_renderer_log(log):
+    """A PNG and zero exit code do not establish successful shader rendering."""
+    if re.search(r'Failed to compile shader|shader compilation failed|shader program link failed', log, re.IGNORECASE):
+        raise RuntimeError('Storm shader compilation failed; original renderer log retained privately')
+
+
 def validate_settings(value):
     if type(value) is not dict or set(value) - {
         "renderer",
@@ -123,6 +129,10 @@ def _render_final(condition, cfg, runtime, snapshot, root, *, alignment=None):
             "status": "unavailable",
             "warnings": ["Operator has not bound an immutable CPU illustration image."],
         }
+    memory_mb = runtime.get('illustration_memory_mb', 4096)
+    if type(memory_mb) is not int or not 512 <= memory_mb <= 16384:
+        raise ValueError('Bounded illustration memory between 512 and 16384 MiB required')
+    base['renderer_memory_mb'] = memory_mb
     if "validator_reference" not in cfg:
         return {
             **base,
@@ -173,7 +183,7 @@ def _render_final(condition, cfg, runtime, snapshot, root, *, alignment=None):
         "--cpus",
         "2",
         "--memory",
-        "2g",
+        str(memory_mb) + 'm',
         "--shm-size",
         "256m",
         "--tmpfs",
@@ -218,6 +228,7 @@ def _render_final(condition, cfg, runtime, snapshot, root, *, alignment=None):
             argv, capture_output=True, text=True, timeout=settings["seconds"]
         )
         (output / "renderer.log").write_text(result.stdout + result.stderr)
+        check_renderer_log(result.stdout + result.stderr)
         if result.returncode:
             raise RuntimeError(
                 "CPU illustration process failed; original renderer log retained privately"

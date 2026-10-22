@@ -440,6 +440,14 @@ def leaderboard_entry(result, *, manifest, results_url):
         )
     if any(row.get("status") != "completed" for row in rows):
         raise ValueError("Every reference attempt must have completed")
+    if manifest.get('defaults', {}).get('fidelity', {}).get('enabled', True):
+        from simready_bench.completion import evaluation_completion
+        captures = manifest.get('defaults', {}).get('illustrations', {})
+        if any(not evaluation_completion(
+            row, captures_enabled=captures.get('renderer', 'none') != 'none',
+            views=captures.get('views', ['isometric', 'front', 'side']),
+        )['complete'] for row in rows):
+            raise ValueError('Every applicable fidelity measurement and capture must finish before leaderboard admission')
     models = {
         row.get("requested_model") or (row.get("model") or {}).get("model_id")
         for row in rows

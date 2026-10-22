@@ -196,6 +196,7 @@ def publication(tmp_path):
             "fidelity": {
                 "status": "measured",
                 "components": {
+                    'kinematics': {'status': 'not_applicable', 'score_percent': None},
                     "shape": {
                         "score_percent": 0,
                         "eligible": 1,

@@ -1,6 +1,7 @@
 from pathlib import Path
 import hashlib
 import numpy as np
+import pytest
 
 try:
     from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics, UsdShade
@@ -370,6 +371,74 @@ def test_native_texture_uv_and_subset_binding_are_cached_without_losing_corners(
         "Unsupported visual shader/texture input" in row["reason"]
         for row in unsupported["eligibility"]["unsupported"]
     )
+
+
+@pytest.mark.parametrize(
+    "missing", [None, "file", "st", "varname", "unconnected_st", "constant_st"]
+)
+def test_native_missing_texture_inputs_preserve_geometry_and_joint_metrics(
+    tmp_path, missing
+):
+    from PIL import Image
+
+    Image.new("RGB", (2, 2), (180, 60, 20)).save(tmp_path / "colour.png")
+    paths = [tmp_path / "reference.usda", tmp_path / "candidate.usda"]
+    for index, path in enumerate(paths):
+        write(path)
+        stage = Usd.Stage.Open(str(path))
+        mesh = UsdGeom.Mesh.Get(stage, "/Body/Surface")
+        uv = UsdGeom.PrimvarsAPI(mesh).CreatePrimvar(
+            "st", Sdf.ValueTypeNames.TexCoord2fArray, "faceVarying"
+        )
+        uv.Set([[0, 0], [1, 0], [0, 1]] * 12)
+        texture = UsdShade.Shader.Define(stage, "/Looks/Renamable/Texture")
+        texture.CreateIdAttr("UsdUVTexture")
+        texture.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(
+            Sdf.AssetPath("colour.png")
+        )
+        reader = UsdShade.Shader.Define(stage, "/Looks/Renamable/Reader")
+        reader.CreateIdAttr("UsdPrimvarReader_float2")
+        reader.CreateInput("varname", Sdf.ValueTypeNames.Token).Set("st")
+        texture.CreateInput("st", Sdf.ValueTypeNames.Float2).ConnectToSource(
+            reader.ConnectableAPI(), "result"
+        )
+        shader = UsdShade.Shader.Get(stage, "/Looks/Renamable/Surface")
+        shader.GetInput("diffuseColor").ConnectToSource(
+            texture.ConnectableAPI(), "rgb"
+        )
+        if index == 1 and missing:
+            if missing == "varname":
+                reader.GetPrim().RemoveProperty("inputs:varname")
+            elif missing in ("unconnected_st", "constant_st"):
+                texture.GetInput("st").DisconnectSource()
+                if missing == "constant_st":
+                    texture.GetInput("st").Set(Gf.Vec2f(0.25, 0.75))
+            else:
+                texture.GetPrim().RemoveProperty("inputs:" + missing)
+        stage.GetRootLayer().Save()
+    reference, candidate = map(observe, paths)
+    measured = candidate["materials"][0]
+    result = compare(reference, candidate, settings({"samples": 128}))
+    assert result["components"]["shape"]["score_percent"] == 100
+    assert result["components"]["joints"]["score_percent"] == 100
+    appearance = result["components"]["materials"]
+    if missing is None:
+        texture = measured["visual:diffuseColor"]
+        assert texture["wrap"] == ["repeat", "repeat"]
+        assert texture["sRGB"] is True
+        assert np.array_equal(texture["scale"], [1, 1, 1])
+        assert np.array_equal(texture["bias"], [0, 0, 0])
+        assert appearance["score_percent"] == 100
+        assert not candidate["eligibility"]["unsupported"]
+    else:
+        assert "visual:diffuseColor" not in measured
+        assert appearance["features"]["visual:diffuseColor"]["earned"] == 0
+        assert appearance["features"]["visual:diffuseColor"]["eligible"] == 128
+        assert any(
+            row["reason"] == "Unsupported visual shader/texture input: diffuseColor"
+            and not row["geometry"]
+            for row in candidate["eligibility"]["unsupported"]
+        )
 
 
 def test_native_redundant_quad_keeps_original_fan_corner_uv(tmp_path):
