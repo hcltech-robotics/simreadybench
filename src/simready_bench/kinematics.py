@@ -316,15 +316,15 @@ def compare_kinematics(
         unknown = (
             joint.get("type") not in SUPPORTED_TYPES
             or _joint_data(joint) is None
-            or any(
-                body in ambiguous_bodies
-                for body in joint.get("bodies", [])
-                if body is not None
-            )
             or not any(
                 _landmarks(reference, body) is not None
                 for body in joint.get("bodies", [])
             )
+        )
+        ambiguous = any(
+            body in ambiguous_bodies
+            for body in joint.get("bodies", [])
+            if body is not None
         )
         row = {
             "reference_joint": index,
@@ -337,15 +337,20 @@ def compare_kinematics(
             "measured": 0 if unknown else 1,
             "coverage_fraction": 0 if unknown else 1,
             "motion_rms_m": None,
-            "reason": "unsupported_reference_or_ambiguous_correspondence"
+            "reason": "unsupported_reference"
             if unknown
+            else "candidate_ambiguous_correspondence"
+            if ambiguous
             else "missing_joint",
         }
         rows.append(row)
         choices = []
         for other in candidates:
             swapped = _connections(joint, other, mapping)
-            connected = swapped is not None and joint.get("type") == other.get("type")
+            connected = (
+                not ambiguous and swapped is not None
+                and joint.get("type") == other.get("type")
+            )
             quality = 0.0
             error = None
             measurement = {}

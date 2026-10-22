@@ -914,18 +914,22 @@ def compare(reference, candidate, cfg, *, candidate_invalid=False):
         if body is not None
     ):
         joints.update(
-            status="unknown",
-            score_percent=None,
-            earned=None,
-            reason="Ambiguous body correspondence; fixed reference criteria retained without inferred credit",
+            status="measured",
+            score_percent=0.0,
+            earned=0.0,
+            lower_bound_percent=0.0,
+            upper_bound_percent=0.0,
+            reason="candidate_ambiguous_correspondence",
         )
     unobserved = [
         {"role": role, **joint}
         for role, observation in (("reference", reference), ("candidate", candidate or {}))
         for joint in observation.get("kinematic_observation", {}).get("unobserved_joints", [])
     ]
-    if unobserved:
-        reason = "Malformed authored joint connectivity; no inferred kinematic credit"
+    reference_unobserved = [joint for joint in unobserved if joint["role"] == "reference"]
+    candidate_unobserved = [joint for joint in unobserved if joint["role"] == "candidate"]
+    if reference_unobserved:
+        reason = "unsupported_reference_joint_connectivity"
         unknown = {
             "status": "unknown", "score_percent": None, "earned": None,
             "eligible": None, "coverage_fraction": None,
@@ -935,10 +939,37 @@ def compare(reference, candidate, cfg, *, candidate_invalid=False):
         kinematics.update(unknown, unobserved_joints=unobserved)
         affected = {
             "fixed_constraints" if joint["type"] == "PhysicsFixedJoint" else "moving_joints"
-            for joint in unobserved
+            for joint in reference_unobserved
         }
         for name in affected:
             kinematics["groups"][name].update(unknown)
+    elif candidate_unobserved:
+        failed = {
+            "status": "measured", "score_percent": 0.0, "earned": 0.0,
+            "coverage_fraction": 1.0, "lower_bound_percent": 0.0,
+            "upper_bound_percent": 0.0, "reason": "candidate_malformed_joint_connectivity",
+        }
+        joints.update(failed, unobserved_joints=unobserved)
+        kinematics["unobserved_joints"] = unobserved
+        kinematics["candidate_joint_count"] += len(candidate_unobserved)
+        kinematics["extra_joint_count"] += len(candidate_unobserved)
+        affected = {
+            "fixed_constraints" if joint["type"] == "PhysicsFixedJoint" else "moving_joints"
+            for joint in candidate_unobserved
+        }
+        for name in affected:
+            group = kinematics["groups"][name]
+            count = sum(
+                (joint["type"] == "PhysicsFixedJoint") == (name == "fixed_constraints")
+                for joint in candidate_unobserved
+            )
+            group["candidate_joint_count"] += count
+            group["eligible"] += count
+            group.update(failed, measured=group["eligible"])
+        if kinematics["status"] != "unknown":
+            kinematics.update(failed)
+            active = [group for group in kinematics["groups"].values() if group["eligible"]]
+            kinematics["eligible"] = kinematics["measured"] = len(active)
     complete_reference = (
         not source_unsupported
         and reference["eligibility"].get("visible_prims", 0) > 0

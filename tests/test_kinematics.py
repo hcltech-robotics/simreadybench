@@ -184,9 +184,9 @@ def test_continuous_error_retains_partials_and_declines_as_motion_error_grows(ch
 
 
 @pytest.mark.parametrize(
-    "change", ["spherical", "unbounded", "missing_frame", "ambiguous"]
+    "change", ["spherical", "unbounded", "missing_frame"]
 )
-def test_unsupported_reference_semantics_and_ambiguous_body_matching_remain_unknown(
+def test_unsupported_reference_semantics_remain_unknown(
     change,
 ):
     reference = fixture()
@@ -197,13 +197,35 @@ def test_unsupported_reference_semantics_and_ambiguous_body_matching_remain_unkn
         reference["joints"][0]["limits"]["state"] = "unbounded"
     elif change == "missing_frame":
         reference["joints"][0].pop("frames")
-    else:
-        kwargs["ambiguous_bodies"] = ["leaf"]
     result = measure(reference, copy.deepcopy(reference), **kwargs)
     assert result["score_percent"] is None
     assert result["status"] == "unknown"
     assert result["joints"][0]["earned"] is None
     assert result["coverage_fraction"] < 1
+    assert result["joints"][0]["reason"] == "unsupported_reference"
+
+
+def test_candidate_ambiguous_body_matching_is_failure_without_inferred_motion():
+    reference = fixture()
+    result = measure(reference, copy.deepcopy(reference), ambiguous_bodies=["leaf"])
+    assert result["score_percent"] == 0
+    assert result["status"] == "measured"
+    assert result["coverage_fraction"] == 1
+    assert result["matched_joint_count"] == 0
+    row = result["joints"][0]
+    assert row["earned"] == 0
+    assert row["reason"] == "candidate_ambiguous_correspondence"
+    assert row["candidate_joint"] is None
+    assert row["motion_rms_m"] is None
+
+
+def test_unsupported_reference_remains_unknown_despite_candidate_ambiguity():
+    reference = fixture()
+    reference["joints"][0].pop("frames")
+    result = measure(reference, fixture(), ambiguous_bodies=["leaf"])
+    assert result["status"] == "unknown"
+    assert result["score_percent"] is None
+    assert result["joints"][0]["reason"] == "unsupported_reference"
 
 
 def test_reference_unknown_upper_bounds_do_not_exceed_100_with_missing_candidates():

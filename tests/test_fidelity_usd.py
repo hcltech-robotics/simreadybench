@@ -106,23 +106,36 @@ def test_malformed_joint_relationship_preserves_independent_measurements(
     unobserved = actual["kinematic_observation"]
     assert unobserved["status"] == "unknown"
     assert unobserved["unobserved_joints"][0]["path"] == "/AnyJointName"
+    assert all(
+        joint.get(field) is None
+        for joint in unobserved["unobserved_joints"]
+        for field in ("bodies", "anchors", "axes", "frames", "motion_rms_m")
+    )
     assert any(
         row.get("kinematics") is True and row["geometry"] is False
         for row in actual["eligibility"]["unsupported"]
     )
-    for first, second in ((reference, actual), (actual, reference)):
+    for malformed_reference, first, second in (
+        (False, reference, actual), (True, actual, reference)
+    ):
         result = compare(first, second, settings({"samples": 128}))
         assert result["components"]["shape"]["score_percent"] == 100
         assert result["components"]["materials"]["score_percent"] == 100
         for component in ("joints", "kinematics"):
             measured = result["components"][component]
-            assert measured["status"] == "unknown"
-            assert measured["score_percent"] is None
-            assert measured["earned"] is None
+            assert measured["status"] == ("unknown" if malformed_reference else "measured")
+            assert measured["score_percent"] == (None if malformed_reference else 0)
+            assert measured["earned"] == (None if malformed_reference else 0)
             assert measured["lower_bound_percent"] == 0
-            assert measured["upper_bound_percent"] == 100
+            assert measured["upper_bound_percent"] == (100 if malformed_reference else 0)
+            assert measured["reason"] == (
+                "unsupported_reference_joint_connectivity" if malformed_reference
+                else "candidate_malformed_joint_connectivity"
+            )
         group = "fixed_constraints" if joint_kind == "fixed" else "moving_joints"
-        assert result["components"]["kinematics"]["groups"][group]["status"] == "unknown"
+        assert result["components"]["kinematics"]["groups"][group]["status"] == (
+            "unknown" if malformed_reference else "measured"
+        )
     assert hashlib.sha256(candidate.read_bytes()).hexdigest() == before
 
 
@@ -135,6 +148,36 @@ def test_absent_joint_endpoint_remains_a_valid_world_attachment(tmp_path):
     result = compare(observation, observation, settings({"samples": 128}))
     assert result["components"]["joints"]["score_percent"] == 100
     assert result["components"]["kinematics"]["score_percent"] == 100
+
+
+def test_candidate_ambiguous_joint_body_assignment_fails_without_motion_inference(
+    tmp_path, monkeypatch
+):
+    from simready_bench import fidelity
+
+    path = tmp_path / "ambiguous.usda"
+    write(path)
+    observation = observe(path)
+    match = fidelity._body_match
+
+    def ambiguous(reference, candidate, scale):
+        mapping, metadata = match(reference, candidate, scale)
+        metadata["ambiguous_reference_bodies"] = ["/Body"]
+        return mapping, metadata
+
+    monkeypatch.setattr(fidelity, "_body_match", ambiguous)
+    result = compare(observation, observation, settings({"samples": 128}))
+    assert result["components"]["shape"]["score_percent"] == 100
+    assert result["components"]["materials"]["score_percent"] == 100
+    for name in ("joints", "kinematics"):
+        assert result["components"][name]["status"] == "measured"
+        assert result["components"][name]["score_percent"] == 0
+    measured = result["components"]["kinematics"]["joints"][0]
+    assert measured["reason"] == "candidate_ambiguous_correspondence"
+    assert measured["motion_rms_m"] is None
+    assert measured["candidate_joint"] is None
+    assert measured.get("anchors") is None
+    assert measured.get("axes") is None
 
 
 def test_native_equivalent_geometry_units_names_joints_and_materials(tmp_path):
