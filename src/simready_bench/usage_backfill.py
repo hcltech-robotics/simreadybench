@@ -90,6 +90,16 @@ def _key(usage):
 
 def _price(usage, tariff):
     _validate_usage(usage)
+    if tariff and tariff.get("billing_basis") == "input_output":
+        if not tariff.get("route_verified") or not tariff.get("service_tier_verified"):
+            return None
+        if any(usage.get(field) is None for field in ("input_tokens", "output_tokens")):
+            return None
+        rates = tariff["usd_per_million_tokens"]
+        values = [Decimal(str(rates[field])) for field in ("input", "output")]
+        if any(not rate.is_finite() or rate < 0 for rate in values):
+            raise ValueError("Token prices must be finite and non-negative")
+        return (usage["input_tokens"] * values[0] + usage["output_tokens"] * values[1]) / Decimal(1_000_000)
     required = ("input_tokens", "output_tokens", "cached_tokens", "cache_write_tokens")
     if not tariff or not all(usage.get(field) is not None for field in required):
         return None
@@ -123,7 +133,7 @@ def _validate_usage(usage):
         raise ValueError("Reasoning tokens exceed output tokens")
 
 
-def reconstruct_row(row, *, run_id, trajectory=None, trajectory_sha256=None, tariff=None):
+def reconstruct_row(row, *, run_id, trajectory=None, trajectory_sha256=None, tariff=None, expected_request_count=None):
     """Fill missing usage and retain request, trajectory and tariff provenance.
 
     Request identifiers deduplicate retained records. A complete cost requires
@@ -144,12 +154,16 @@ def reconstruct_row(row, *, run_id, trajectory=None, trajectory_sha256=None, tar
             raise ValueError("Conflicting records for provider request " + identity)
         records[identity] = record
     requests = list(records.values())
-    expected = _count(row.get("inference_calls_used"))
+    if expected_request_count is not None and _count(expected_request_count) is None:
+        raise ValueError("Expected request count must be a non-negative integer")
+    expected = _count(row.get("inference_calls_used")) if expected_request_count is None else expected_request_count
     complete_count = expected is not None and len(requests) == expected
     usages = [_usage(record) for record in requests]
     trajectory_calls = _trajectory_usage(trajectory) if trajectory is not None else []
     observed = [usage for usage in usages if usage["input_tokens"] is not None and usage["output_tokens"] is not None]
-    trajectory_matched = bool(trajectory_calls) and Counter(map(_key, observed)) == Counter(map(_key, trajectory_calls))
+    comparison_observed = [_usage({"usage": record.get("usage") or record.get("partial_usage")}) for record in requests]
+    comparison_observed = [usage for usage in comparison_observed if usage["input_tokens"] is not None and usage["output_tokens"] is not None]
+    trajectory_matched = bool(trajectory_calls) and Counter(map(_key, comparison_observed)) == Counter(map(_key, trajectory_calls))
     if trajectory_calls and not trajectory_matched:
         raise ValueError("Provider and trajectory usage differ for " + row["condition_id"])
     cache_writes = {}
@@ -212,11 +226,14 @@ def reconstruct_row(row, *, run_id, trajectory=None, trajectory_sha256=None, tar
         "gateway_records_sha256": digest(original_records),
         "trajectory_sha256": trajectory_sha256,
         "recorded_calls": expected,
+        "productive_calls": row.get("inference_calls_used"),
         "unique_requests": len(requests),
         "duplicate_records": len(original_records) - len(requests),
         "provider_usage_complete": complete_count and len(observed) == len(requests),
         "trajectory_usage_matched": trajectory_matched,
         "pricing_derived_cost_complete": cost_complete,
+        "measured_pricing_derived_cost_usd": float(sum((price for price in prices if price is not None), Decimal(0))) if any(price is not None for price in prices) else None,
+        "priced_requests": sum(price is not None for price in prices),
         "preserved_usage_conflicts": conflicts,
         "tariff": deepcopy(tariff),
         "requests": reconstructed_requests,
