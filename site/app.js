@@ -177,6 +177,10 @@ function isCompleteEntry(entry) {
   }
 }
 
+const snapshotAt = leaderboardTable.dataset.snapshotAt;
+const snapshotMarkup = leaderboardBody.innerHTML;
+leaderboardTable.dataset.loadState = "loading";
+
 fetch(leaderboardSource, { mode: "cors", credentials: "omit", cache: "no-store" })
   .then((response) => {
     if (!response.ok) throw new Error("Leaderboard unavailable");
@@ -185,9 +189,26 @@ fetch(leaderboardSource, { mode: "cors", credentials: "omit", cache: "no-store" 
   .then((data) => {
     if (data.schema !== "simreadybench-leaderboard/v1" || !Array.isArray(data.entries)) throw new Error("Invalid leaderboard data");
     leaderboardEntries = data.entries.filter(isCompleteEntry);
+    if (data.entries.length && !leaderboardEntries.length) throw new Error("No compatible leaderboard entries");
     renderLeaderboard();
+    if (!leaderboardEntries.length) {
+      leaderboardStatus.hidden = false;
+      leaderboardStatus.textContent = "No complete NV25 results are currently published.";
+    }
+    delete leaderboardTable.dataset.snapshotAt;
+    leaderboardTable.dataset.loadState = "ready";
   })
   .catch(() => {
-    leaderboardEntries = [];
-    renderLeaderboard();
+    leaderboardTable.dataset.loadState = "error";
+    if (snapshotAt) {
+      leaderboardBody.innerHTML = snapshotMarkup;
+      leaderboardTable.hidden = !leaderboardBody.children.length;
+      leaderboardStatus.textContent = `Live refresh unavailable. Showing results captured ${snapshotAt}.`;
+    } else {
+      leaderboardEntries = [];
+      renderLeaderboard();
+      leaderboardStatus.textContent = "Live results are temporarily unavailable. View the published archive on Hugging Face.";
+    }
+    leaderboardStatus.hidden = false;
+    leaderboardArchive.hidden = false;
   });

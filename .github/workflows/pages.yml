@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths: ["site/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
 
 permissions:
   contents: read
@@ -17,6 +19,7 @@ jobs:
   deploy:
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
       pages: write
@@ -26,6 +29,58 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Install the static rendering browser
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Render published leaderboard into HTML
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          from functools import partial
+          from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+          from pathlib import Path
+          from threading import Thread
+          from playwright.sync_api import sync_playwright
+
+          # Use the site's actual renderer and published data, including missing values.
+          server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory="site"))
+          Thread(target=server.serve_forever, daemon=True).start()
+          url = f"http://127.0.0.1:{server.server_port}/"
+          try:
+              with sync_playwright() as p:
+                  browser = p.chromium.launch()
+                  page = browser.new_page()
+                  page.goto(url, wait_until="domcontentloaded")
+                  page.wait_for_function(
+                      "['ready', 'error'].includes(document.getElementById('leaderboard-table-region').dataset.loadState)",
+                      timeout=90000,
+                  )
+                  table = page.locator("#leaderboard-table-region")
+                  if table.get_attribute("data-load-state") != "ready":
+                      raise RuntimeError("Published leaderboard could not be rendered; keeping the existing deployment")
+                  count = page.locator("#leaderboard-body tr").count()
+                  captured = datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC")
+                  table.evaluate("(el, stamp) => el.dataset.snapshotAt = stamp", captured)
+                  page.locator("#leaderboard-status").evaluate(
+                      "(el, stamp) => { el.hidden = false; el.textContent += ' Snapshot: ' + stamp + '.'; }", captured
+                  )
+                  html = page.content()
+                  Path("site/index.html").write_text(html, encoding="utf-8")
+                  # Verify the published results remain visible without JavaScript.
+                  static = browser.new_context(java_script_enabled=False)
+                  check = static.new_page()
+                  check.goto(url, wait_until="domcontentloaded")
+                  assert check.locator("#leaderboard-body tr").count() == count
+                  if count:
+                      assert check.locator("#leaderboard-table-region").is_visible()
+                  assert check.locator('link[rel="canonical"]').get_attribute("href") == "https://hcltech-robotics.github.io/simreadybench/"
+                  print(f"Rendered {count} leaderboard entries at {captured}")
+                  browser.close()
+          finally:
+              server.shutdown()
+              server.server_close()
+          PY
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:
