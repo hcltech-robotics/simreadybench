@@ -19,6 +19,15 @@ def test_explicit_off_preserves_model_capability(reasoning):
         configure_reasoning(model, "medium")
 
 
+def test_declared_unsupported_off_is_rejected_before_dispatch():
+    model = {"metadata": {"reasoning": True, "thinkingLevelMap": {"off": None}}}
+    with pytest.raises(ValueError, match="cannot disable reasoning"):
+        configure_reasoning(model, "off")
+    assert "generation" not in model
+    configure_reasoning(model, "low")
+    assert model["generation"]["reasoning_effort"] == "low"
+
+
 def test_off_is_frozen_in_identity_and_native_thinking(setup):
     root, original, policy = setup
     policy["limits"].update(inference_requests=64, agent_seconds=authoring_seconds(64))

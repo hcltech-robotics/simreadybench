@@ -59,6 +59,9 @@ def configure_reasoning(model, effort=None):
     if chosen not in ("off", "low", "medium", "high", "xhigh", "max"):
         raise ValueError("Choose off, low, medium, high, xhigh or max reasoning")
     metadata = model["metadata"]
+    levels = metadata.get("thinkingLevelMap", {})
+    if chosen == "off" and "off" in levels and levels["off"] is None:
+        raise ValueError("The selected model cannot disable reasoning")
     if chosen != "off" and (
         not metadata["reasoning"]
         or metadata.get("compat", {}).get("supportsReasoningEffort") is False
