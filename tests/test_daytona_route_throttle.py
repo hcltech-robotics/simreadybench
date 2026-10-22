@@ -8,6 +8,7 @@ from simready_bench import daytona_route_throttle as manager
 
 
 def fixture(tmp_path, monkeypatch):
+    monkeypatch.setattr(manager, "_worker_network_preflight", lambda *args, **kwargs: None)
     monkeypatch.setenv("FIXTURE_ROUTE_KEY", "private-model-credential")
     policy = {
         "runtime": {"authority_state_dir": str(tmp_path)},
@@ -25,11 +26,14 @@ class Client:
     def __init__(self):
         self.created = []
         self.deleted = False
+        self.signed_calls = []
         self.sandbox = SimpleNamespace(
-            id="governor-fixture", get_preview_link=lambda *args, **kwargs: SimpleNamespace(
-                url="https://private-governor.daytona.test", token="private-preview-token"
-            )
+            id="governor-fixture", create_signed_preview_url=self.signed_preview,
         )
+
+    def signed_preview(self, port, *, expires_in_seconds, **kwargs):
+        self.signed_calls.append((port, expires_in_seconds))
+        return SimpleNamespace(url="https://private-governor.daytona.test", token="private-signed-port-token")
 
     def create(self, params, **kwargs):
         self.created.append(params)
@@ -57,6 +61,10 @@ def test_one_private_governor_is_reused_and_credential_is_not_retained(tmp_path,
     assert first == second
     assert len(client.created) == len(starts) == 1
     assert len(checks) == 2
+    assert len(client.signed_calls) == 1
+    assert client.signed_calls[0][0] == 8765
+    assert 0 < client.signed_calls[0][1] <= 86400
+    assert first["preview_token"] == ""
     assert client.created[0].public is False
     assert client.created[0].auto_stop_interval == 0
     receipts = list(tmp_path.glob("route-throttles/*/governor.json"))
@@ -146,6 +154,77 @@ def test_failed_startup_deletes_its_unshared_governor(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="Runtime bootstrap failed"):
         manager.ensure_route_throttle(policy, manifest, client, None, None)
     assert client.deleted is True
+
+
+def test_failed_worker_network_preflight_deletes_unshared_governor(tmp_path, monkeypatch):
+    policy, manifest = fixture(tmp_path, monkeypatch)
+    client = Client()
+    monkeypatch.setattr(manager, "_start", lambda *args, **kwargs: None)
+    monkeypatch.setattr(manager, "_health", lambda descriptor: None)
+    def failed(*args, **kwargs):
+        raise RuntimeError("shared_route_governor_worker_network_unreachable")
+    monkeypatch.setattr(manager, "_worker_network_preflight", failed)
+    with pytest.raises(RuntimeError, match="shared_route_governor_worker_network_unreachable"):
+        manager.ensure_route_throttle(policy, manifest, client, None, None)
+    assert client.deleted is True
+
+
+def test_failed_worker_preflight_preserves_governor_with_another_owner(tmp_path, monkeypatch):
+    policy, manifest = fixture(tmp_path, monkeypatch)
+    client = Client()
+    monkeypatch.setattr(manager, "_start", lambda *args, **kwargs: None)
+    monkeypatch.setattr(manager, "_health", lambda descriptor: None)
+    descriptor = manager.ensure_route_throttle(policy, manifest, client, None, None, output_dir=tmp_path/'first')
+    def failed(*args, **kwargs):
+        raise RuntimeError("shared_route_governor_worker_network_unreachable")
+    monkeypatch.setattr(manager, "_worker_network_preflight", failed)
+    with pytest.raises(RuntimeError, match="shared_route_governor_worker_network_unreachable"):
+        manager.ensure_route_throttle(policy, manifest, client, None, None, output_dir=tmp_path/'second')
+    assert client.deleted is False
+    assert len(json.loads(open(descriptor['receipt_path']).read())['owners']) == 1
+
+
+def test_worker_network_preflight_keeps_capabilities_out_of_command_arguments(monkeypatch):
+    uploads, commands = {}, []
+    sandbox = SimpleNamespace(fs=SimpleNamespace(upload_file=lambda data,path: uploads.update({path:data})))
+    def execute(sandbox, command, **kwargs):
+        commands.append(command)
+        return 'shared_route_governor_worker_network_ready' if 'docker exec' in command else ''
+    monkeypatch.setattr('simready_bench.daytona._executor_command', execute)
+    descriptor={'url':'https://signed-secret.daytona.test','token':'private-governor-token'}
+    manager._worker_network_preflight(sandbox,descriptor)
+    assert len(commands) == 2
+    assert 'chmod 600' in commands[0]
+    assert 'docker exec simready-route-throttle python -B' in commands[1]
+    assert all(descriptor['url'] not in command and descriptor['token'] not in command for command in commands)
+    assert json.loads(uploads['/run/simready-throttle/network-probe.json']) == descriptor
+    script=uploads['/run/simready-throttle/network-probe.py'].decode()
+    assert 'p.unlink()' in script and 'NoRedirect' in script
+
+
+def test_worker_network_preflight_script_calls_actual_authenticated_http(tmp_path, monkeypatch):
+    import contextlib
+    import io
+    from simready_bench.route_throttle import RouteThrottleServer
+
+    uploads = {}
+    sandbox = SimpleNamespace(fs=SimpleNamespace(upload_file=lambda data,path: uploads.update({path:data})))
+    private_config = tmp_path/'probe.json'
+    def execute(sandbox, command, **kwargs):
+        if 'docker exec' not in command:
+            return ''
+        private_config.write_bytes(uploads['/run/simready-throttle/network-probe.json'])
+        source = uploads['/run/simready-throttle/network-probe.py'].decode().replace(
+            "'/state/network-probe.json'", repr(str(private_config))
+        )
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exec(compile(source,'worker-network-probe','exec'),{})
+        assert not private_config.exists()
+        return output.getvalue().strip()
+    monkeypatch.setattr('simready_bench.daytona._executor_command', execute)
+    with RouteThrottleServer(tmp_path/'store.sqlite3', 'private-test-application-token',route_keys=['a'*64]) as server:
+        manager._worker_network_preflight(sandbox,{'url':server.url,'token':'private-test-application-token'})
 
 
 def test_simultaneous_coordinators_create_one_governor(tmp_path, monkeypatch):

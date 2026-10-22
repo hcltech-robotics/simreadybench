@@ -67,12 +67,12 @@ def requires_route_throttle(*, policy, manifest):
 
 
 def _health(descriptor):
+    headers = {"Authorization": "Bearer " + descriptor["token"]}
+    if descriptor.get("preview_token"):
+        headers["X-Daytona-Preview-Token"] = descriptor["preview_token"]
     request = urllib.request.Request(
         descriptor["url"].rstrip("/") + "/health",
-        headers={
-            "Authorization": "Bearer " + descriptor["token"],
-            "X-Daytona-Preview-Token": descriptor["preview_token"],
-        },
+        headers=headers,
     )
     # Never forward the preview capability or application token through redirects.
     from .provider_relay import NoRedirect
@@ -116,6 +116,13 @@ def _start(sandbox, receipt, *, cpu_image):
         "--network", "host", "--user", "0:0", "--read-only", "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "256m",
         "--mount", "type=bind,src=/run/simready-throttle,dst=/state",
+        "--mount", "type=bind,src=/etc/ssl/cert.pem,dst=/run/host-ca.pem,readonly",
+        "--env", "SSL_CERT_FILE=/run/host-ca.pem",
+    ]
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+                 "http_proxy", "https_proxy", "all_proxy", "no_proxy"):
+        argv += ["--env", name]
+    argv += [
         "--entrypoint", "python", cpu_image,
         "-B", "/state/route_throttle.py", "--config", "/state/config.json",
     ]
@@ -123,6 +130,45 @@ def _start(sandbox, receipt, *, cpu_image):
     sandbox.process.execute_session_command(
         "simready-route-throttle", SessionExecuteRequest(command=shlex.join(argv), run_async=True), timeout=10,
     )
+
+
+def _worker_network_preflight(sandbox, descriptor):
+    """Verify the signed HTTPS endpoint from the pinned governor container."""
+    from .daytona import _executor_command
+
+    probe = '''import json,pathlib,sys,urllib.request
+p=pathlib.Path('/state/network-probe.json')
+try:
+    raw=p.read_text()
+    p.unlink()
+    config=json.loads(raw)
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self,*args,**kwargs):
+            return None
+    request=urllib.request.Request(config['url'].rstrip('/')+'/health',headers={'Authorization':'Bearer '+config['token']})
+    with urllib.request.build_opener(NoRedirect()).open(request,timeout=15) as response:
+        raw=response.read(65537)
+        if response.status!=200 or len(raw)>65536 or json.loads(raw).get('ok') is not True:
+            raise ValueError('Invalid health response')
+except Exception:
+    print('shared_route_governor_worker_network_unreachable')
+    sys.exit(1)
+print('shared_route_governor_worker_network_ready')
+'''
+    sandbox.fs.upload_file(probe.encode(), "/run/simready-throttle/network-probe.py")
+    sandbox.fs.upload_file(json.dumps({key: descriptor[key] for key in ("url", "token")}).encode(), "/run/simready-throttle/network-probe.json")
+    clean = lambda value: "shared_route_governor_worker_network_unreachable"
+    try:
+        _executor_command(sandbox, "chmod 600 /run/simready-throttle/network-probe.*", clean=clean)
+        result = _executor_command(
+            sandbox,
+            "docker exec simready-route-throttle python -B /state/network-probe.py",
+            clean=clean, timeout=25,
+        )
+        if result != "shared_route_governor_worker_network_ready":
+            raise RuntimeError("shared_route_governor_worker_network_unreachable")
+    except Exception:
+        raise RuntimeError("shared_route_governor_worker_network_unreachable") from None
 
 
 def ensure_route_throttle(policy, manifest, client, cpu_snapshot, runtime_images, *, output_dir=None):
@@ -195,19 +241,23 @@ def ensure_route_throttle(policy, manifest, client, cpu_snapshot, runtime_images
                     release_route_throttle({"receipt_path": str(path), "route_key": route_key, "token": receipt["token"]}, owner, client)
                 raise
         try:
-            preview = sandbox.get_preview_link(8765, request_timeout=30)
+            if not receipt.get("signed_url") or receipt.get("signed_expires_at", 0) <= time.time() + 2400:
+                issued_at = time.time()
+                lifetime = min(86400, int(receipt["expires_at"] - issued_at) - 30)
+                signed = sandbox.create_signed_preview_url(8765, expires_in_seconds=lifetime, request_timeout=30)
+                receipt.update(signed_url=signed.url.rstrip("/"), signed_token=signed.token,
+                               signed_expires_at=issued_at + lifetime)
+                _write(path, receipt)
             from urllib.parse import urlsplit
 
-            parsed = urlsplit(preview.url)
+            parsed = urlsplit(receipt["signed_url"])
             if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
                 raise ValueError("A private HTTPS governor preview URL is required")
-            if not isinstance(preview.token, str) or not preview.token:
-                raise ValueError("The private governor preview requires an access token")
         except BaseException:
             if not receipt.get("owners"):
                 release_route_throttle({"receipt_path": str(path), "route_key": route_key, "token": receipt["token"]}, owner, client)
             raise
-        descriptor = {"url": preview.url.rstrip("/"), "token": receipt["token"], "preview_token": preview.token, "route_key": route_key, "receipt_path": str(path)}
+        descriptor = {"url": receipt["signed_url"], "token": receipt["token"], "preview_token": "", "route_key": route_key, "receipt_path": str(path)}
         deadline = time.monotonic() + 60
         while True:
             try:
@@ -219,7 +269,13 @@ def ensure_route_throttle(policy, manifest, client, cpu_snapshot, runtime_images
                         release_route_throttle(descriptor, owner, client)
                     raise RuntimeError("The shared route governor is unreachable") from None
                 time.sleep(1)
-        receipt.update(status="ready", url=descriptor["url"], preview_token=preview.token, last_verified_at=time.time())
+        try:
+            _worker_network_preflight(sandbox, descriptor)
+        except Exception:
+            if not receipt.get("owners"):
+                release_route_throttle(descriptor, owner, client)
+            raise
+        receipt.update(status="ready", url=descriptor["url"], preview_token="", last_verified_at=time.time())
         receipt.setdefault("owners", {})[owner] = expires_at
         _write(path, receipt)
         return descriptor

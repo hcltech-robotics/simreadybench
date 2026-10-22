@@ -20,6 +20,8 @@ An operator policy can set `runtime.container_resources` with explicit `cpus` an
 
 Hugging Face routes share a private inference governor across workers and coordinators using the same authority directory. Each route admits at most four simultaneous inference requests, independently of the worker count. A rate-limit response applies a shared cooldown using `Retry-After` or `RateLimit` headers, with exponential backoff and jitter when neither provides a delay. Routes are identified by provider endpoint, model and credential identity, so other providers retain independent capacity. The governor retains leases and cooldowns across coordinator restarts and is deleted after its final owner releases it and all dependent executors have been deleted.
 
+The governor uses an expiring signed preview restricted to its service port. Before workers launch, the pinned governor container checks the authenticated HTTPS endpoint using the worker network configuration. A failed check reports `shared_route_governor_worker_network_unreachable` and deletes an unshared governor. The Daytona organisation's outbound network policy must permit access to its preview domain.
+
 Failed inference does not consume the authoring-round allowance. Transport attempts remain recorded under a separate finite limit and monetary accounting retains any uncertain spend. A successful response truncated at the per-request token limit consumes one authoring round, including when continuation is enabled.
 
 The snapshot contains Docker, actor and verifier images, the validator environment and Storm/Mesa with its Python interpreter at `/opt/storm/bin/python`. Set the model credential, such as `OPENAI_API_KEY` or `HF_TOKEN`, then pass the saved runtime configuration to the benchmark:

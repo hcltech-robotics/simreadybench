@@ -271,7 +271,10 @@ class RelayState:
                 not isinstance(throttle_config, dict)
                 or set(throttle_config) - {"url", "token", "route_key", "preview_token"}
                 or not {"url", "token", "route_key"} <= set(throttle_config)
-                or any(not isinstance(value, str) or not value for value in throttle_config.values())
+                or any(
+                    not isinstance(value, str) or (key != "preview_token" and not value)
+                    for key, value in throttle_config.items()
+                )
             ):
                 raise ValueError("A fixed shared route throttle configuration is required")
             if __package__:

@@ -268,7 +268,8 @@ def test_rate_limit_reset_only_waits_for_exhausted_valid_quotas(value, expected)
     assert _rate_limit_reset(value) == expected
 
 
-def test_independent_relays_share_route_permits_until_response_finishes(tmp_path):
+@pytest.mark.parametrize("preview_fields", [{}, {"preview_token": ""}])
+def test_independent_relays_share_route_permits_until_response_finishes(tmp_path, preview_fields):
     from simready_bench.route_throttle import RouteThrottleServer
 
     entered, release = threading.Event(), threading.Event()
@@ -282,7 +283,7 @@ def test_independent_relays_share_route_permits_until_response_finishes(tmp_path
 
     route_key = "a" * 64
     with RouteThrottleServer(tmp_path / "shared.sqlite3", "shared-private-test-token", max_concurrency=1, route_keys=[route_key]) as broker:
-        throttle = {"url": broker.url, "token": "shared-private-test-token", "route_key": route_key}
+        throttle = {"url": broker.url, "token": "shared-private-test-token", "route_key": route_key, **preview_fields}
         with relay(tmp_path / "first", [BlockingResponse(SUCCESS)], shared_route_throttle=throttle) as first, relay(tmp_path / "second", [Response(SUCCESS)], shared_route_throttle=throttle) as second:
             results = []
             one = threading.Thread(target=lambda: results.append(first[3]()))
