@@ -32,7 +32,8 @@ jobs:
       - name: Install the static rendering browser
         run: |
           python -m pip install playwright==1.56.0
-          python -m playwright install --with-deps chromium
+          # GitHub Ubuntu runners already provide Chromium system libraries.
+          python -m playwright install chromium
       - name: Render published leaderboard into HTML
         run: |
           python - <<'PY'
