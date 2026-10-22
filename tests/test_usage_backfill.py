@@ -133,6 +133,22 @@ def test_productive_call_count_does_not_hide_failed_requests_or_invent_their_usa
     assert not proof['provider_usage_complete']
 
 
+def test_trajectory_can_corroborate_partial_usage_without_making_cost_complete():
+    success, partial = request('success'), request('partial')
+    failed = {**partial, 'usage': None, 'partial_usage': partial['usage'],
+              'status': 'transport_failed'}
+    source = row([success, failed], inference_calls_used=1)
+    trace = trajectory([success, partial])
+    pricing = tariff(billing_basis='input_output',
+                     usd_per_million_tokens={'input': '0.15', 'output': '0.5'})
+    result = reconstruct_row(source, run_id='run', trajectory=trace, tariff=pricing,
+                             expected_request_count=2)
+    assert result['usage_reconstruction']['trajectory_usage_matched']
+    assert not result['usage_reconstruction']['provider_usage_complete']
+    assert not result['usage_reconstruction']['pricing_derived_cost_complete']
+    assert result.get('inference_cost_usd') is None
+
+
 def test_provider_usage_prices_ordinary_cache_and_output_without_double_counting():
     def split(total):
         quotient, remainder = divmod(total, 20)
