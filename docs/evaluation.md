@@ -28,6 +28,8 @@ Harbor receives this 0-100 value as `simready_reward`. Strict acceptance require
 
 Missing or invalid candidate output scores zero against the same 46 requirements. An incomplete evaluator run has a null score with credit bounds. Multiple findings against one requirement count as one failed requirement.
 
+NVIDIA findings with a requirement identity and severity `ERROR` or `FAILURE` count as failed asset requirements. Unscoped execution errors retain unknown outcomes. Malformed joint properties leave joint and kinematic measurements unknown while independent geometry and appearance measurements remain available. The evaluator does not infer missing body relationships or joint frames.
+
 ## Optional profile score
 
 The 51 optional Robotics-Prop 4.0.0 requirements receive a separate score:
