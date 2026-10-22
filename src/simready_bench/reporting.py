@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import csv, hashlib, html, json, math
+from decimal import Decimal
 from collections import Counter
 from pathlib import Path
 from simready_bench.provenance import provenance_fields, validate_run_spec
@@ -168,6 +169,11 @@ def _compact_requests(records):
         "cost_status",
         "cost_usd",
         "actual_cost_usd",
+        "pricing_derived_inference_cost_usd",
+        "inference_cost_kind",
+        "pricing_source",
+        "pricing_checked",
+        "route_metadata_sha256",
     )
     usage_fields = (
         "input_tokens",
@@ -222,8 +228,41 @@ def _compact_requests(records):
     return compact
 
 
+def _priced_request(record):
+    """Price terminal HF usage only after verifying its immutable admission."""
+    from simready_bench.engine.hf_pricing import HF_PRICING
+    from simready_bench.engine.request_cost import (
+        CostDenied, make_usage_settlement_evidence, verify_usage_settlement,
+    )
+
+    if record.get("model") not in HF_PRICING:
+        return None
+    try:
+        verified = verify_usage_settlement(
+            make_usage_settlement_evidence(record),
+            request_id=record.get("gateway_request_id"),
+            original_upper_micro_usd=record.get("reserved_upper_cost_micro_usd"),
+        )
+        proof = verified["proof"]
+        # Cache and reasoning are subsets of these terminal provider totals.
+        pin = HF_PRICING[record["model"]]
+        return float((
+            Decimal(proof["input_tokens"]) * Decimal(pin.input_per_million_usd)
+            + Decimal(proof["output_tokens"]) * Decimal(pin.output_per_million_usd)
+        ) / Decimal(1_000_000))
+    except (CostDenied, ValueError, TypeError, KeyError):
+        return None
+
+
 def _statistics(condition):
-    requests = _compact_requests(condition.get("gateway_records", []))
+    source_records = condition.get("gateway_records", [])
+    source_records = source_records if isinstance(source_records, list) else []
+    prices = [_priced_request(row) for row in source_records if isinstance(row, dict)]
+    requests = _compact_requests(source_records)
+    for record, price in zip(requests, prices):
+        if price is not None:
+            record["pricing_derived_inference_cost_usd"] = price
+            record["inference_cost_kind"] = "pricing-derived inference cost"
 
     def total(field, values):
         return (
@@ -232,7 +271,9 @@ def _statistics(condition):
             else None
         )
 
-    count = _usage_number("inference_calls_used", condition.get("inference_calls_used"))
+    count = _usage_number("inference_calls_used", condition.get(
+        "inference_attempts_used", condition.get("inference_calls_used")
+    ))
     complete = count is not None and len(requests) == count
     tokens = (
         lambda first, second: total(
@@ -266,12 +307,30 @@ def _statistics(condition):
         if complete
         else None,
         "compute_cost_usd": condition.get("compute_cost_usd"),
+        "inference_cost_usd": sum(prices) if complete and prices and all(
+            price is not None for price in prices
+        ) else None,
+        "inference_attempts_used": count,
+        "priced_requests": sum(price is not None for price in prices),
+        "measured_pricing_derived_cost_usd": sum(
+            price for price in prices if price is not None
+        ) if any(price is not None for price in prices) else None,
+        "pricing_derived_cost_complete": complete and bool(prices) and all(
+            price is not None for price in prices
+        ),
     }
     retained = condition.get("statistics")
     retained = dict(retained) if isinstance(retained, dict) else {}
+    derived_cost = (
+        condition.get("inference_cost_usd") is None
+        and retained.get("inference_cost_usd") is None
+        and summary["inference_cost_usd"] is not None
+    )
     for field, value in summary.items():
         if retained.get(field) is None:
             retained[field] = value
+    if derived_cost:
+        retained.setdefault("inference_cost_kind", "pricing-derived inference cost")
     return requests, {**retained, **usage_columns({**condition, "statistics": retained})}
 
 
@@ -324,6 +383,7 @@ def compact_report(value):
         "request_recovery",
         "termination_reason",
         "inference_calls_used",
+        "inference_attempts_used",
         "validation_calls_used",
         "elapsed_seconds",
         "inference_cost_usd",
@@ -417,9 +477,13 @@ def compact_report(value):
         if isinstance(statistics, dict):
             row["statistics"] = {
                 key: statistics[key]
-                for key in USAGE_FIELDS
+                for key in (*USAGE_FIELDS, "inference_attempts_used", "priced_requests",
+                            "measured_pricing_derived_cost_usd", "pricing_derived_cost_complete",
+                            "inference_cost_kind")
                 if key in statistics
             }
+            if row.get("inference_cost_kind") is None and statistics.get("inference_cost_kind"):
+                row["inference_cost_kind"] = statistics["inference_cost_kind"]
         row.update(usage_columns(row))
         illustrations = source.get("illustrations")
         if isinstance(illustrations, dict):
@@ -1339,6 +1403,7 @@ def export_report(work_dir, output_dir, *, results=None):
                 "request_recovery",
                 "termination_reason",
                 "inference_calls_used",
+                "inference_attempts_used",
                 "validation_calls_used",
                 "elapsed_seconds",
                 "inference_cost_usd",

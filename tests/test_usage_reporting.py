@@ -160,3 +160,100 @@ def test_fractional_token_counts_and_request_counts_are_unmeasured():
     assert usage_columns({"input_tokens": 1.5, "output_tokens": 2})["total_tokens"] is None
     _, statistics = _statistics({"inference_calls_used": False, "gateway_records": []})
     assert statistics["input_tokens"] is None
+
+
+def priced_request():
+    from simready_bench.engine.hf_pricing import HF_PRICING_CHECKED
+    return {
+        "gateway_request_id": "priced-request",
+        "model": "Qwen/Qwen3.5-397B-A17B:deepinfra",
+        "provider_reported_models": ["Qwen/Qwen3.5-397B-A17B"],
+        "api_path": "/v1/chat/completions",
+        "status": "completed", "upstream_status": 200,
+        "request_sha256": "a" * 64, "response_sha256": "b" * 64,
+        "route_metadata_sha256": "c" * 64,
+        "pricing_source": "https://router.huggingface.co/v1/models",
+        "pricing_checked": HF_PRICING_CHECKED,
+        "reserved_upper_cost_micro_usd": 200000,
+        "maximum_output_tokens": 4096,
+        "actual_cost_usd": None,
+        "elapsed_seconds": 2.5,
+        "usage": {
+            "prompt_tokens": 1000, "completion_tokens": 100, "total_tokens": 1100,
+            "prompt_tokens_details": {"cached_tokens": 800},
+            "completion_tokens_details": {"reasoning_tokens": 50},
+        },
+    }
+
+
+def test_live_flat_hf_cost_uses_verified_terminal_totals_without_double_counting():
+    row = {"inference_calls_used": 1, "inference_attempts_used": 1,
+           "gateway_records": [priced_request()], "elapsed_seconds": 9}
+    requests, measured = _statistics(row)
+    assert measured["inference_cost_usd"] == pytest.approx(0.00075)
+    assert measured["inference_cost_kind"] == "pricing-derived inference cost"
+    assert measured["input_tokens"] == 1000
+    assert measured["output_tokens"] == 100
+    assert measured["model_request_seconds"] == 2.5
+    assert measured["elapsed_seconds"] == 9
+    assert measured["pricing_derived_cost_complete"] is True
+    assert requests[0]["actual_cost_usd"] is None
+    assert requests[0]["pricing_derived_inference_cost_usd"] == pytest.approx(0.00075)
+
+
+@pytest.mark.parametrize("status", ["cancelled", "transport_failed"])
+def test_attempt_timing_and_priced_subtotal_include_failed_and_cancelled_attempts(status):
+    failed = {**priced_request(), "gateway_request_id": "failed", "status": status,
+              "elapsed_seconds": 4, "error_code": "upstream_transport_error"}
+    failed["partial_usage"] = failed.pop("usage")
+    _, measured = _statistics({"inference_calls_used": 1, "inference_attempts_used": 2,
+                              "gateway_records": [priced_request(), failed]})
+    assert measured["inference_calls_used"] == 1
+    assert measured["inference_attempts_used"] == 2
+    assert measured["model_request_seconds"] == 6.5
+    assert measured["model_request_errors"] == 1
+    assert measured["inference_cost_usd"] is None
+    assert measured["input_tokens"] is None
+    assert measured["priced_requests"] == 1
+    assert measured["measured_pricing_derived_cost_usd"] == pytest.approx(0.00075)
+    assert measured["pricing_derived_cost_complete"] is False
+
+
+@pytest.mark.parametrize("change", [
+    {"pricing_source": "https://untrusted.example"},
+    {"route_metadata_sha256": None},
+    {"provider_reported_models": ["other/model"]},
+    {"reserved_upper_cost_micro_usd": None},
+    {"usage": {"prompt_tokens": 1000, "completion_tokens": 100, "total_tokens": 5}},
+])
+def test_live_price_requires_verified_route_and_complete_consistent_usage(change):
+    _, measured = _statistics({"inference_calls_used": 1,
+        "gateway_records": [{**priced_request(), **change}]})
+    assert measured["inference_cost_usd"] is None
+    assert measured["priced_requests"] == 0
+
+
+def test_live_pricing_preserves_prior_cost_and_complete_measurements():
+    _, measured = _statistics({"inference_calls_used": 1,
+        "inference_cost_usd": 3, "statistics": {"model_request_seconds": 7},
+        "gateway_records": [priced_request()]})
+    assert measured["inference_cost_usd"] == 3
+    assert measured["model_request_seconds"] == 7
+    assert "inference_cost_kind" not in measured
+
+
+def test_live_cost_and_attempt_measurements_survive_native_export(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    row = {"condition_id": "native-priced", "asset_id": "box", "status": "completed",
+           "inference_calls_used": 1, "inference_attempts_used": 1,
+           "gateway_records": [priced_request()]}
+    exported = export_report(work, tmp_path / "report", results={
+        "schema": "simready-bench-matrix-result-v1", "results": [row],
+    })
+    recovered = json.loads(Path(exported["results"]).read_text())["results"][0]
+    assert recovered["inference_cost_usd"] == pytest.approx(0.00075)
+    assert recovered["inference_cost_kind"] == "pricing-derived inference cost"
+    assert recovered["statistics"]["priced_requests"] == 1
+    assert recovered["statistics"]["inference_attempts_used"] == 1
+    assert recovered["model_requests"][0]["actual_cost_usd"] is None

@@ -978,6 +978,7 @@ async def _condition(condition, prepared, resolved, root, controller, *, shared_
             "snapshot_sha256": environment.final_snapshot.sha256,
             "actor_stopped": environment.actor_stopped,
             "inference_calls_used": episode.inference_calls_used,
+            "inference_attempts_used": len(records),
             "validation_calls_used": episode.validation_calls_used,
             "preview_calls_used": episode.preview_calls_used,
             "elapsed_seconds": time.monotonic() - started,
