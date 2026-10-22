@@ -4,6 +4,8 @@ The `benchmark` command selects the public reference set or custom assets, model
 
 The Daytona examples use the runtime configuration created by `simready-bench setup daytona --output ../simreadybench-runtime.json`. See [deployment](deployment.md) to import the published runtime or build a source snapshot.
 
+`runtime.illustration_memory_mb` bounds each capture renderer's memory, with a default of 4096 MiB and an accepted range of 512 to 16384 MiB. This setting is independent of model response budgets and CPU fidelity evaluation. Capture evaluation fails on shader compilation or linking errors even when image files exist.
+
 ## References
 
 NV25 and NV100 are distinct public reference sets. The internal benchmark uses a separate withheld reference set. The packaged [`nvidia-25` manifest](../src/simready_bench/resources/benchmarks/nvidia-25.json) contains the 25 assets in NV25.

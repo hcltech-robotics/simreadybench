@@ -4,6 +4,10 @@ The selected output directory contains `report.html` for comparing scores and or
 
 During a run, `reconstructions/report.html` and `reconstructions/scores.csv` update after each completed reconstruction. Each `reconstructions/condition-*/` directory contains that attempt's report and artefacts.
 
+Authoring and evaluation have separate completion counts. `authored_conditions` counts retained submissions, while `evaluated_conditions` counts submissions whose required formal, fidelity and capture stages have finished. `benchmark_complete` requires every condition to finish those stages. Explicit N/A measurements and captures require recorded eligibility evidence. Missing evaluation outputs keep the benchmark partial and prevent leaderboard admission.
+
+Evaluation-only recovery reuses the retained candidate and reference inputs. It preserves authoring traces, formal results, usage and condition identities, and records the evaluation source and previous publication revision in a recovery receipt.
+
 | Result | What to inspect |
 |---|---|
 | Formal fidelity | Mandatory SimReady score, strict profile pass and passed, failed and unmeasured requirements out of 46 |
