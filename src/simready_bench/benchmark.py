@@ -866,7 +866,10 @@ def _aggregate_reports(
             ) != str(Path(report["results"]).absolute()):
                 continue
             row = copy.deepcopy(source)
-            if spec is not None and row.get('status') == 'completed':
+            # Canonical rows may already be published without an attempt receipt.
+            # Resuming must retain that provenance identity as well as the score.
+            if (spec is not None and row.get('status') == 'completed'
+                    and (attempt != output or row.get('execution_provenance'))):
                 from simready_bench.provenance import (
                     build_attempt_provenance, load_attempt_provenance,
                     provenance_fields, write_attempt_provenance,
