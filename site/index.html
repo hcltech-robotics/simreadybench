@@ -29,12 +29,12 @@
   <link rel="sitemap" type="application/xml" href="https://hcltech-robotics.github.io/simreadybench/sitemap.xml">
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/index.css">
-  <link rel="stylesheet" href="style.css?v=viewer-format-20261023">
+  <link rel="stylesheet" href="style.css?v=swipe-delta-20261024">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
   <script src="app.js?v=seo-snapshot-20261022" defer></script>
-  <script src="explorer.js?v=format-20261023" type="module"></script>
+  <script src="explorer.js?v=swipe-delta-20261024" type="module"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -141,43 +141,37 @@
           </div>
         </div>
         <div class="explorer-toolbar">
-          <label class="checkbox explorer-lock"><input type="checkbox" id="explorer-link" checked> Link rotation</label>
-          <button type="button" class="button is-small is-dark explorer-reset" id="explorer-reset" disabled>Reset views</button>
+          <div class="buttons has-addons explorer-modes" role="group" aria-label="Comparison mode">
+            <button type="button" class="button is-small is-dark" id="explorer-mode-swipe" aria-pressed="true" disabled>Swipe</button>
+            <button type="button" class="button is-small" id="explorer-mode-delta" aria-pressed="false" disabled>Mesh delta cloud</button>
+          </div>
+          <button type="button" class="button is-small explorer-reset" id="explorer-reset" disabled>Reset view</button>
         </div>
         <p id="explorer-status" class="is-sr-only" role="status" aria-live="polite"></p>
-        <div class="explorer-views">
-          <article class="explorer-panel" aria-labelledby="explorer-reference-title">
-            <div class="explorer-panel-heading">
-              <span class="table-note explorer-panel-label">Reference</span>
-              <h3 class="title is-5" id="explorer-reference-title">NV25</h3>
-            </div>
-            <div class="explorer-stage" id="explorer-reference-stage" aria-busy="true"><p class="explorer-placeholder">3D reference preview</p></div>
-            <div class="explorer-panel-footer">
-              <div class="explorer-rotation" role="group" aria-label="Rotate reference">
-                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="left" aria-label="Rotate reference left" disabled>←</button>
-                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="right" aria-label="Rotate reference right" disabled>→</button>
-                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="up" aria-label="Tilt reference up" disabled>↑</button>
-                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="down" aria-label="Tilt reference down" disabled>↓</button>
-              </div>
-              <a id="explorer-reference-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Source</a>
-            </div>
-          </article>
-          <article class="explorer-panel explorer-candidate-panel" aria-labelledby="explorer-candidate-title">
-            <div class="explorer-panel-heading">
-              <span class="table-note explorer-panel-label">Reconstruction</span>
-              <h3 class="title is-5" id="explorer-candidate-title">Model</h3>
-            </div>
-            <div class="explorer-stage" id="explorer-candidate-stage" aria-busy="true"><p class="explorer-placeholder">3D reconstruction preview</p></div>
-            <div class="explorer-panel-footer">
-              <div class="explorer-rotation" role="group" aria-label="Rotate reconstruction">
-                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="left" aria-label="Rotate reconstruction left" disabled>←</button>
-                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="right" aria-label="Rotate reconstruction right" disabled>→</button>
-                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="up" aria-label="Tilt reconstruction up" disabled>↑</button>
-                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="down" aria-label="Tilt reconstruction down" disabled>↓</button>
-              </div>
-              <a id="explorer-result-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Results</a>
-            </div>
-          </article>
+        <div class="explorer-stage" id="explorer-stage" data-mode="swipe" aria-busy="true" style="--split: 50%">
+          <div class="explorer-canvas" id="explorer-canvas"></div>
+          <div class="explorer-side-labels" aria-hidden="true">
+            <span>Reference · <span id="explorer-reference-title">NV25</span></span>
+            <span>Reconstruction · <span id="explorer-candidate-title">Model</span></span>
+          </div>
+          <div class="explorer-divider" id="explorer-divider" aria-hidden="true" hidden></div>
+          <input type="range" class="explorer-swipe" id="explorer-swipe" min="0" max="100" value="50" step="1" aria-label="Comparison split" aria-valuetext="50% reference, 50% reconstruction" hidden disabled>
+          <p class="explorer-preview-message" id="explorer-preview-message">Loading geometry…</p>
+        </div>
+        <div class="explorer-delta-controls" id="explorer-delta-controls" hidden>
+          <div class="explorer-threshold-control">
+            <label for="explorer-threshold">Minimum difference</label>
+            <input type="range" id="explorer-threshold" min="0" max="5" step="0.05" value="0" aria-describedby="explorer-threshold-value">
+            <output for="explorer-threshold" id="explorer-threshold-value">0 mm</output>
+          </div>
+          <div class="explorer-delta-legend" aria-label="Point colour: distance to the opposite mesh">
+            <span>0</span><span class="explorer-colour-scale" aria-hidden="true"></span><span id="explorer-delta-max">—</span>
+          </div>
+          <p class="table-note explorer-delta-summary"><span id="explorer-point-count"></span><span>Bidirectional surface distance</span></p>
+        </div>
+        <div class="explorer-source-links table-note">
+          <a id="explorer-reference-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Reference source</a>
+          <a id="explorer-result-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Trial results</a>
         </div>
         <div class="explorer-readout content" id="explorer-readout" hidden>
           <p class="table-note" id="explorer-trial-label"></p>

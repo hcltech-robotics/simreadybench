@@ -29,6 +29,27 @@ while its recorded scores and usage remain visible. Analytic primitives are tess
 Orichalcum attribution is limited to its source pin. Its contents and authoring
 traces are not part of this publication.
 
+## Mesh delta point cloud
+
+`delta-manifest.json` describes the optional mesh-difference display. Each valid
+reference/reconstruction pair has 12,000 deterministic samples from each mesh,
+drawn uniformly by triangle surface area. A point's colour represents its
+unsigned Euclidean distance to the closest triangle surface of the other mesh.
+Both directions are included so missing and additional surfaces remain visible.
+Distances are calculated against complete triangle surfaces, not against the
+other point samples or vertices. Reference sample positions are reused across
+all reconstructions of each object.
+
+The clouds retain the GLBs' common metre/Y-up coordinates, including any recorded
+rigid evaluation alignment. No additional centring, registration or scale fitting
+is applied. Each binary file contains little-endian float32 rows
+`x, y, z, distance_m`, with reference rows first. The manifest records their count,
+split index, hashes, source GLB hashes, reference bounding-box diagonal and sampled
+maximum/95th-percentile distance. These are geometry display diagnostics, not new
+benchmark fidelity scores or continuous Hausdorff measurements. Finite sampling
+can miss small features; the GLBs' tessellation and omitted-material limitations
+also apply. The unavailable reconstruction has no fabricated cloud.
+
 ## Attribution and licence
 
 Reference geometry is derived from NVIDIA SimReady Assets, revision
@@ -57,3 +78,17 @@ python3 scripts/build_viewer_manifest.py /path/to/build-data site/assets/explore
 The checker compares all selected score and usage values against their exact
 source trial and verifies each available GLB against its export receipt. It
 rejects missing, duplicated or changed trial identities and changed geometry.
+
+To rebuild the delta clouds from the already published GLBs, use an isolated
+environment with `numpy==2.4.1`, `scipy==1.17.1`, `trimesh==4.11.5` and
+`rtree==1.4.1`:
+
+```bash
+python3 scripts/build_viewer_delta.py site
+python3 scripts/build_viewer_delta.py site --check
+PYTHONPATH=src python3 -m pytest tests/test_viewer_delta.py -q
+```
+
+The check recomputes every cloud and compares the exact bytes and metadata. The
+tests also cover identical meshes, translation, scale differences, both distance
+directions, triangle-interior projections and the published sample distances.

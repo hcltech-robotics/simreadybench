@@ -1,5 +1,5 @@
-const DEFAULT_ORBIT = "35deg 70deg 105%";
 const manifestURL = new URL("assets/explorer/manifest.json", document.baseURI);
+const deltaManifestURL = new URL("assets/explorer/delta-manifest.json", document.baseURI);
 const root = document.getElementById("explorer");
 const byId = (id) => document.getElementById(`explorer-${id}`);
 const measured = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
@@ -111,102 +111,94 @@ function renderReadout(variant) {
   byId("readout").hidden = false;
 }
 
-const state = { data: null, object: null, variant: null, models: {}, ready: {}, failed: {}, syncing: false };
+const state = { data: null, deltaData: null, object: null, variant: null, viewer: null, mode: "swipe", pair: null };
 
-function updateStatus() {
-  if (!state.object || !state.variant) return;
-  const failed = ["reference", "candidate"].filter((role) => state.failed[role]);
-  if (failed.length) {
-    byId("status").textContent = "3D preview unavailable.";
-  } else if (state.ready.reference && state.ready.candidate) {
-    byId("status").textContent = `${state.object.label} · ${state.variant.label} · Trial ${state.variant.repetition + 1}. Both previews ready.`;
-  } else {
-    byId("status").textContent = `Loading ${state.object.label} previews…`;
+function distanceLabel(metres) {
+  if (!measured(metres)) return "—";
+  return metres < 1 ? `${number(metres * 1000, metres < .001 ? 3 : 1)} mm` : `${number(metres, 2)} m`;
+}
+
+function showMessage(message) {
+  byId("preview-message").textContent = message;
+  byId("preview-message").hidden = !message;
+}
+
+function renderViewerState(view) {
+  const mode = view.mode || state.mode;
+  state.mode = mode;
+  byId("stage").dataset.mode = mode;
+  byId("stage").setAttribute("aria-busy", String(Boolean(view.loading || view.deltaLoading)));
+  byId("mode-swipe").disabled = !view.referenceReady || Boolean(view.errors?.webgl);
+  byId("mode-delta").disabled = !view.referenceReady || !view.candidateReady || !state.pair?.src || Boolean(view.errors?.webgl);
+  for (const name of ["swipe", "delta"]) {
+    const active = mode === name;
+    byId(`mode-${name}`).setAttribute("aria-pressed", String(active));
+    byId(`mode-${name}`).classList.toggle("is-dark", active);
   }
-  byId("reset").disabled = !Object.values(state.ready).some(Boolean);
+  byId("reset").disabled = !view.referenceReady || Boolean(view.errors?.webgl);
+  const swipeReady = mode === "swipe" && view.referenceReady && view.candidateReady && !view.errors?.webgl;
+  byId("swipe").hidden = !swipeReady;
+  byId("swipe").disabled = !swipeReady;
+  byId("divider").hidden = !swipeReady;
+  byId("delta-controls").hidden = mode !== "delta";
+  byId("threshold").disabled = !view.deltaReady;
+  const maximum = view.colourMaxMetres ?? (state.pair?.reference_diagonal_m || 0) * .05;
+  byId("delta-max").textContent = `≥ ${distanceLabel(maximum)}`;
+  byId("point-count").textContent = view.deltaReady
+    ? `${number(view.visiblePointCount || 0)} / ${number(view.pointCount || 0)} points`
+    : view.loading || view.deltaLoading ? "Loading points…" : "Points unavailable";
+  let message = "";
+  if (view.errors?.webgl) message = "3D viewer unavailable";
+  else if (view.loading || view.deltaLoading) message = mode === "delta" ? "Loading mesh delta…" : "Loading geometry…";
+  else if (!view.referenceReady) message = "3D preview unavailable";
+  else if (!view.candidateReady) message = "Reconstruction unavailable";
+  else if (mode === "delta" && !view.deltaReady) message = "Mesh delta unavailable";
+  else if (mode === "delta" && view.visiblePointCount === 0) message = "No points above this threshold";
+  showMessage(message);
+  byId("status").textContent = message || `${state.object?.label || "Object"}: ${mode === "delta" ? "mesh delta cloud" : "swipe comparison"} ready.`;
 }
 
-function syncRotation(sourceRole, desiredOrbit = null) {
-  const targetRole = sourceRole === "reference" ? "candidate" : "reference";
-  if (!byId("link").checked || state.syncing || !state.ready[sourceRole] || !state.ready[targetRole]) return;
-  const source = state.models[sourceRole];
-  const target = state.models[targetRole];
-  const from = desiredOrbit || source.getCameraOrbit();
-  const to = target.getCameraOrbit();
-  state.syncing = true;
-  target.cameraOrbit = `${from.theta}rad ${from.phi}rad ${to.radius}m`;
-  target.jumpCameraToGoal();
-  state.syncing = false;
+function updateSplit() {
+  const split = Number(byId("swipe").value);
+  byId("stage").style.setProperty("--split", `${split}%`);
+  byId("swipe").setAttribute("aria-valuetext", `${split}% reference, ${100 - split}% reconstruction`);
+  state.viewer?.setSplit(split / 100);
 }
 
-function setRotationButtons(role, enabled) {
-  root.querySelectorAll(`[data-view="${role}"]`).forEach((button) => { button.disabled = !enabled; });
-}
-
-function mountModel(role, asset, objectLabel) {
-  const stage = byId(`${role}-stage`);
-  state.ready[role] = false;
-  state.failed[role] = false;
-  setRotationButtons(role, false);
-  stage.setAttribute("aria-busy", "true");
-  if (asset.src === null) {
-    state.models[role] = null;
-    state.failed[role] = true;
-    stage.setAttribute("aria-busy", "false");
-    const message = element("div", "explorer-preview-error");
-    message.append(element("p", "", "3D preview unavailable"));
-    stage.replaceChildren(message);
-    updateStatus();
-    return;
-  }
-  const viewer = document.createElement("model-viewer");
-  state.models[role] = viewer;
-  viewer.setAttribute("alt", `${objectLabel}, ${role === "reference" ? "NV25 reference" : state.variant.label + " reconstruction"}. Drag to rotate or use the rotation buttons below.`);
-  viewer.setAttribute("camera-controls", "");
-  viewer.setAttribute("disable-pan", "");
-  viewer.setAttribute("touch-action", "pan-y");
-  viewer.setAttribute("interaction-prompt", "none");
-  viewer.setAttribute("camera-orbit", DEFAULT_ORBIT);
-  viewer.setAttribute("shadow-intensity", "0.35");
-  viewer.setAttribute("exposure", "0.65");
-  viewer.setAttribute("tone-mapping", "neutral");
-  viewer.setAttribute("loading", "eager");
-  const loading = element("p", "explorer-placeholder", "Loading geometry…");
-  loading.setAttribute("aria-hidden", "true");
-  viewer.addEventListener("load", () => {
-    if (state.models[role] !== viewer) return;
-    loading.remove();
-    stage.setAttribute("aria-busy", "false");
-    state.ready[role] = true;
-    setRotationButtons(role, true);
-    syncRotation(role === "reference" ? "candidate" : "reference");
-    updateStatus();
-  });
-  viewer.addEventListener("error", () => {
-    if (state.models[role] !== viewer) return;
-    state.failed[role] = true;
-    state.ready[role] = false;
-    setRotationButtons(role, false);
-    stage.setAttribute("aria-busy", "false");
-    const message = element("div", "explorer-preview-error");
-    message.append(element("p", "", "3D preview unavailable"));
-    stage.replaceChildren(message);
-    updateStatus();
-  });
-  viewer.addEventListener("camera-change", (event) => {
-    if (state.models[role] === viewer && event.detail?.source === "user-interaction") syncRotation(role);
-  });
-  viewer.src = safeURL(asset.src);
-  stage.replaceChildren(viewer, loading);
-  updateStatus();
+function updateThreshold() {
+  const metres = Number(byId("threshold").value) / 100 * (state.pair?.reference_diagonal_m || 0);
+  byId("threshold-value").textContent = distanceLabel(metres);
+  byId("threshold").setAttribute("aria-valuetext", distanceLabel(metres));
+  state.viewer?.setThreshold(metres);
 }
 
 function selectVariant(id) {
   const variant = state.object.variants.find((item) => item.id === id) || state.object.variants[0];
   state.variant = variant;
+  state.pair = state.deltaData?.pairs?.[`${state.object.id}/${variant.id}`] || null;
+  if (state.pair?.src && (state.pair.source_reference_sha256 !== state.object.reference.sha256
+      || state.pair.source_candidate_sha256 !== variant.sha256)) state.pair = null;
   byId("variant").value = variant.id;
   renderReadout(variant);
-  mountModel("candidate", variant, state.object.label);
+  renderAttribution();
+  if (!state.viewer) {
+    showMessage("3D viewer unavailable");
+    byId("stage").setAttribute("aria-busy", "false");
+    return;
+  }
+  if (!variant.src || !state.pair?.src) state.mode = "swipe";
+  state.viewer.setMode(state.mode);
+  byId("threshold").value = "0";
+  updateThreshold();
+  state.viewer.setPair({
+    referenceUrl: safeURL(state.object.reference.src),
+    candidateUrl: variant.src ? safeURL(variant.src) : null,
+    deltaUrl: state.pair?.src ? safeURL(state.pair.src) : null,
+    deltaMeta: state.pair || {},
+  }).catch(() => {
+    // The renderer reports failures per resource while retaining valid geometry.
+    renderViewerState(state.viewer.getState());
+  });
 }
 
 function selectObject(id) {
@@ -225,74 +217,71 @@ function selectObject(id) {
   byId("variant").replaceChildren(...options);
   const next = object.variants.find((variant) => previousRun && variant.run_id === previousRun)
     || object.variants.find((variant) => variant.id === previousId) || object.variants[0];
-  // Invalidate the old reconstruction before either new preview can emit events.
-  state.ready.candidate = false;
-  state.models.candidate = null;
-  mountModel("reference", object.reference, object.label);
   selectVariant(next.id);
 }
 
-function rotate(role, direction) {
-  if (!state.ready[role]) return;
-  const viewer = state.models[role];
-  const orbit = viewer.getCameraOrbit();
-  const step = Math.PI / 12;
-  const theta = orbit.theta + (direction === "left" ? -step : direction === "right" ? step : 0);
-  const phi = Math.min(Math.PI - 0.05, Math.max(0.05, orbit.phi + (direction === "up" ? -step : direction === "down" ? step : 0)));
-  viewer.cameraOrbit = `${theta}rad ${phi}rad ${orbit.radius}m`;
-  viewer.jumpCameraToGoal();
-  // cameraOrbit is reactive: getCameraOrbit() still reports the previous frame
-  // here. Give both elements the same requested angles in this update cycle.
-  syncRotation(role, { theta, phi });
+async function fetchJSON(url) {
+  const response = await fetch(url, { credentials: "omit" });
+  if (!response.ok) throw new Error("Comparison data unavailable");
+  return response.json();
+}
+
+function renderAttribution() {
+  const data = state.data;
+  const alignment = state.pair?.alignment_status === "authored" ? " · authored alignment" : "";
+  byId("selection").textContent = `Neutral materials · shared metric scale${alignment}`;
+  if (data.reference_license?.label && data.reference_license?.url) {
+    byId("selection").append(document.createTextNode(" · "));
+    const link = element("a", "", "NVIDIA / CC BY 4.0");
+    link.href = safeURL(data.reference_license.url);
+    byId("selection").append(link);
+  }
 }
 
 async function initialise() {
   root.dataset.state = "loading";
-  byId("status").textContent = "Loading comparison data and 3D viewer…";
+  byId("status").textContent = "Loading comparison…";
   try {
-    const [data] = await Promise.all([
-      fetch(manifestURL, { credentials: "omit" }).then((response) => {
-        if (!response.ok) throw new Error("Comparison data unavailable");
-        return response.json();
-      }).then(validateManifest),
-      import(new URL("vendor/model-viewer.min.js", document.baseURI).href),
+    const [data, delta, renderer] = await Promise.all([
+      fetchJSON(manifestURL).then(validateManifest),
+      fetchJSON(deltaManifestURL).catch(() => null),
+      import(new URL("comparison-viewer.js?v=20261024", document.baseURI).href).catch(() => null),
     ]);
-    await customElements.whenDefined("model-viewer");
     state.data = data;
+    state.deltaData = delta?.schema_version === 1 ? delta : null;
     byId("object").replaceChildren(...data.objects.map((object) => new Option(object.label, object.id)));
     byId("object").disabled = false;
     byId("variant").disabled = false;
     byId("object").addEventListener("change", (event) => selectObject(event.target.value));
     byId("variant").addEventListener("change", (event) => selectVariant(event.target.value));
-    byId("link").addEventListener("change", () => syncRotation("reference"));
+    byId("swipe").addEventListener("input", updateSplit);
+    byId("threshold").addEventListener("input", updateThreshold);
     byId("reset").addEventListener("click", () => {
-      for (const role of ["reference", "candidate"]) {
-        if (state.ready[role]) {
-          state.models[role].cameraOrbit = DEFAULT_ORBIT;
-          state.models[role].jumpCameraToGoal();
-        }
+      state.viewer?.reset();
+      byId("swipe").value = "50";
+      updateSplit();
+    });
+    for (const mode of ["swipe", "delta"]) {
+      byId(`mode-${mode}`).addEventListener("click", () => {
+        state.mode = mode;
+        state.viewer?.setMode(mode);
+      });
+    }
+    if (renderer) {
+      try {
+        state.viewer = new renderer.ComparisonViewer(byId("canvas"), { onState: renderViewerState });
+        byId("stage").comparisonViewer = state.viewer;
+      } catch {
+        showMessage("3D viewer unavailable");
       }
-    });
-    root.querySelectorAll("[data-rotate]").forEach((button) => {
-      button.addEventListener("click", () => rotate(button.dataset.view, button.dataset.rotate));
-    });
-    byId("selection").textContent = "Neutral materials · independent scale";
-    if (data.reference_license?.label && data.reference_license?.url) {
-      byId("selection").append(document.createTextNode(" · "));
-      const link = element("a", "", "NVIDIA / CC BY 4.0");
-      link.href = safeURL(data.reference_license.url);
-      byId("selection").append(link);
     }
     root.dataset.state = "ready";
     selectObject(data.objects[0].id);
   } catch {
     root.dataset.state = "error";
     byId("status").textContent = "3D viewer unavailable. Results are available on Hugging Face.";
-    for (const role of ["reference", "candidate"]) {
-      const stage = byId(`${role}-stage`);
-      stage.setAttribute("aria-busy", "false");
-      stage.replaceChildren(element("p", "explorer-placeholder", "Preview unavailable"));
-    }
+    byId("stage").setAttribute("aria-busy", "false");
+    showMessage("Preview unavailable");
     byId("object").replaceChildren(new Option("Preview unavailable", ""));
     byId("variant").replaceChildren(new Option("View published results below", ""));
   }
