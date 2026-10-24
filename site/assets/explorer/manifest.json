@@ -1,0 +1,1384 @@
+{
+  "schema_version": 1,
+  "selection_policy": "Trial 1 for every condition. These examples are not selected by score.",
+  "dataset": "hcltech-robotics/simreadybench",
+  "dataset_revision": "6e5234f26e711e37838fed7bbf09cacb562a0beb",
+  "reference_dataset": "nvidia/simready-assets",
+  "reference_revision": "f4860aa0c75607adb50a78bf96e77510bffc040f",
+  "reference_license": {
+    "label": "NVIDIA SimReady Assets \u00b7 CC BY 4.0",
+    "url": "https://huggingface.co/datasets/nvidia/simready-assets/blob/f4860aa0c75607adb50a78bf96e77510bffc040f/accessory_eyeglasses_a01/.metadata/LICENSE.txt",
+    "local_url": "assets/explorer/NVIDIA-ASSET-LICENSE.txt"
+  },
+  "projection_note": "Static geometry previews use neutral shading. Textures, materials, physics and joint motion are not reproduced. Scores are the original measured benchmark results.",
+  "usage_note": "Cost means pricing-derived inference cost where recorded; compute and total cost remain unavailable. Tokens include recorded input and output usage. Time is elapsed reconstruction time. Null means unavailable; it is never replaced by zero.",
+  "objects": [
+    {
+      "id": "accessory_eyeglasses_a01",
+      "label": "Eyeglasses",
+      "reference": {
+        "src": "assets/explorer/accessory_eyeglasses_a01/reference.glb",
+        "source_sha256": "d19ac20db9d37d21d8e5032037592b7fb1cd5e643d2b16511de7eb5b84ddb586",
+        "geometry_status": "available",
+        "sha256": "2f7445e7a9694b6ac854f33dc5fc345251496de152914ae586c6f9f95d2c7212",
+        "bytes": 760504,
+        "triangles": 42168,
+        "bounds_m": [
+          [
+            -0.0960722491145134,
+            0.00010629743337631226,
+            -0.08716005831956863
+          ],
+          [
+            0.04850779101252556,
+            0.05703020095825195,
+            0.0871606394648552
+          ]
+        ],
+        "source_url": "https://huggingface.co/datasets/nvidia/simready-assets/resolve/f4860aa0c75607adb50a78bf96e77510bffc040f/accessory_eyeglasses_a01/simready_usd/sm_accessory_eyeglasses_a01_01.usd"
+      },
+      "variants": [
+        {
+          "id": "sol-pi",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "pi",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-3d6376387724ccaa342abbadb288a104b7b5674d24de94658b9606f8f0fe4271",
+          "run_id": "nv25-gpt-6.1-sol-high-pi-none-turn64-20261020",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-gpt-6.1-sol-high-pi-none-turn64-20261020/results.json",
+          "source_results_sha256": "98db2594352a17d493e2312753a1e04e73455c84184f7f8d850ac65fb275863e",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 40.21435120738906,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1496445,
+            "output_tokens": 30258,
+            "total_tokens": 1526703,
+            "elapsed_seconds": 782.5488403365016,
+            "model_request_seconds": 685.5754601098597,
+            "inference_cost_usd": 0.5842071,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/accessory_eyeglasses_a01/sol-pi.glb",
+          "source_sha256": "1ed976bf3c090e07a9108daa09a96e0ca051b586c6794b49b5763aa3055dec6f",
+          "geometry_status": "available",
+          "sha256": "95fe8af77c0a5f651d448bedc96b9423542474d2cc3e8317fd526a5ae3c169c8",
+          "bytes": 715204,
+          "triangles": 39120,
+          "bounds_m": [
+            [
+              -0.12318997830152512,
+              -0.004443427547812462,
+              -0.07435042411088943
+            ],
+            [
+              0.05230271816253662,
+              0.05248047411441803,
+              0.07170846313238144
+            ]
+          ]
+        },
+        {
+          "id": "glm-pi",
+          "label": "GLM-5.3 Flash",
+          "model": "zai-org/GLM-5.3-Flash:baseten",
+          "harness": "pi",
+          "reasoning": "low",
+          "repetition": 0,
+          "condition_id": "condition-5b943d685f27ebba30f68b8c1c43cafabdd6311a93e9fb1fb4418c7ca28e9932",
+          "run_id": "nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021/results.json",
+          "source_results_sha256": "70c6613bcb35b314a2d33e5217235e96c7fd4ff4bea9d79baa68e9b778fc29f7",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 52.8189843052942,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1705648,
+            "output_tokens": 28776,
+            "total_tokens": 1734424,
+            "elapsed_seconds": 1113.3969082890544,
+            "model_request_seconds": 1061.2437378710601,
+            "inference_cost_usd": 0.2702352,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/accessory_eyeglasses_a01/glm-pi.glb",
+          "source_sha256": "3834e7b65d728ac963f444fad6dc187c2da49d962c9c36ce735d2f4df85dc900",
+          "geometry_status": "available",
+          "sha256": "50fe94d59b7d2d542c3d8c05ad2c64cc0483dd398c553e03a6ccffd630692a7b",
+          "bytes": 67284,
+          "triangles": 4004,
+          "bounds_m": [
+            [
+              -0.09946855157613754,
+              -0.004600687883794308,
+              -0.07990630716085434
+            ],
+            [
+              0.049964774399995804,
+              0.06239503249526024,
+              0.07917612791061401
+            ]
+          ]
+        },
+        {
+          "id": "nemotron-pi",
+          "label": "Nemotron 3.5 Super VL",
+          "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten",
+          "harness": "pi",
+          "reasoning": "off",
+          "repetition": 0,
+          "condition_id": "condition-5b943d685f27ebba30f68b8c1c43cafabdd6311a93e9fb1fb4418c7ca28e9932",
+          "run_id": "nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022/results.json",
+          "source_results_sha256": "8a2352070136cc11db3477b9f0a6f1252407ca76025a43b41d8320413be76d7a",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 80.54347826086956,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 31.01124699269774,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.013477358583760729,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 2916884,
+            "output_tokens": 38207,
+            "total_tokens": 2955091,
+            "elapsed_seconds": 1689.5921445899876,
+            "model_request_seconds": 1647.8688580578892,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/accessory_eyeglasses_a01/nemotron-pi.glb",
+          "source_sha256": "5ff75e36f231e4695c266b1185821c588c845852d019ae11679390bc8a4301f4",
+          "geometry_status": "available",
+          "sha256": "aa1ecffd34ce16ef57917bd8d25188a235bd376364b92537fce77c39e85b03c4",
+          "bytes": 3000,
+          "triangles": 108,
+          "bounds_m": [
+            [
+              0.011321241967380047,
+              -0.017111146822571754,
+              -0.1514142006635666
+            ],
+            [
+              0.048045482486486435,
+              0.08748127520084381,
+              0.16707062721252441
+            ]
+          ]
+        },
+        {
+          "id": "sol-codex-orichalcum",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "codex",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-c9cee898821b7460f09e7933dc565f5b03be4df08dbe251ceeda07261ee3a52b",
+          "run_id": "gpt61-sol-high-codex-orichalcum-full-20261023",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/gpt61-sol-high-codex-orichalcum-full-20261023/results.json",
+          "source_results_sha256": "02f0b0fe924e43f499b2dd59c16a1ace86b571f2bb603bccc7403a8a90907837",
+          "evaluator_version": null,
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 38.883143343496734,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 2188891,
+            "output_tokens": 34462,
+            "total_tokens": 2223353,
+            "elapsed_seconds": 741.9393518089782,
+            "model_request_seconds": 705.0408543363446,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "orichalcum_pin": "6ed0572b09045087bb3548ed18867ece1073112a",
+          "src": "assets/explorer/accessory_eyeglasses_a01/sol-codex-orichalcum.glb",
+          "source_sha256": "e9ffebacdcf8da3776a5f79de474d872458073afe435fec21c78b758f7e9bc21",
+          "geometry_status": "available",
+          "sha256": "1a3f89e2c36bf95779d46f0975a122ed62112c2e732deea02baaf8191d635658",
+          "bytes": 1030412,
+          "triangles": 57144,
+          "bounds_m": [
+            [
+              -0.12289135903120041,
+              -0.006661499384790659,
+              -0.07171763479709625
+            ],
+            [
+              0.051954444497823715,
+              0.05026240646839142,
+              0.07285691052675247
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bucket_utility_red_a01",
+      "label": "Utility bucket",
+      "reference": {
+        "src": "assets/explorer/bucket_utility_red_a01/reference.glb",
+        "source_sha256": "f2ec344b17550adf0062d8344674ed571936a75d769bdbbdce92c6a377923092",
+        "geometry_status": "available",
+        "sha256": "47172487eaa64d0a3d334ae4aa27f6fc62eaca00ae2cbae4199de9fb258e0ea8",
+        "bytes": 270900,
+        "triangles": 14990,
+        "bounds_m": [
+          [
+            -0.16925594210624695,
+            1.043081288010228e-09,
+            -0.1502969115972519
+          ],
+          [
+            0.16901607811450958,
+            0.2587829828262329,
+            0.1777590662240982
+          ]
+        ],
+        "source_url": "https://huggingface.co/datasets/nvidia/simready-assets/resolve/f4860aa0c75607adb50a78bf96e77510bffc040f/bucket_utility_red_a01/simready_usd/sm_bucket_utility_red_a01_01.usd"
+      },
+      "variants": [
+        {
+          "id": "sol-pi",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "pi",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-985faa7e2b84f118dff65c810895a19c5c3c0cdb79fac1a8989559820f81669a",
+          "run_id": "nv25-gpt-6.1-sol-high-pi-none-turn64-20261020",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-gpt-6.1-sol-high-pi-none-turn64-20261020/results.json",
+          "source_results_sha256": "98db2594352a17d493e2312753a1e04e73455c84184f7f8d850ac65fb275863e",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 41.490614674649336,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.012147609470544126,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1649778,
+            "output_tokens": 31556,
+            "total_tokens": 1681334,
+            "elapsed_seconds": 805.1181949768215,
+            "model_request_seconds": 716.0515734348446,
+            "inference_cost_usd": 0.6460853,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/bucket_utility_red_a01/sol-pi.glb",
+          "source_sha256": "f5fdc3d40b57e40c2ade75c3714f09bca5199e0f1efd5663b97732ee41609cf5",
+          "geometry_status": "available",
+          "sha256": "96b5bd3cd09e431de1d68a8f78f674cd24aaf991084187e48871cc9e7088b4a8",
+          "bytes": 351132,
+          "triangles": 19452,
+          "bounds_m": [
+            [
+              -0.17275819182395935,
+              0.004067540634423494,
+              -0.1549152433872223
+            ],
+            [
+              0.17964191734790802,
+              0.2628505229949951,
+              0.18695871531963348
+            ]
+          ]
+        },
+        {
+          "id": "glm-pi",
+          "label": "GLM-5.3 Flash",
+          "model": "zai-org/GLM-5.3-Flash:baseten",
+          "harness": "pi",
+          "reasoning": "low",
+          "repetition": 0,
+          "condition_id": "condition-b78db82bae6b97b8b87ced6c920d9fea0b6df7fe6d721c4da8f834a4ab527970",
+          "run_id": "nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021/results.json",
+          "source_results_sha256": "70c6613bcb35b314a2d33e5217235e96c7fd4ff4bea9d79baa68e9b778fc29f7",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 88.80434782608695,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1784661,
+            "output_tokens": 26145,
+            "total_tokens": 1810806,
+            "elapsed_seconds": 1132.4096928470535,
+            "model_request_seconds": 1068.9889830704778,
+            "inference_cost_usd": 0.28077165,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/bucket_utility_red_a01/glm-pi.glb",
+          "source_sha256": "36bf2de2105b3d14892b4cd3b3cddd1bd2b461670391a599ca23f40785165b7e",
+          "geometry_status": "available",
+          "sha256": "0ae8a7806145dc31d615065c26be7f3633f069ceaaf77965ed4fbba72ef74cbe",
+          "bytes": 47768,
+          "triangles": 2464,
+          "bounds_m": [
+            [
+              -0.16229639947414398,
+              -0.13115811347961426,
+              -0.16532963514328003
+            ],
+            [
+              0.1657593995332718,
+              0.28684791922569275,
+              0.18405550718307495
+            ]
+          ]
+        },
+        {
+          "id": "nemotron-pi",
+          "label": "Nemotron 3.5 Super VL",
+          "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten",
+          "harness": "pi",
+          "reasoning": "off",
+          "repetition": 0,
+          "condition_id": "condition-b78db82bae6b97b8b87ced6c920d9fea0b6df7fe6d721c4da8f834a4ab527970",
+          "run_id": "nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022/results.json",
+          "source_results_sha256": "8a2352070136cc11db3477b9f0a6f1252407ca76025a43b41d8320413be76d7a",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 88.80434782608695,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0001572850356721981,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null,
+            "elapsed_seconds": 2750.38914906804,
+            "model_request_seconds": null,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": null,
+          "source_sha256": "a7acd7fa6c2f57baf83e23598e259c5b1c2b874d7aecc41c829526f80f365d4a",
+          "geometry_status": "unavailable",
+          "sha256": null,
+          "geometry_note": "A faithful geometry preview is unavailable for this reconstruction."
+        },
+        {
+          "id": "sol-codex-orichalcum",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "codex",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-3735846e58010e4ef939a4bf7449f648688679b11729d2d8a51e9f9694a4c67d",
+          "run_id": "gpt61-sol-high-codex-orichalcum-full-20261023",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/gpt61-sol-high-codex-orichalcum-full-20261023/results.json",
+          "source_results_sha256": "02f0b0fe924e43f499b2dd59c16a1ace86b571f2bb603bccc7403a8a90907837",
+          "evaluator_version": null,
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 60.936300567699305,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.07434415993193025,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1671805,
+            "output_tokens": 28963,
+            "total_tokens": 1700768,
+            "elapsed_seconds": 672.5813913400052,
+            "model_request_seconds": 644.0729407258332,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "orichalcum_pin": "6ed0572b09045087bb3548ed18867ece1073112a",
+          "src": "assets/explorer/bucket_utility_red_a01/sol-codex-orichalcum.glb",
+          "source_sha256": "ccb7925847beb1116b69069706e57053df96d7af5689eb3bd1d3947e95dc0524",
+          "geometry_status": "available",
+          "sha256": "ab341e4375d0d8e99c12a0e79c04eade530e3c23aefd340b0d12855e2590282f",
+          "bytes": 2180848,
+          "triangles": 121108,
+          "bounds_m": [
+            [
+              -0.17909513413906097,
+              0.0029292332474142313,
+              -0.17879146337509155
+            ],
+            [
+              0.15320748090744019,
+              0.2617122232913971,
+              0.166445791721344
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chair_office_amf_black_a01",
+      "label": "Office chair",
+      "reference": {
+        "src": "assets/explorer/chair_office_amf_black_a01/reference.glb",
+        "source_sha256": "6479861d24d982a380d9e3b97b19ce4302ab4a28c215576abde4175aaf6f1db5",
+        "geometry_status": "available",
+        "sha256": "a6e587f91c03e07d446b537f4eda9e749e089d28a7ef7443f6918d7a003e1079",
+        "bytes": 588372,
+        "triangles": 32253,
+        "bounds_m": [
+          [
+            -0.26985928416252136,
+            1.862645149230957e-08,
+            -0.2861420810222626
+          ],
+          [
+            0.26985934376716614,
+            0.8096046447753906,
+            0.2861413061618805
+          ]
+        ],
+        "source_url": "https://huggingface.co/datasets/nvidia/simready-assets/resolve/f4860aa0c75607adb50a78bf96e77510bffc040f/chair_office_amf_black_a01/simready_usd/sm_chair_office_amf_black_a01_01.usd"
+      },
+      "variants": [
+        {
+          "id": "sol-pi",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "pi",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-9f5e931b15962e1ecf175941db5dfd659c99c414a415c63b59e61b01d689903b",
+          "run_id": "nv25-gpt-6.1-sol-high-pi-none-turn64-20261020",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-gpt-6.1-sol-high-pi-none-turn64-20261020/results.json",
+          "source_results_sha256": "98db2594352a17d493e2312753a1e04e73455c84184f7f8d850ac65fb275863e",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 76.43915684635458,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 898085,
+            "output_tokens": 27574,
+            "total_tokens": 925659,
+            "elapsed_seconds": 703.3925981521606,
+            "model_request_seconds": 625.7106681037694,
+            "inference_cost_usd": 0.4833423,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/chair_office_amf_black_a01/sol-pi.glb",
+          "source_sha256": "143426a215c9e0e65512fc05f38457faf84d0c89bf5eb37999a65ed56fcef25a",
+          "geometry_status": "available",
+          "sha256": "442ebb551aa2331db1c5c3e2af303b6b6c4dd1dd5b7aa3d50e33f90224697380",
+          "bytes": 301236,
+          "triangles": 16656,
+          "bounds_m": [
+            [
+              -0.27238550782203674,
+              0.003705801209434867,
+              -0.29586803913116455
+            ],
+            [
+              0.2711794376373291,
+              0.813310444355011,
+              0.28003498911857605
+            ]
+          ]
+        },
+        {
+          "id": "glm-pi",
+          "label": "GLM-5.3 Flash",
+          "model": "zai-org/GLM-5.3-Flash:baseten",
+          "harness": "pi",
+          "reasoning": "low",
+          "repetition": 0,
+          "condition_id": "condition-74363bf831d319703753ba793d609035fd14bbdd47fdedd63e2950389d5a3260",
+          "run_id": "nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021/results.json",
+          "source_results_sha256": "70c6613bcb35b314a2d33e5217235e96c7fd4ff4bea9d79baa68e9b778fc29f7",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 84.67391304347827,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 33.835977326552005,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1576616,
+            "output_tokens": 26080,
+            "total_tokens": 1602696,
+            "elapsed_seconds": 1034.5057245700154,
+            "model_request_seconds": 986.3294180090306,
+            "inference_cost_usd": 0.2495324,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/chair_office_amf_black_a01/glm-pi.glb",
+          "source_sha256": "f2b1739e3cf15f84b8df4f1da7c86b2cab22de09ca144ecbac80bbb4760b1bcf",
+          "geometry_status": "available",
+          "sha256": "6d369cfad5db9267e2aa8fd70b7e78dacb20f6024fe7fd1128fe524b5ed94b18",
+          "bytes": 106884,
+          "triangles": 5876,
+          "bounds_m": [
+            [
+              -0.27537059783935547,
+              -0.0007854262948967516,
+              -0.2860168516635895
+            ],
+            [
+              0.27017733454704285,
+              0.8092007040977478,
+              0.2926510274410248
+            ]
+          ]
+        },
+        {
+          "id": "nemotron-pi",
+          "label": "Nemotron 3.5 Super VL",
+          "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten",
+          "harness": "pi",
+          "reasoning": "off",
+          "repetition": 0,
+          "condition_id": "condition-74363bf831d319703753ba793d609035fd14bbdd47fdedd63e2950389d5a3260",
+          "run_id": "nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022/results.json",
+          "source_results_sha256": "8a2352070136cc11db3477b9f0a6f1252407ca76025a43b41d8320413be76d7a",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 88.80434782608695,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null,
+            "elapsed_seconds": 2364.4860155979404,
+            "model_request_seconds": null,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/chair_office_amf_black_a01/nemotron-pi.glb",
+          "source_sha256": "468273ac9112a35be9b824bc79534d97574c4ac626273628aad5464118474c96",
+          "geometry_status": "available",
+          "sha256": "8fb6fedace49622471090d9c448180be9e59f305307061b5b8a87661fd3311c2",
+          "bytes": 5452,
+          "triangles": 240,
+          "bounds_m": [
+            [
+              -0.23814475536346436,
+              0.0012026563053950667,
+              -0.2870851457118988
+            ],
+            [
+              0.47648292779922485,
+              0.5734860301017761,
+              0.25680771470069885
+            ]
+          ]
+        },
+        {
+          "id": "sol-codex-orichalcum",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "codex",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-0695aeab0544f393bb5054ba9b1d05564f142c5f698ed51856af709cd69ead42",
+          "run_id": "gpt61-sol-high-codex-orichalcum-full-20261023",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/gpt61-sol-high-codex-orichalcum-full-20261023/results.json",
+          "source_results_sha256": "02f0b0fe924e43f499b2dd59c16a1ace86b571f2bb603bccc7403a8a90907837",
+          "evaluator_version": null,
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 77.7818945460378,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 2267490,
+            "output_tokens": 30780,
+            "total_tokens": 2298270,
+            "elapsed_seconds": 722.5761060969671,
+            "model_request_seconds": 692.2829368141247,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "orichalcum_pin": "6ed0572b09045087bb3548ed18867ece1073112a",
+          "src": "assets/explorer/chair_office_amf_black_a01/sol-codex-orichalcum.glb",
+          "source_sha256": "7e59584690bd4721dc8b197a2dc8b05778a7be457494e78bf9f36e0f03012d72",
+          "geometry_status": "available",
+          "sha256": "7128dbda4880dcfce169d1b04517b53ae808c9e5e135160834ea3f7c7eef2ef8",
+          "bytes": 458940,
+          "triangles": 25412,
+          "bounds_m": [
+            [
+              -0.2713122069835663,
+              -0.002958713099360466,
+              -0.2880271077156067
+            ],
+            [
+              0.26855218410491943,
+              0.806645929813385,
+              0.28427356481552124
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "food_beverage_coffeeCup_a01",
+      "label": "Coffee cup",
+      "reference": {
+        "src": "assets/explorer/food_beverage_coffeeCup_a01/reference.glb",
+        "source_sha256": "3ae68174e9c5c86d7d07f15e1940d192f1b58be284901354760c651011b751d7",
+        "geometry_status": "available",
+        "sha256": "1cff5bce81f75c2d1c7cd806eaea535d4a3c8bff1dab04ef1cc907b68f3f37ce",
+        "bytes": 185196,
+        "triangles": 10240,
+        "bounds_m": [
+          [
+            -0.04292543977499008,
+            1.3601034879684448e-05,
+            -0.043221615254879
+          ],
+          [
+            0.04199057072401047,
+            0.11702238023281097,
+            0.04169439896941185
+          ]
+        ],
+        "source_url": "https://huggingface.co/datasets/nvidia/simready-assets/resolve/f4860aa0c75607adb50a78bf96e77510bffc040f/food_beverage_coffeeCup_a01/simready_usd/sm_food_beverage_coffeeCup_a01_01.usd"
+      },
+      "variants": [
+        {
+          "id": "sol-pi",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "pi",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-22453487dba7523ab3a279efb632736d7544203d329c28cfd65e83631b191563",
+          "run_id": "nv25-gpt-6.1-sol-high-pi-none-turn64-20261020",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-gpt-6.1-sol-high-pi-none-turn64-20261020/results.json",
+          "source_results_sha256": "98db2594352a17d493e2312753a1e04e73455c84184f7f8d850ac65fb275863e",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 72.53044446031988,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 99.99999993742968,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1221647,
+            "output_tokens": 21670,
+            "total_tokens": 1243317,
+            "elapsed_seconds": 595.8230416737497,
+            "model_request_seconds": 538.5053609590977,
+            "inference_cost_usd": 0.4643502,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/food_beverage_coffeeCup_a01/sol-pi.glb",
+          "source_sha256": "5213d2e886a09c5b606a35eb9c9419f2e2d748387980308a739d27ddfab71e18",
+          "geometry_status": "available",
+          "sha256": "eb3a6e4508d2611d48b4c8dc17844f698a0d95a72430bc3ff9bc5f07fe306be7",
+          "bytes": 712640,
+          "triangles": 38424,
+          "bounds_m": [
+            [
+              -0.04268685728311539,
+              0.0004785311466548592,
+              -0.04256447032094002
+            ],
+            [
+              0.042229149490594864,
+              0.11748731136322021,
+              0.04235153645277023
+            ]
+          ]
+        },
+        {
+          "id": "glm-pi",
+          "label": "GLM-5.3 Flash",
+          "model": "zai-org/GLM-5.3-Flash:baseten",
+          "harness": "pi",
+          "reasoning": "low",
+          "repetition": 0,
+          "condition_id": "condition-1635cf441d02f20bc55b3455d313114372f2bce9ff46e352f48e850fd5609490",
+          "run_id": "nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021/results.json",
+          "source_results_sha256": "70c6613bcb35b314a2d33e5217235e96c7fd4ff4bea9d79baa68e9b778fc29f7",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 32.601245964868944,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0661970672030696,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 794411,
+            "output_tokens": 12232,
+            "total_tokens": 806643,
+            "elapsed_seconds": 658.3146898229606,
+            "model_request_seconds": 623.8807938687969,
+            "inference_cost_usd": 0.12527765,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/food_beverage_coffeeCup_a01/glm-pi.glb",
+          "source_sha256": "21804a420bef29c26b495ff6abde98afeac70c276f6e8ca22b4192772d069528",
+          "geometry_status": "available",
+          "sha256": "214e101c75085f348303b29ede51e67481e2a3e3ae0b75f2a6920d97607445b8",
+          "bytes": 43128,
+          "triangles": 2304,
+          "bounds_m": [
+            [
+              -0.042366765439510345,
+              0.018800003454089165,
+              -0.04235757142305374
+            ],
+            [
+              0.042433179914951324,
+              0.12280000746250153,
+              0.04244237393140793
+            ]
+          ]
+        },
+        {
+          "id": "nemotron-pi",
+          "label": "Nemotron 3.5 Super VL",
+          "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten",
+          "harness": "pi",
+          "reasoning": "off",
+          "repetition": 0,
+          "condition_id": "condition-1635cf441d02f20bc55b3455d313114372f2bce9ff46e352f48e850fd5609490",
+          "run_id": "nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022/results.json",
+          "source_results_sha256": "8a2352070136cc11db3477b9f0a6f1252407ca76025a43b41d8320413be76d7a",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null,
+            "elapsed_seconds": 3873.8141795150004,
+            "model_request_seconds": null,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/food_beverage_coffeeCup_a01/nemotron-pi.glb",
+          "source_sha256": "feb6393648e0e941f3aa4159b73cbe599bcf36e2453ed22c84d1a7610d044d4d",
+          "geometry_status": "available",
+          "sha256": "6bf96f402890067a861c9fabca73b295a218bbacdf83f1963c2d71ac7e07a100",
+          "bytes": 6964,
+          "triangles": 252,
+          "bounds_m": [
+            [
+              -0.04500548541545868,
+              -0.058504391461610794,
+              -0.04500548541545868
+            ],
+            [
+              0.04500548541545868,
+              0.07850439101457596,
+              0.04500548541545868
+            ]
+          ]
+        },
+        {
+          "id": "sol-codex-orichalcum",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "codex",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-53de9acf582acee92c04661d5ea67d7e4df449fc397eb94cb96e33100d0b2dab",
+          "run_id": "gpt61-sol-high-codex-orichalcum-full-20261023",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/gpt61-sol-high-codex-orichalcum-full-20261023/results.json",
+          "source_results_sha256": "02f0b0fe924e43f499b2dd59c16a1ace86b571f2bb603bccc7403a8a90907837",
+          "evaluator_version": null,
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 71.81423558941754,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 66.66666662405241,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1701984,
+            "output_tokens": 25951,
+            "total_tokens": 1727935,
+            "elapsed_seconds": 666.7577096429886,
+            "model_request_seconds": 635.1879561819369,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "orichalcum_pin": "6ed0572b09045087bb3548ed18867ece1073112a",
+          "src": "assets/explorer/food_beverage_coffeeCup_a01/sol-codex-orichalcum.glb",
+          "source_sha256": "6efe7fb78a1fcaa4800eb218c80d3ab7e281ac2bb65085dd6a84126048f3b391",
+          "geometry_status": "available",
+          "sha256": "4f63cfe03b466fe1741739bcd02b2169bf1d9a2c71de611503af531704d209ca",
+          "bytes": 524824,
+          "triangles": 27176,
+          "bounds_m": [
+            [
+              -0.04186868667602539,
+              0.0022055190056562424,
+              -0.04238509759306908
+            ],
+            [
+              0.04304716736078262,
+              0.11921430379152298,
+              0.04253075644373894
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "handTool_hammer_crossPeen_a01",
+      "label": "Cross-peen hammer",
+      "reference": {
+        "src": "assets/explorer/handTool_hammer_crossPeen_a01/reference.glb",
+        "source_sha256": "f47c6d4e05c6a70dcbdeacf2360ef6cf31dccbcabdbd9496dec8210281bb6d25",
+        "geometry_status": "available",
+        "sha256": "4a68eb86f55d431b586fa41aff650c8169831316df8dadb0535081af2767ba6d",
+        "bytes": 1425376,
+        "triangles": 79132,
+        "bounds_m": [
+          [
+            -0.21919000148773193,
+            6.123445928096771e-05,
+            -0.06480354070663452
+          ],
+          [
+            0.1752755343914032,
+            0.04519447684288025,
+            0.06480322033166885
+          ]
+        ],
+        "source_url": "https://huggingface.co/datasets/nvidia/simready-assets/resolve/f4860aa0c75607adb50a78bf96e77510bffc040f/handTool_hammer_crossPeen_a01/simready_usd/sm_handTool_hammer_crossPeen_a01_01.usd"
+      },
+      "variants": [
+        {
+          "id": "sol-pi",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "pi",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-f3d35d99193954af167c27444811f1ff9945e213e370dd9c543e7e0a6ca3c1da",
+          "run_id": "nv25-gpt-6.1-sol-high-pi-none-turn64-20261020",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-gpt-6.1-sol-high-pi-none-turn64-20261020/results.json",
+          "source_results_sha256": "98db2594352a17d493e2312753a1e04e73455c84184f7f8d850ac65fb275863e",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 96.62191298846372,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": null,
+              "status": "not_applicable",
+              "coverage": 0
+            }
+          },
+          "usage": {
+            "input_tokens": 1080321,
+            "output_tokens": 25872,
+            "total_tokens": 1106193,
+            "elapsed_seconds": 647.7656385675073,
+            "model_request_seconds": 573.345727885142,
+            "inference_cost_usd": 0.5075955,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/handTool_hammer_crossPeen_a01/sol-pi.glb",
+          "source_sha256": "7e932bc73bf934d713d4348d55120a2e6b2036225e488275aa94c54185b8c07a",
+          "geometry_status": "available",
+          "sha256": "a89db314ab48839bdd0222601fe01e8c7b09d1acc5657ec229f2f585ec172b17",
+          "bytes": 1218332,
+          "triangles": 66760,
+          "bounds_m": [
+            [
+              -0.21898172795772552,
+              -0.00022989852004684508,
+              -0.06442070752382278
+            ],
+            [
+              0.17599962651729584,
+              0.04490334168076515,
+              0.06541839987039566
+            ]
+          ]
+        },
+        {
+          "id": "glm-pi",
+          "label": "GLM-5.3 Flash",
+          "model": "zai-org/GLM-5.3-Flash:baseten",
+          "harness": "pi",
+          "reasoning": "low",
+          "repetition": 0,
+          "condition_id": "condition-37b6d6e86bdda26b650d8beadbc6382e946d2eab3f2a8b3b817fefc91022e3b2",
+          "run_id": "nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021/results.json",
+          "source_results_sha256": "70c6613bcb35b314a2d33e5217235e96c7fd4ff4bea9d79baa68e9b778fc29f7",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": "pricing-derived inference cost",
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 1771386,
+            "output_tokens": 25411,
+            "total_tokens": 1796797,
+            "elapsed_seconds": 967.8180072628893,
+            "model_request_seconds": 928.1430436040973,
+            "inference_cost_usd": 0.2784134,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/handTool_hammer_crossPeen_a01/glm-pi.glb",
+          "source_sha256": "42968e51bb95ad75f07c79ece115f304f6420737be70bd9bb1493239939a13aa",
+          "geometry_status": "available",
+          "sha256": "a20fd0a2e3e1e4cb6e2101990564e7bca6646e83a64d95683ee63e291a12a568",
+          "bytes": 13328,
+          "triangles": 684,
+          "bounds_m": [
+            [
+              -0.21577616035938263,
+              -0.00040541018825024366,
+              -0.0712265819311142
+            ],
+            [
+              0.18084371089935303,
+              0.044727832078933716,
+              0.06187378242611885
+            ]
+          ]
+        },
+        {
+          "id": "nemotron-pi",
+          "label": "Nemotron 3.5 Super VL",
+          "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten",
+          "harness": "pi",
+          "reasoning": "off",
+          "repetition": 0,
+          "condition_id": "condition-37b6d6e86bdda26b650d8beadbc6382e946d2eab3f2a8b3b817fefc91022e3b2",
+          "run_id": "nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022/results.json",
+          "source_results_sha256": "8a2352070136cc11db3477b9f0a6f1252407ca76025a43b41d8320413be76d7a",
+          "evaluator_version": "source-usd-fidelity-v7",
+          "authoring_protocol": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
+          "output_limit": "bounded",
+          "max_output_tokens": 4096,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 88.80434782608695,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 46.228725096016596,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null,
+            "elapsed_seconds": 3605.599208171945,
+            "model_request_seconds": null,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "src": "assets/explorer/handTool_hammer_crossPeen_a01/nemotron-pi.glb",
+          "source_sha256": "f1e400625e28ff9e2b462ac669471da3d0489b9067cc3fbf166b596fc1bdd4a9",
+          "geometry_status": "available",
+          "sha256": "1737ab5771c3212784b2fb1556e7aee05de402a5e1b092a0373e0cc56813d271",
+          "bytes": 2852,
+          "triangles": 88,
+          "bounds_m": [
+            [
+              -0.2359577864408493,
+              -0.01094437763094902,
+              -0.028862863779067993
+            ],
+            [
+              0.1643049716949463,
+              0.05405561998486519,
+              0.02675786241889
+            ]
+          ]
+        },
+        {
+          "id": "sol-codex-orichalcum",
+          "label": "GPT-6.1 Sol",
+          "model": "gpt-6.1-sol",
+          "harness": "codex",
+          "reasoning": "high",
+          "repetition": 0,
+          "condition_id": "condition-99b18c6d34ced3d011231b086d878eff84e47fa5245492338d6611413f5e7ae6",
+          "run_id": "gpt61-sol-high-codex-orichalcum-full-20261023",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/6e5234f26e711e37838fed7bbf09cacb562a0beb/runs/gpt61-sol-high-codex-orichalcum-full-20261023/results.json",
+          "source_results_sha256": "02f0b0fe924e43f499b2dd59c16a1ace86b571f2bb603bccc7403a8a90907837",
+          "evaluator_version": null,
+          "authoring_protocol": "authoring-64-native-output-v1",
+          "output_limit": "provider-native",
+          "max_output_tokens": null,
+          "inference_cost_kind": null,
+          "scores": {
+            "formal": {
+              "value": 100.0,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 28.396999964419916,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "input_tokens": 959795,
+            "output_tokens": 22835,
+            "total_tokens": 982630,
+            "elapsed_seconds": 504.2913689359557,
+            "model_request_seconds": 440.48091333394405,
+            "inference_cost_usd": null,
+            "compute_cost_usd": null,
+            "total_cost_usd": null
+          },
+          "orichalcum_pin": "6ed0572b09045087bb3548ed18867ece1073112a",
+          "src": "assets/explorer/handTool_hammer_crossPeen_a01/sol-codex-orichalcum.glb",
+          "source_sha256": "f0c157a86bf19391d64574765018b47afc32082f0f8a05b61d689e325f9f5d05",
+          "geometry_status": "available",
+          "sha256": "316937f6370a29d33326d1935cb3f530493604bf0b8e58a9ebec47a0ea57a93f",
+          "bytes": 2120636,
+          "triangles": 117184,
+          "bounds_m": [
+            [
+              -0.2180628627538681,
+              -0.00026357665774412453,
+              -0.06491659581661224
+            ],
+            [
+              0.17651647329330444,
+              0.044869665056467056,
+              0.064825139939785
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

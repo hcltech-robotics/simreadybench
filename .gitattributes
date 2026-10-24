@@ -7,3 +7,6 @@
 *.usd binary
 *.usdc binary
 *.usdz binary
+*.glb binary
+# Preserve the byte-for-byte upstream licence, including its final blank line.
+site/assets/explorer/NVIDIA-ASSET-LICENSE.txt -whitespace

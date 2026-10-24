@@ -74,6 +74,92 @@ pre:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px
 .score-figure-links { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; margin-top: .5rem; }
 .score-figure-links a { overflow-wrap: anywhere; }
 .score-figure-links a:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+.explorer-section { padding-top: 3.75rem; padding-bottom: 3.75rem; }
+.explorer-heading { max-width: 760px; margin-bottom: 1.75rem; }
+.explorer-eyebrow { margin-bottom: .65rem; color: var(--primary-color); font-size: .75rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.explorer-heading .title { margin-bottom: .8rem; }
+.explorer-heading > p:last-child { color: var(--text-secondary); line-height: 1.7; }
+.explorer-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr); gap: 1.25rem; }
+.explorer-field label { display: block; margin-bottom: .45rem; font-size: .8rem; font-weight: 600; color: var(--text-primary); }
+.explorer-field select { display: block; width: 100%; min-height: 48px; padding: .65rem 2rem .65rem .8rem; border: 1px solid #b5c3cd; border-radius: 4px; background: white; color: var(--text-primary); font: inherit; font-size: .9rem; text-overflow: ellipsis; }
+.explorer-field select:disabled { color: var(--text-secondary); background: #f7f8f9; }
+.explorer-toolbar { display: flex; align-items: center; gap: 1.25rem; min-height: 62px; font-size: .78rem; color: var(--text-secondary); }
+.explorer-toolbar > p { margin-left: auto; }
+.explorer-lock { display: inline-flex; align-items: center; gap: .5rem; white-space: nowrap; cursor: pointer; }
+.explorer-lock input { width: 16px; height: 16px; accent-color: var(--primary-color); }
+.explorer-reset { border: 0; border-bottom: 1px solid #8ba2b1; padding: .2rem 0; background: transparent; color: var(--primary-color); font: inherit; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.explorer-reset:disabled { color: #89949b; border-color: transparent; cursor: default; }
+.explorer-status { min-height: 1.3rem; margin-bottom: .6rem; font-size: .75rem; color: var(--text-secondary); }
+.explorer-views { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; }
+.explorer-panel { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--border-color); border-radius: 5px; overflow: hidden; background: white; }
+.explorer-panel-heading { padding: 1.15rem 1.2rem 1rem; min-height: 111px; }
+.explorer-panel-label { color: var(--text-secondary); font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.explorer-candidate-panel .explorer-panel-label { color: var(--primary-color); }
+.explorer-panel-heading h3 { margin: .25rem 0 .3rem; font-size: 1.05rem; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.explorer-panel-heading > p { color: var(--text-secondary); font-size: .72rem; line-height: 1.5; }
+.explorer-stage { position: relative; width: 100%; height: 340px; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, #fff 10%, #f4f6f7 75%); border-top: 1px solid #edf0f2; border-bottom: 1px solid #edf0f2; }
+.explorer-stage model-viewer { display: block; width: 100%; height: 100%; --progress-bar-color: #27516c; --progress-bar-height: 2px; --poster-color: transparent; }
+.explorer-placeholder { position: absolute; top: 50%; left: 0; width: 100%; padding: 1rem; transform: translateY(-50%); text-align: center; color: var(--text-secondary); font-size: .85rem; pointer-events: none; }
+.explorer-preview-error { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: .5rem; padding: 2rem; text-align: center; font-size: .85rem; color: var(--text-secondary); }
+.explorer-preview-error > p:first-child { font-weight: 600; color: var(--text-primary); }
+.explorer-panel-footer { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .6rem .8rem; }
+.explorer-panel-footer > a { font-size: .72rem; }
+.explorer-rotation { display: flex; gap: .15rem; }
+.explorer-rotation button { width: 30px; height: 32px; padding: 0; background: transparent; border: 1px solid transparent; border-radius: 3px; color: var(--primary-color); font-size: 1rem; cursor: pointer; }
+.explorer-rotation button:hover:not(:disabled) { background: #edf2f5; border-color: var(--border-color); }
+.explorer-rotation button:disabled { color: #bac2c8; cursor: default; }
+.explorer-readout { margin-top: 1.7rem; }
+.explorer-readout[hidden] { display: none; }
+.explorer-readout-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .7rem; }
+.explorer-readout-heading h3 { font-size: .9rem; font-weight: 600; }
+.explorer-readout-heading p { color: var(--text-secondary); font-size: .75rem; }
+.explorer-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 1.1rem 0; border-top: 1px solid var(--border-color); }
+.explorer-metric { min-width: 0; padding: 0 1.3rem; border-left: 1px solid var(--border-color); }
+.explorer-metric:first-child { padding-left: 0; border-left: 0; }
+.explorer-metric:last-child { padding-right: 0; }
+.explorer-metric dt { margin-bottom: .35rem; color: var(--text-secondary); font-size: .78rem; }
+.explorer-metric-value { margin: 0; color: var(--primary-color); font-size: 1.65rem; font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; letter-spacing: -.025em; }
+.explorer-metric-detail { margin: .4rem 0 0; color: var(--text-secondary); font-size: .7rem; line-height: 1.6; }
+.explorer-score-track { height: 3px; margin: .55rem 0 0; background: #e7edf1; overflow: hidden; }
+.explorer-score-track span { display: block; height: 100%; background: var(--primary-color); }
+.explorer-usage { padding-top: .95rem; padding-bottom: .95rem; }
+.explorer-usage .explorer-metric-value { font-size: 1.25rem; color: var(--text-primary); }
+.explorer-provenance { padding-top: .85rem; border-top: 1px solid var(--border-color); font-size: .7rem; color: var(--text-secondary); overflow-wrap: anywhere; line-height: 1.65; }
+.explorer-note { margin-top: 1rem; color: var(--text-secondary); font-size: .76rem; line-height: 1.7; }
+.explorer-note:empty { display: none; }
+.explorer-section select:focus-visible, .explorer-section button:focus-visible, .explorer-section a:focus-visible, .explorer-lock input:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+@media screen and (max-width: 767px) {
+  .explorer-controls { grid-template-columns: 1fr; gap: .9rem; }
+  .explorer-toolbar { gap: .8rem; flex-wrap: wrap; padding: .85rem 0; }
+  .explorer-toolbar > p { order: 3; width: 100%; margin-left: 0; }
+  .explorer-reset { margin-left: auto; }
+  .explorer-views { gap: .8rem; }
+  .explorer-panel-heading { padding: .8rem; min-height: 122px; }
+  .explorer-panel-heading h3 { font-size: .92rem; }
+  .explorer-panel-heading > p { font-size: .65rem; }
+  .explorer-stage { height: 260px; }
+  .explorer-panel-footer { align-items: flex-start; flex-direction: column; padding: .5rem; }
+  .explorer-rotation button { width: 28px; }
+  .explorer-panel-footer > a { font-size: .65rem; padding: .25rem; }
+  .explorer-metric { padding: 0 .8rem; }
+  .explorer-metric-value { font-size: 1.4rem; }
+  .explorer-usage .explorer-metric-value { font-size: 1.05rem; }
+}
+@media screen and (max-width: 420px) {
+  .explorer-section { padding-left: 1rem; padding-right: 1rem; }
+  .explorer-stage { height: 215px; }
+  .explorer-panel-heading { min-height: 132px; padding: .7rem; }
+  .explorer-views { gap: .5rem; }
+  .explorer-rotation { gap: 0; }
+  .explorer-rotation button { width: 27px; }
+  .explorer-metric { padding: 0 .5rem; }
+  .explorer-metric dt { font-size: .7rem; }
+  .explorer-metric-value { font-size: 1.2rem; }
+  .explorer-usage .explorer-metric-value { font-size: .95rem; }
+  .explorer-metric-detail { font-size: .65rem; }
+  .explorer-readout-heading { display: block; }
+  .explorer-readout-heading p { margin-top: .3rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .button { transition: none !important; }
