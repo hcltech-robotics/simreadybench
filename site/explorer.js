@@ -98,7 +98,7 @@ function renderReadout(variant) {
     && /pricing[- ]derived/i.test(inferenceCostKind);
   const costDetail = (totalCost
     ? `USD · inference ${costLabel(usage.inference_cost_usd)} · compute ${costLabel(usage.compute_cost_usd)}`
-    : inferenceCost ? "USD · compute cost not measured" : "USD · usage not recorded")
+    : inferenceCost ? "USD · compute cost not measured" : "USD · cost not recorded")
     + (pricingDerived ? " · inference calculated from pricing" : "");
   const tokenPart = (value) => measured(value) ? number(value) : "not measured";
   byId("usage").replaceChildren(

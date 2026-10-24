@@ -39,8 +39,21 @@ def check(url, output):
                 actual = page.locator('#explorer-scores .explorer-metric-value').all_text_contents()
                 expected = page.evaluate("v => ['formal','visual','kinematic'].map(k => v.scores[k].status === 'not_applicable' ? 'N/A' : v.scores[k].value === null ? 'Not measured' : v.scores[k].value === 0 ? '0' : v.scores[k].value.toLocaleString('en-GB', {maximumFractionDigits:1}))", variant)
                 assert actual == expected, (obj['id'], variant['id'], actual, expected)
+                actual_usage = page.locator('#explorer-usage .explorer-metric-value').all_text_contents()
+                expected_usage = page.evaluate("""u => {
+                    const valid = v => typeof v === 'number' && v >= 0;
+                    const n = (v, digits=0) => (v === 0 ? 0 : v).toLocaleString('en-GB', {maximumFractionDigits:digits});
+                    const cost = valid(u.total_cost_usd) ? u.total_cost_usd : u.inference_cost_usd;
+                    const costLabel = !valid(cost) ? 'Not measured' : cost > 0 && cost < .0001 ? '< $0.0001'
+                        : '$' + (cost === 0 ? 0 : cost).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:4});
+                    const time = u.elapsed_seconds;
+                    const timeLabel = !valid(time) ? 'Not measured' : time < 60 ? n(time,1)+' s'
+                        : time < 3600 ? n(time/60,1)+' min' : n(time/3600,2)+' h';
+                    return [costLabel, valid(u.total_tokens) ? n(u.total_tokens) : 'Not measured', timeLabel];
+                }""", variant['usage'])
+                assert actual_usage == expected_usage, (obj['id'], variant['id'], actual_usage, expected_usage)
                 assert page.locator('#explorer-result-source').get_attribute('href') == variant['source_url']
-                checks.append({'object': obj['id'], 'variant': variant['id'], 'geometry': bool(variant.get('src')), 'scores': actual})
+                checks.append({'object': obj['id'], 'variant': variant['id'], 'geometry': bool(variant.get('src')), 'scores': actual, 'cost_tokens_time': actual_usage})
 
         # A rapid selection change must end with both geometry and scores from
         # the final choice, even if an earlier asset finishes loading later.
