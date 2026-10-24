@@ -49,6 +49,61 @@ class ParetoDataTests(unittest.TestCase):
         self.assertIsNone(metric["scores"]["visual"]["value"])
         self.assertEqual(metric["measured_attempts"], 0)
 
+    def test_partial_scores_use_available_mean_and_retain_coverage(self):
+        score = p.score_summary([row(score=80), row(repetition=1, score=None)], "formal")
+        self.assertEqual(score["value"], 80)
+        self.assertEqual(score["status"], "partial")
+        self.assertEqual(score["coverage"], 0.5)
+        self.assertFalse(score["complete"])
+        self.assertIsNone(p.score_summary([row(score=None)], "formal")["value"])
+
+    def test_family_is_independent_of_version_provider_and_harness(self):
+        self.assertEqual(p.model_family("gpt-6.1-sol"), p.model_family("openai/gpt-6.2:baseten"))
+        self.assertEqual(p.model_family("zai-org/GLM-5.3-Flash:baseten"), "GLM")
+        self.assertEqual(p.model_family("nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten"), "Nemotron")
+        self.assertEqual(p.model_family("deepseek-ai/DeepSeek-V4.1-Flash-1017:baseten"), "DeepSeek")
+        self.assertEqual(p.model_family("claude-sonnet-5-5"), "Claude")
+
+    @staticmethod
+    def score_runs(values):
+        return [{"scores": {name: {"value": value, "complete": True}
+                            for name, value in zip(p.SCORES, row)}} for row in values]
+
+    def test_cumulative_uses_population_stdev_and_equal_component_weights(self):
+        runs = self.score_runs([(10, 20, 0), (20, 40, 50), (30, 60, 100)])
+        normalisation = p.add_cumulative_scores(runs)
+        self.assertEqual(normalisation["ddof"], 0)
+        self.assertEqual(normalisation["components"]["formal"]["configuration_count"], 3)
+        self.assertAlmostEqual(normalisation["components"]["formal"]["standard_deviation"], (200 / 3) ** 0.5)
+        self.assertAlmostEqual(runs[0]["scores"]["cumulative"]["value"], -(3 / 2) ** 0.5)
+        self.assertEqual(runs[1]["scores"]["cumulative"]["value"], 0)
+        self.assertAlmostEqual(runs[2]["scores"]["cumulative"]["value"], (3 / 2) ** 0.5)
+        self.assertEqual(runs[0]["scores"]["formal"]["value"], 10)
+
+    def test_cumulative_accepts_partial_means_but_requires_all_three_components(self):
+        runs = self.score_runs([(10, 20, 0), (20, 40, None)])
+        runs[0]["scores"]["formal"]["complete"] = False
+        p.add_cumulative_scores(runs)
+        self.assertAlmostEqual(runs[0]["scores"]["cumulative"]["value"], -2 / 3)
+        self.assertEqual(runs[0]["scores"]["cumulative"]["status"], "partial")
+        self.assertFalse(runs[0]["scores"]["cumulative"]["complete"])
+        self.assertIsNone(runs[1]["scores"]["cumulative"]["value"])
+
+    def test_zero_variance_component_contributes_zero(self):
+        runs = self.score_runs([(50, 10, 20), (50, 30, 40)])
+        normalisation = p.add_cumulative_scores(runs)
+        self.assertEqual(normalisation["components"]["formal"]["standard_deviation"], 0)
+        self.assertEqual(runs[0]["scores"]["cumulative"]["components"]["formal"], 0)
+        self.assertAlmostEqual(runs[1]["scores"]["cumulative"]["value"], 2 / 3)
+
+    def test_cumulative_is_invariant_to_positive_affine_component_scale(self):
+        a = self.score_runs([(10, 15, 30), (40, 30, 20), (20, 60, 10)])
+        b = self.score_runs([(25, 15, 30), (85, 30, 20), (45, 60, 10)])
+        p.add_cumulative_scores(a)
+        p.add_cumulative_scores(b)
+        for first, second in zip(a, b):
+            self.assertAlmostEqual(first["scores"]["cumulative"]["value"], second["scores"]["cumulative"]["value"])
+
     def test_cache_tokens_are_counted_once(self):
         r = row(usage=None)
         r["native_anthropic_usage"] = dict(input_tokens=3, cache_creation_input_tokens=20, cache_read_input_tokens=40, output_tokens=7)
