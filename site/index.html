@@ -29,12 +29,13 @@
   <link rel="sitemap" type="application/xml" href="https://hcltech-robotics.github.io/simreadybench/sitemap.xml">
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/index.css">
-  <link rel="stylesheet" href="style.css?v=swipe-delta-20261024">
+  <link rel="stylesheet" href="style.css?v=pareto-20261024">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
   <script src="app.js?v=pin-suffix-20261024" defer></script>
   <script src="explorer.js?v=pin-suffix-20261024" type="module"></script>
+  <script src="pareto.js?v=20261024" type="module"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -212,6 +213,53 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="section pareto-section" id="pareto" aria-labelledby="pareto-title">
+      <div class="container is-max-desktop" id="pareto-root" data-load-state="loading">
+        <h2 class="title is-3 has-text-centered" id="pareto-title">Score and inference efficiency</h2>
+        <div class="pareto-controls">
+          <div class="buttons has-addons pareto-score-controls" role="group" aria-label="Fidelity score">
+            <button type="button" class="button is-small is-dark" data-pareto-score="all" aria-pressed="true">All scores</button>
+            <button type="button" class="button is-small" data-pareto-score="formal" aria-pressed="false"><span class="pareto-swatch pareto-formal" aria-hidden="true"></span>Formal</button>
+            <button type="button" class="button is-small" data-pareto-score="visual" aria-pressed="false"><span class="pareto-swatch pareto-visual" aria-hidden="true"></span>Visual</button>
+            <button type="button" class="button is-small" data-pareto-score="kinematic" aria-pressed="false"><span class="pareto-swatch pareto-kinematic" aria-hidden="true"></span>Kinematic</button>
+          </div>
+          <div class="pareto-options">
+            <label class="checkbox"><input type="checkbox" id="pareto-separate"> Separate scores</label>
+            <label class="checkbox" id="pareto-subsets-label" hidden><input type="checkbox" id="pareto-subsets"> Include measured subsets</label>
+          </div>
+        </div>
+        <div class="pareto-chart-wrap">
+          <div id="pareto-plot" class="pareto-plot" aria-label="Fidelity against inference usage"></div>
+          <div id="pareto-tooltip" class="pareto-tooltip" role="group" aria-label="Selected configuration" hidden></div>
+        </div>
+        <div class="pareto-x-label">
+          <label class="is-sr-only" for="pareto-x">Horizontal axis, per asset reconstruction</label>
+          <div class="select is-small"><select id="pareto-x">
+            <option value="cost_usd_per_asset">Inference cost (USD / asset)</option>
+            <option value="time_seconds_per_asset">Inference time (min / asset)</option>
+            <option value="tokens_per_asset">Tokens / asset</option>
+            <option value="elapsed_seconds_per_asset">Elapsed time (min / asset)</option>
+          </select></div>
+        </div>
+        <ul class="pareto-run-legend" id="pareto-run-legend" aria-label="Run configurations"></ul>
+        <p class="table-note pareto-note" id="pareto-status" role="status" aria-live="polite">Loading trajectory measurements…</p>
+        <p class="table-note pareto-note">Lines join non-dominated configurations scored by the same evaluator on matching references. Lower inference use and higher fidelity are better. Hollow markers denote measured subsets; these do not enter the frontier.</p>
+        <details class="pareto-data" id="pareto-data">
+          <summary>Measurements and coverage</summary>
+          <div class="table-container" tabindex="0" role="region" aria-label="Pareto source measurements">
+            <table class="table is-fullwidth pareto-table">
+              <caption>Scores and mean usage per reconstruction. Chart points pair each score with usage from the same eligible reconstructions.</caption>
+              <thead><tr><th scope="col">Configuration</th><th scope="col">Formal</th><th scope="col">Visual</th><th scope="col">Kinematic</th><th scope="col">Inference cost</th><th scope="col">Inference time</th><th scope="col">Tokens</th><th scope="col">Elapsed time</th><th scope="col">Source</th></tr></thead>
+              <tbody id="pareto-table-body"></tbody>
+            </table>
+          </div>
+          <p class="table-note" id="pareto-provenance"></p>
+          <p class="table-note"><a href="assets/pareto.json">Download measurements and provenance (JSON)</a></p>
+        </details>
+        <noscript><p class="table-note">Interactive axes require JavaScript. <a href="assets/pareto.json">Download trajectory measurements</a>.</p></noscript>
       </div>
     </section>
 

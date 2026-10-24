@@ -5,8 +5,15 @@ from __future__ import annotations
 from io import BytesIO
 import math
 
+from .benchmark_metadata import display_skill_label
+
 
 METRICS = ("formal", "visual", "kinematic")
+METRIC_COLOURS = {
+    "formal": "#0072b2",
+    "visual": "#d55e00",
+    "kinematic": "#009e73",
+}
 PLOTS = (
     ("scores", "Mean fidelity", "Fidelity points (0-100)", None),
     (
@@ -43,7 +50,7 @@ def _summary(entry, name, efficiency):
 
 
 def _label(entry):
-    skills = ", ".join(entry.get("skills") or []) or "no skills"
+    skills = ", ".join(display_skill_label(value) for value in entry.get("skills") or []) or "no skills"
     protocol = str(entry.get("authoring_protocol") or "unknown protocol")
     continuation = protocol.endswith('-continue-length-v1')
     protocol = protocol.removesuffix('-continue-length-v1').removesuffix('-tools-bounded-v1')
@@ -130,7 +137,8 @@ def render_leaderboard_plots(board):
         axes = figure.subplots(1, 3, sharey=True)
         incomplete_usage = False
         for axis, name, group in zip(axes, METRICS, summaries):
-            axis.set_title(name.capitalize(), fontsize=12, loc="left", pad=12)
+            colour = METRIC_COLOURS[name]
+            axis.set_title(name.capitalize(), fontsize=12, loc="left", pad=12, color=colour)
             axis.set_yticks(range(len(entries)))
             axis.set_yticklabels([_label(entry) for entry in entries], fontsize=9)
             axis.set_ylim(len(entries) - 0.35, -0.65)
@@ -160,24 +168,24 @@ def render_leaderboard_plots(board):
                 interval = summary.get("confidence_interval") or {}
                 lower, upper = interval.get("lower"), interval.get("upper")
                 if _number(lower) and _number(upper):
-                    axis.plot([lower, upper], [y, y], color="#526d82", linewidth=1.8)
+                    axis.plot([lower, upper], [y, y], color=colour, linewidth=1.8)
                     axis.plot(
                         [lower, lower],
                         [y - 0.065, y + 0.065],
-                        color="#526d82",
+                        color=colour,
                         linewidth=1.1,
                     )
                     axis.plot(
                         [upper, upper],
                         [y - 0.065, y + 0.065],
-                        color="#526d82",
+                        color=colour,
                         linewidth=1.1,
                     )
-                axis.plot(value, y, "o", color="#173c54", markersize=5, clip_on=False)
+                axis.plot(value, y, "o", color=colour, markersize=5, clip_on=False)
                 measured, eligible = summary.get("measured_attempts"), summary.get("eligible_attempts")
                 if efficiency and type(measured) is int and type(eligible) is int and 0 < measured < eligible:
                     axis.annotate("*", (value, y), xytext=(4, 4), textcoords="offset points",
-                                  fontsize=9, color="#173c54", annotation_clip=False)
+                                  fontsize=9, color=colour, annotation_clip=False)
                     incomplete_usage = True
             axis.set_xlim(left=0)
             if efficiency is None:

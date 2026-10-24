@@ -3,7 +3,7 @@ name: Deploy project page
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "scripts/build_pareto_data.py", ".github/workflows/pages.yml"]
   workflow_dispatch:
   schedule:
     - cron: "17 */6 * * *"
@@ -29,6 +29,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Reconstruct trajectory usage for the Pareto chart
+        run: >-
+          python3 scripts/build_pareto_data.py
+          --cache "$RUNNER_TEMP/pareto-cache"
+          --evidence site/assets/pareto-evidence.json
       - name: Install the static rendering browser
         run: |
           python -m pip install playwright==1.56.0
@@ -60,6 +65,12 @@ jobs:
                   table = page.locator("#leaderboard-table-region")
                   if table.get_attribute("data-load-state") != "ready":
                       raise RuntimeError("Published leaderboard could not be rendered; keeping the existing deployment")
+                  page.wait_for_function(
+                      "['ready', 'error'].includes(document.getElementById('pareto-root').dataset.loadState)",
+                      timeout=90000,
+                  )
+                  if page.locator("#pareto-root").get_attribute("data-load-state") != "ready":
+                      raise RuntimeError("Trajectory measurements could not be rendered; keeping the existing deployment")
                   count = page.locator("#leaderboard-body tr").count()
                   captured = datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC")
                   table.evaluate("(el, stamp) => el.dataset.snapshotAt = stamp", captured)
@@ -75,6 +86,8 @@ jobs:
                   assert check.locator("#leaderboard-body tr").count() == count
                   if count:
                       assert check.locator("#leaderboard-table-region").is_visible()
+                  assert check.locator("#pareto-table-body tr").count() > 0
+                  assert check.locator("#pareto-plot svg").count() == 1
                   assert check.locator('link[rel="canonical"]').get_attribute("href") == "https://hcltech-robotics.github.io/simreadybench/"
                   print(f"Rendered {count} leaderboard entries at {captured}")
                   browser.close()

@@ -31,3 +31,14 @@ export { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 The published bundle contains resolved dependencies and makes no runtime requests
 to a package CDN.
+
+`d3-7.9.0/d3.min.js` is the unmodified D3 7.9.0 distribution, used by the
+trajectory Pareto chart. ISC; see `d3-7.9.0/LICENSE.txt`. Source:
+https://github.com/d3/d3/tree/v7.9.0
+
+The npm archive is https://registry.npmjs.org/d3/-/d3-7.9.0.tgz. Its verified
+integrity is
+`sha512-e1U46jVP+w7Iut8Jt8ri1YsPOvFpg46k+K8TpCb0P+zjCkjkPnV7WzfDJzMHy1LnA+wj5pLT1wjO901gLXeEhA==`.
+The distribution file's SHA-256 is
+`f2094bbf6141b359722c4fe454eb6c4b0f0e42cc10cc7af921fc158fceb86539`.
+It loads locally and makes no runtime requests to a CDN.
