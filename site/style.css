@@ -78,22 +78,36 @@ pre:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px
 .explorer-field .label { font-size: .9rem; font-weight: 600; }
 .explorer-field .select, .explorer-field select { width: 100%; }
 .explorer-field select { font: inherit; font-size: .9rem; text-overflow: ellipsis; }
-.explorer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: .5rem 0 1.5rem; font-size: .85rem; }
-.explorer-toolbar .button { flex: 0 0 auto; width: auto; }
-.explorer-lock { display: inline-flex; align-items: center; gap: .5rem; white-space: nowrap; color: var(--text-secondary); }
-.explorer-lock input { accent-color: var(--primary-color); }
-.explorer-views { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
-.explorer-panel { display: flex; flex-direction: column; min-width: 0; }
-.explorer-panel-heading { padding-bottom: .75rem; }
-.explorer-panel-label { display: block; margin-bottom: .25rem; }
-.explorer-panel-heading .title { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
-.explorer-stage { position: relative; width: 100%; height: 340px; overflow: hidden; background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 4px; }
-.explorer-stage model-viewer { display: block; width: 100%; height: 100%; --progress-bar-color: var(--primary-color); --progress-bar-height: 2px; --poster-color: transparent; }
-.explorer-placeholder { position: absolute; top: 50%; left: 0; width: 100%; padding: 1rem; transform: translateY(-50%); text-align: center; color: var(--text-secondary); font-size: .85rem; pointer-events: none; }
-.explorer-preview-error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; text-align: center; font-size: .85rem; color: var(--text-secondary); }
-.explorer-panel-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding-top: .5rem; font-size: .85rem; }
-.explorer-rotation { display: flex; gap: .15rem; }
-.explorer-rotation .button { width: 30px; padding: 0 !important; margin: 0 !important; color: var(--primary-color); }
+.explorer-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin: .5rem 0 1rem; font-size: .85rem; }
+.explorer-toolbar .button { flex: 0 0 auto; width: auto; min-height: 36px; margin: 0 !important; padding: .45rem .8rem !important; }
+.explorer-modes { margin: 0 !important; }
+.explorer-modes .button[aria-pressed="false"] { background: white; color: var(--text-secondary); }
+.explorer-stage { position: relative; width: 100%; height: 500px; overflow: hidden; background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 4px; }
+.explorer-canvas { position: absolute; inset: 0; }
+.explorer-canvas canvas { display: block; width: 100%; height: 100%; outline-offset: -3px; }
+.explorer-side-labels { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; pointer-events: none; color: var(--text-secondary); font-size: .75rem; }
+.explorer-side-labels > span { max-width: 48%; padding: .2rem .4rem; background: rgb(247 248 249 / 90%); border-radius: 3px; }
+.explorer-side-labels > span:last-child { text-align: right; }
+.explorer-divider { position: absolute; top: 0; bottom: 0; left: var(--split); width: 2px; transform: translateX(-1px); background: rgb(39 81 108 / 65%); pointer-events: none; }
+.explorer-swipe { appearance: none; -webkit-appearance: none; position: absolute; top: 50%; left: -22px; width: calc(100% + 44px); height: 44px; margin: -22px 0 0; border: 0; background: transparent; pointer-events: none; }
+.explorer-swipe::-webkit-slider-runnable-track { height: 44px; background: transparent; }
+.explorer-swipe::-moz-range-track { height: 44px; background: transparent; }
+.explorer-swipe::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 44px; height: 44px; border: 2px solid var(--primary-color); border-radius: 50%; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M17 13v14M23 13v14' stroke='%2327516c' stroke-width='2'/%3E%3C/svg%3E"); cursor: ew-resize; pointer-events: auto; touch-action: none; }
+.explorer-swipe::-moz-range-thumb { width: 40px; height: 40px; border: 2px solid var(--primary-color); border-radius: 50%; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M17 13v14M23 13v14' stroke='%2327516c' stroke-width='2'/%3E%3C/svg%3E"); cursor: ew-resize; pointer-events: auto; touch-action: none; }
+.explorer-swipe:focus-visible { outline: none !important; }
+.explorer-swipe:focus-visible::-webkit-slider-thumb { outline: 3px solid var(--primary-color); outline-offset: 3px; }
+.explorer-swipe:focus-visible::-moz-range-thumb { outline: 3px solid var(--primary-color); outline-offset: 3px; }
+.explorer-preview-message { position: absolute; left: 1rem; bottom: 1rem; max-width: calc(100% - 2rem); margin: 0; padding: .45rem .75rem; background: rgb(255 255 255 / 95%); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-secondary); font-size: .8rem; pointer-events: none; }
+.explorer-stage [hidden], .explorer-delta-controls[hidden], .explorer-stage[data-mode="delta"] .explorer-side-labels { display: none; }
+.explorer-delta-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .6fr); align-items: center; gap: .6rem 2rem; margin-top: 1rem; font-size: .8rem; color: var(--text-secondary); }
+.explorer-threshold-control { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.explorer-threshold-control label { flex-shrink: 0; }
+.explorer-threshold-control input { flex: 1; min-width: 40px; accent-color: var(--primary-color); }
+.explorer-threshold-control output { min-width: 4.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.explorer-delta-legend { display: flex; align-items: center; gap: .6rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.explorer-colour-scale { flex: 1; height: 8px; border-radius: 2px; background: linear-gradient(to right, #27516c, #2a9d8f, #e9c46a, #e76f51); }
+.explorer-delta-summary { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 1rem; font-size: .75rem; }
+.explorer-source-links { display: flex; justify-content: space-between; gap: 1rem; margin-top: .6rem; }
 .explorer-readout { margin-top: 1.5rem; }
 .explorer-readout[hidden] { display: none; }
 .explorer-readout > .table-note { margin-bottom: .75rem; }
@@ -104,20 +118,19 @@ pre:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px
 .explorer-provenance { overflow-wrap: anywhere; }
 .explorer-provenance:empty { display: none; }
 .explorer-attribution { margin-top: 1rem; }
-.explorer-section select:focus-visible, .explorer-section button:focus-visible, .explorer-section a:focus-visible, .explorer-lock input:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+.explorer-section select:focus-visible, .explorer-section button:focus-visible, .explorer-section a:focus-visible, .explorer-section input:focus-visible, .explorer-section canvas:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
 @media (max-width: 768px) {
   .explorer-controls { grid-template-columns: 1fr; gap: .5rem; }
-  .explorer-views { gap: 1rem; }
-  .explorer-stage { height: 260px; }
-  .explorer-panel-heading .title { font-size: 1rem; }
-  .explorer-panel-footer { font-size: .75rem; }
+  .explorer-stage { height: 400px; }
+  .explorer-delta-controls { grid-template-columns: 1fr; gap: .75rem; }
+  .explorer-delta-legend { max-width: 300px; }
 }
 @media (max-width: 420px) {
-  .explorer-views { gap: .75rem; }
-  .explorer-stage { height: 215px; }
-  .explorer-panel-heading .title { min-height: 2.5rem; }
-  .explorer-rotation { gap: 0; }
-  .explorer-rotation .button { width: 27px; }
+  .explorer-stage { height: 340px; }
+  .explorer-toolbar .button { font-size: .72rem; padding: .4rem .6rem !important; }
+  .explorer-side-labels { padding: .6rem; gap: .5rem; font-size: .68rem; }
+  .explorer-threshold-control { gap: .5rem; }
+  .explorer-delta-summary { flex-wrap: wrap; gap: .25rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
