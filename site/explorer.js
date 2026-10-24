@@ -86,7 +86,7 @@ function renderReadout(variant) {
   const pricingDerived = inferenceCost && typeof inferenceCostKind === "string"
     && /pricing[- ]derived/i.test(inferenceCostKind);
   const costDetail = totalCost
-    ? `Inference ${costLabel(usage.inference_cost_usd)} · compute ${costLabel(usage.compute_cost_usd)}`
+    ? `Inference ${costLabel(usage.inference_cost_usd)}${pricingDerived ? " (pricing-derived)" : ""} · compute ${costLabel(usage.compute_cost_usd)}`
     : pricingDerived ? "Pricing-derived" : "";
   const tokenPart = (value) => measured(value) ? number(value) : "not measured";
   byId("cost-label").textContent = `${totalCost ? "Total cost" : inferenceCost ? "Inference cost" : "Cost"} (USD)`;
