@@ -350,7 +350,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const inputEntry = JSON.parse(fs.readFileSync(0, 'utf8'));
 function element(tag) {
-  return { tag, textContent: '', children: [], hidden: false,
+  return { tag, textContent: '', children: [], hidden: false, dataset: {},
     append(...children) { this.children.push(...children); },
     replaceChildren(...children) { this.children = children; } };
 }
@@ -418,7 +418,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const inputEntry = JSON.parse(fs.readFileSync(0, 'utf8'));
 function element(tag) {
-  return { tag, textContent: '', children: [], hidden: false,
+  return { tag, textContent: '', children: [], hidden: false, dataset: {},
     append(...children) { this.children.push(...children); },
     replaceChildren(...children) { this.children = children; } };
 }

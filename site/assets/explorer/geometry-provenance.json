@@ -1,0 +1,1388 @@
+{
+  "accessory_eyeglasses_a01/reference": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "d19ac20db9d37d21d8e5032037592b7fb1cd5e643d2b16511de7eb5b84ddb586",
+    "glb_sha256": "2f7445e7a9694b6ac854f33dc5fc345251496de152914ae586c6f9f95d2c7212",
+    "bytes": 760504,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": null,
+    "composed_layer_sha256": [
+      "031010902a5ef099fd526d96d1cea50d999b51098cfb6274afb23404058eb68a",
+      "2c9587e5cc40bc0fb5d14c80be9a3034c232f2dd1a4f0ca8dd2303ee69109167",
+      "410d82f841769abd757178334660c17587155cd3c6e0fcf63827c4e5dc9a6f5a",
+      "5acfa20a01ba88314191f34c8b07fd02dbfe264f10722cab6448ca66033e02f8",
+      "73b9d0b57686a628d76b7a46bcedd93fa1b991a03a26df1a1309a76dfba3a3dc",
+      "a14e63c90a3b509c5f703790a69e11545706fa82f1bd6fc196c8c96943d8a941",
+      "b5434f127d3d2dd5ca3f963218b07004e61e3690b2323fbdcc2402dd5fdf5ebf",
+      "d19ac20db9d37d21d8e5032037592b7fb1cd5e643d2b16511de7eb5b84ddb586",
+      "e73cd766248caa97a0f7bb563f60786c186ce600cdfc71d65907eb476740bf87"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 21136,
+    "triangles": 42168,
+    "bounds_m": [
+      [
+        -0.0960722491145134,
+        0.00010629743337631226,
+        -0.08716005831956863
+      ],
+      [
+        0.04850779101252556,
+        0.05703020095825195,
+        0.0871606394648552
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 4
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 19780
+    }
+  },
+  "bucket_utility_red_a01/reference": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "f2ec344b17550adf0062d8344674ed571936a75d769bdbbdce92c6a377923092",
+    "glb_sha256": "47172487eaa64d0a3d334ae4aa27f6fc62eaca00ae2cbae4199de9fb258e0ea8",
+    "bytes": 270900,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": null,
+    "composed_layer_sha256": [
+      "1b7b4f9610e2b30779a0042648694e7244f7080ad9e08fc3aab1aa844f59878f",
+      "31d523972a7fb324e32895351802eb0d36afa26aa18d0f5375f137b9b9b0b445",
+      "394a7dbf69f69df9615c3a941d683351065c8709fb9ac95fc247ab0a52fda632",
+      "5848715b7af48bd784d790073740e6c85b8c777c27d39b33cad2b53a0a1d0ce6",
+      "5a44b87cf2954753eadb4701e2f0505c6a92e03e9e59436a5feda0f16860aff5",
+      "a59614d047444bee110c9bc38761dc93e54785eab71b38dce534aae374e33c73",
+      "aa9a51dc2aa90e35356984a03badde940042ac173a3517bdf41c761ccd947d09",
+      "e347eae36f5646c6e8f06b2a8b770b2eef6455ba49f0959ce81239b8677c5ca2",
+      "f2ec344b17550adf0062d8344674ed571936a75d769bdbbdce92c6a377923092"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 7514,
+    "triangles": 14990,
+    "bounds_m": [
+      [
+        -0.16925594210624695,
+        1.043081288010228e-09,
+        -0.1502969115972519
+      ],
+      [
+        0.16901607811450958,
+        0.2587829828262329,
+        0.1777590662240982
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 2
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 6201
+    }
+  },
+  "chair_office_amf_black_a01/reference": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "6479861d24d982a380d9e3b97b19ce4302ab4a28c215576abde4175aaf6f1db5",
+    "glb_sha256": "a6e587f91c03e07d446b537f4eda9e749e089d28a7ef7443f6918d7a003e1079",
+    "bytes": 588372,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": null,
+    "composed_layer_sha256": [
+      "0d3023af60013d4ef4c548262bfbd17454afa1eec1ab3a36bff983b8551f1182",
+      "4a70979d80396ef1bc88cc83c2804773917f7e7cc02a4e055078b7912a4378fc",
+      "6479861d24d982a380d9e3b97b19ce4302ab4a28c215576abde4175aaf6f1db5",
+      "829558ce75cbd28e4cabf0934d43e4c9320e8f64d9548cd65b6d58af250fb6eb",
+      "953fb7e6f35b4a8dd03898533080a3b9122c15b8147f3140fa1e0f214c155534",
+      "b034812966a6f077afeaa35f5e7842a17a2a0bab582cee8a6389f59e187b4158",
+      "b15befc9f1e2cbf0e8032467f34475bb0ecf8c86cf34c9ea4c1fa1e21c51b71b",
+      "b9615546995f746db6d027266b4472816c7e92f8761082ba3e9ca857a18e6e84",
+      "c8f0411d3fac40819fd5e076e634ec8c3248d36c7c94b715d3a75ac33bc23db2"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 16707,
+    "triangles": 32253,
+    "bounds_m": [
+      [
+        -0.26985928416252136,
+        1.862645149230957e-08,
+        -0.2861420810222626
+      ],
+      [
+        0.26985934376716614,
+        0.8096046447753906,
+        0.2861413061618805
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 1
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 13613
+    }
+  },
+  "food_beverage_coffeeCup_a01/reference": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "3ae68174e9c5c86d7d07f15e1940d192f1b58be284901354760c651011b751d7",
+    "glb_sha256": "1cff5bce81f75c2d1c7cd806eaea535d4a3c8bff1dab04ef1cc907b68f3f37ce",
+    "bytes": 185196,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": null,
+    "composed_layer_sha256": [
+      "049696584d4c597d9b008a23df269230aeb05b1c178ac99f3bec8802744eceb7",
+      "1aa01f3b17cb3ef8f3047f2cb2a128cf72a0ec8b9403a6e62bc03e0de8d76537",
+      "2d9dd180b91b285c7d4c578519b7a7fefa49274a663705f18c48e7fcd753f8f5",
+      "3ae68174e9c5c86d7d07f15e1940d192f1b58be284901354760c651011b751d7",
+      "3ceb48f3de6110dd682414ce8412fc9c55fa4210097db29e528b98747df45510",
+      "606e6f2e9105a1f452b8f721c1e81535a7e731ff8c9ee0ca4d425a03a6a94837",
+      "79eeff9b4ee754e2fc58710b1295d1800189ac1d3dd890d4b073fa868b5eeba9",
+      "8c5e4faec3741f596990fd8bf7bcb30938793aac8dd2b9f1614bd3d5e5383776",
+      "d12fee971283d5803c82380b8b6e63abe81170a03a7093aaead41716543b5fb7"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 5122,
+    "triangles": 10240,
+    "bounds_m": [
+      [
+        -0.04292543977499008,
+        1.3601034879684448e-05,
+        -0.043221615254879
+      ],
+      [
+        0.04199057072401047,
+        0.11702238023281097,
+        0.04169439896941185
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 2
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 902
+    }
+  },
+  "handTool_hammer_crossPeen_a01/reference": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "f47c6d4e05c6a70dcbdeacf2360ef6cf31dccbcabdbd9496dec8210281bb6d25",
+    "glb_sha256": "4a68eb86f55d431b586fa41aff650c8169831316df8dadb0535081af2767ba6d",
+    "bytes": 1425376,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": null,
+    "composed_layer_sha256": [
+      "0e80ae205736a98f76fdaa981adb4b4a306434154e6dbfbf94acc0f3775eeb52",
+      "528451daded67cfb8044d2aa197aa52869f10b5e96ce3aa5829d73e48122ae95",
+      "5867b907ca91cb1b1edc59f0298b3da98da7a5c939428e54cc287de6275ebad6",
+      "a072a8d743015582cc946e7b30ccf7a85414ed6e6d143d77ccbbc46bace0f00b",
+      "a0871c023d288eff6994d406feaa8cfe966ea2aa338527955105af07bf15576c",
+      "a0b1a90ae3cd53120bbc32bd2202a3b11de821d52312fb45e680a13d086f69cd",
+      "edbae9014976102f0a4e940d210b73ae75404316851d5ceb896cc50202146a36",
+      "f303c06710aac8ea42766f5b7d7cce8f3eaabf66c55f2f5c871244dee39433d6",
+      "f47c6d4e05c6a70dcbdeacf2360ef6cf31dccbcabdbd9496dec8210281bb6d25"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 39578,
+    "triangles": 79132,
+    "bounds_m": [
+      [
+        -0.21919000148773193,
+        6.123445928096771e-05,
+        -0.06480354070663452
+      ],
+      [
+        0.1752755343914032,
+        0.04519447684288025,
+        0.06480322033166885
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 1
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 36820
+    }
+  },
+  "accessory_eyeglasses_a01/sol-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "1ed976bf3c090e07a9108daa09a96e0ca051b586c6794b49b5763aa3055dec6f",
+    "glb_sha256": "95fe8af77c0a5f651d448bedc96b9423542474d2cc3e8317fd526a5ae3c169c8",
+    "bytes": 715204,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          0.01575509090007947,
+          -0.9998758808525837,
+          0.0
+        ],
+        [
+          0.9998758808525837,
+          0.01575509090007947,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.03499249305850139,
+        0.0017026317502676475,
+        -0.004443427675268563
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "1ed976bf3c090e07a9108daa09a96e0ca051b586c6794b49b5763aa3055dec6f"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 20409,
+    "triangles": 39120,
+    "bounds_m": [
+      [
+        -0.12318997830152512,
+        -0.004443427547812462,
+        -0.07435042411088943
+      ],
+      [
+        0.05230271816253662,
+        0.05248047411441803,
+        0.07170846313238144
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 35
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 16363
+    }
+  },
+  "bucket_utility_red_a01/sol-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "f5fdc3d40b57e40c2ade75c3714f09bca5199e0f1efd5663b97732ee41609cf5",
+    "glb_sha256": "96b5bd3cd09e431de1d68a8f78f674cd24aaf991084187e48871cc9e7088b4a8",
+    "bytes": 351132,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          0.5553137953815518,
+          -0.8316409012662472,
+          0.0
+        ],
+        [
+          0.8316409012662472,
+          0.5553137953815518,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        0.0007772351993439045,
+        -0.0003379658482272809,
+        0.004067540706158515
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "f5fdc3d40b57e40c2ade75c3714f09bca5199e0f1efd5663b97732ee41609cf5"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 9738,
+    "triangles": 19452,
+    "bounds_m": [
+      [
+        -0.17275819182395935,
+        0.004067540634423494,
+        -0.1549152433872223
+      ],
+      [
+        0.17964191734790802,
+        0.2628505229949951,
+        0.18695871531963348
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 9
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 2382
+    }
+  },
+  "chair_office_amf_black_a01/sol-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "143426a215c9e0e65512fc05f38457faf84d0c89bf5eb37999a65ed56fcef25a",
+    "glb_sha256": "442ebb551aa2331db1c5c3e2af303b6b6c4dd1dd5b7aa3d50e33f90224697380",
+    "bytes": 301236,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          0.9999759338698685,
+          0.006937699985183389,
+          0.0
+        ],
+        [
+          -0.006937699985183389,
+          0.9999759338698685,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.0006030355333102658,
+        0.007916516740592856,
+        0.0037058012671513096
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "143426a215c9e0e65512fc05f38457faf84d0c89bf5eb37999a65ed56fcef25a"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 8376,
+    "triangles": 16656,
+    "bounds_m": [
+      [
+        -0.27238550782203674,
+        0.003705801209434867,
+        -0.29586803913116455
+      ],
+      [
+        0.2711794376373291,
+        0.813310444355011,
+        0.28003498911857605
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 24
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 4293
+    }
+  },
+  "food_beverage_coffeeCup_a01/sol-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "5213d2e886a09c5b606a35eb9c9419f2e2d748387980308a739d27ddfab71e18",
+    "glb_sha256": "eb3a6e4508d2611d48b4c8dc17844f698a0d95a72430bc3ff9bc5f07fe306be7",
+    "bytes": 712640,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.3827039922728205,
+          -0.9238710160506416,
+          0.0
+        ],
+        [
+          0.9238710160506416,
+          -0.3827039922728205,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.00022885333315319795,
+        0.00010646692250585702,
+        0.00047853115536923563
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "5213d2e886a09c5b606a35eb9c9419f2e2d748387980308a739d27ddfab71e18"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 20891,
+    "triangles": 38424,
+    "bounds_m": [
+      [
+        -0.04268685728311539,
+        0.0004785311466548592,
+        -0.04256447032094002
+      ],
+      [
+        0.042229149490594864,
+        0.11748731136322021,
+        0.04235153645277023
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 8
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 488
+    }
+  },
+  "handTool_hammer_crossPeen_a01/sol-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "7e932bc73bf934d713d4348d55120a2e6b2036225e488275aa94c54185b8c07a",
+    "glb_sha256": "a89db314ab48839bdd0222601fe01e8c7b09d1acc5657ec229f2f585ec172b17",
+    "bytes": 1218332,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.9999800568696546,
+          0.006315525549180112,
+          0.0
+        ],
+        [
+          -0.006315525549180112,
+          -0.9999800568696546,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.02135941691147129,
+        0.000603733055120336,
+        -0.00022989851374173934
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "7e932bc73bf934d713d4348d55120a2e6b2036225e488275aa94c54185b8c07a"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 34696,
+    "triangles": 66760,
+    "bounds_m": [
+      [
+        -0.21898172795772552,
+        -0.00022989852004684508,
+        -0.06442070752382278
+      ],
+      [
+        0.17599962651729584,
+        0.04490334168076515,
+        0.06541839987039566
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 40
+    },
+    "conversion_notes": {}
+  },
+  "accessory_eyeglasses_a01/glm-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "3834e7b65d728ac963f444fad6dc187c2da49d962c9c36ce735d2f4df85dc900",
+    "glb_sha256": "50fe94d59b7d2d542c3d8c05ad2c64cc0483dd398c553e03a6ccffd630692a7b",
+    "bytes": 67284,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.010052887328778161,
+          -0.9999494684514587,
+          0.0
+        ],
+        [
+          0.9999494684514587,
+          -0.010052887328778161,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        0.04516577253400603,
+        0.00037011919012396857,
+        0.029395346540734755
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "3834e7b65d728ac963f444fad6dc187c2da49d962c9c36ce735d2f4df85dc900"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 1532,
+    "triangles": 4004,
+    "bounds_m": [
+      [
+        -0.09946855157613754,
+        -0.004600687883794308,
+        -0.07990630716085434
+      ],
+      [
+        0.049964774399995804,
+        0.06239503249526024,
+        0.07917612791061401
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 17
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 36
+    }
+  },
+  "bucket_utility_red_a01/glm-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "36bf2de2105b3d14892b4cd3b3cddd1bd2b461670391a599ca23f40785165b7e",
+    "glb_sha256": "0ae8a7806145dc31d615065c26be7f3633f069ceaaf77965ed4fbba72ef74cbe",
+    "bytes": 47768,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.5546994552398259,
+          0.8320507883276359,
+          0.0
+        ],
+        [
+          -0.8320507883276359,
+          -0.5546994552398259,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        0.0017314998648572217,
+        0.0013017410202511436,
+        0.007841886406473764
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "36bf2de2105b3d14892b4cd3b3cddd1bd2b461670391a599ca23f40785165b7e"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 1446,
+    "triangles": 2464,
+    "bounds_m": [
+      [
+        -0.16229639947414398,
+        -0.13115811347961426,
+        -0.16532963514328003
+      ],
+      [
+        0.1657593995332718,
+        0.28684791922569275,
+        0.18405550718307495
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 5
+    },
+    "conversion_notes": {
+      "degenerate_faces_omitted": 128,
+      "nonplanar_faces_fan_triangulated": 134
+    }
+  },
+  "chair_office_amf_black_a01/glm-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "f2b1739e3cf15f84b8df4f1da7c86b2cab22de09ca144ecbac80bbb4760b1bcf",
+    "glb_sha256": "6d369cfad5db9267e2aa8fd70b7e78dacb20f6024fe7fd1128fe524b5ed94b18",
+    "bytes": 106884,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          0.9999146145507515,
+          0.013067655023841227,
+          0.0
+        ],
+        [
+          -0.013067655023841227,
+          0.9999146145507515,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.002746909749370108,
+        -0.01481610822749943,
+        -0.00028542623708077697
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "f2b1739e3cf15f84b8df4f1da7c86b2cab22de09ca144ecbac80bbb4760b1bcf"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 2960,
+    "triangles": 5876,
+    "bounds_m": [
+      [
+        -0.27537059783935547,
+        -0.0007854262948967516,
+        -0.2860168516635895
+      ],
+      [
+        0.27017733454704285,
+        0.8092007040977478,
+        0.2926510274410248
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 11
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 200,
+      "subdivision_control_meshes": 11
+    }
+  },
+  "food_beverage_coffeeCup_a01/glm-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "21804a420bef29c26b495ff6abde98afeac70c276f6e8ca22b4192772d069528",
+    "glb_sha256": "214e101c75085f348303b29ede51e67481e2a3e3ae0b75f2a6920d97607445b8",
+    "bytes": 43128,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.3816142602552388,
+          -0.9243216736449745,
+          0.0
+        ],
+        [
+          0.9243216736449745,
+          -0.3816142602552388,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        3.320735357038255e-05,
+        -4.240040620440968e-05,
+        0.018800003842044277
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "21804a420bef29c26b495ff6abde98afeac70c276f6e8ca22b4192772d069528"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 1219,
+    "triangles": 2304,
+    "bounds_m": [
+      [
+        -0.042366765439510345,
+        0.018800003454089165,
+        -0.04235757142305374
+      ],
+      [
+        0.042433179914951324,
+        0.12280000746250153,
+        0.04244237393140793
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 2
+    },
+    "conversion_notes": {
+      "degenerate_faces_omitted": 64,
+      "degenerate_triangles_omitted": 64,
+      "subdivision_control_meshes": 2
+    }
+  },
+  "handTool_hammer_crossPeen_a01/glm-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "42968e51bb95ad75f07c79ece115f304f6420737be70bd9bb1493239939a13aa",
+    "glb_sha256": "a20fd0a2e3e1e4cb6e2101990564e7bca6646e83a64d95683ee63e291a12a568",
+    "bytes": 13328,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.9996565010548749,
+          -0.026208393669296556,
+          0.0
+        ],
+        [
+          0.026208393669296556,
+          -0.9996565010548749,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        0.18025227191666632,
+        -0.00389284155555022,
+        0.022161210065740834
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "42968e51bb95ad75f07c79ece115f304f6420737be70bd9bb1493239939a13aa"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 356,
+    "triangles": 684,
+    "bounds_m": [
+      [
+        -0.21577616035938263,
+        -0.00040541018825024366,
+        -0.0712265819311142
+      ],
+      [
+        0.18084371089935303,
+        0.044727832078933716,
+        0.06187378242611885
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 7
+    },
+    "conversion_notes": {
+      "subdivision_control_meshes": 7
+    }
+  },
+  "accessory_eyeglasses_a01/nemotron-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "5ff75e36f231e4695c266b1185821c588c845852d019ae11679390bc8a4301f4",
+    "glb_sha256": "aa1ecffd34ce16ef57917bd8d25188a235bd376364b92537fce77c39e85b03c4",
+    "bytes": 3000,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.03761410895738311,
+          0.9992923390116338,
+          0.0
+        ],
+        [
+          -0.9992923390116338,
+          -0.03761410895738311,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        0.029683362993647582,
+        -0.007828207733919809,
+        0.035185062241136544
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "5ff75e36f231e4695c266b1185821c588c845852d019ae11679390bc8a4301f4"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 72,
+    "triangles": 108,
+    "bounds_m": [
+      [
+        0.011321241967380047,
+        -0.017111146822571754,
+        -0.1514142006635666
+      ],
+      [
+        0.048045482486486435,
+        0.08748127520084381,
+        0.16707062721252441
+      ]
+    ],
+    "surface_types": {
+      "Cube": 9
+    },
+    "conversion_notes": {
+      "analytic_primitives_tessellated": 9
+    }
+  },
+  "bucket_utility_red_a01/nemotron-pi": {
+    "status": "unavailable"
+  },
+  "chair_office_amf_black_a01/nemotron-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "468273ac9112a35be9b824bc79534d97574c4ac626273628aad5464118474c96",
+    "glb_sha256": "8fb6fedace49622471090d9c448180be9e59f305307061b5b8a87661fd3311c2",
+    "bytes": 5452,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.009883785364288288,
+          0.9999511542004803,
+          0.0
+        ],
+        [
+          -0.9999511542004803,
+          -0.009883785364288288,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.23547752886817525,
+        0.01723901693185456,
+        0.28734434993300373
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "468273ac9112a35be9b824bc79534d97574c4ac626273628aad5464118474c96"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 144,
+    "triangles": 240,
+    "bounds_m": [
+      [
+        -0.23814475536346436,
+        0.0012026563053950667,
+        -0.2870851457118988
+      ],
+      [
+        0.47648292779922485,
+        0.5734860301017761,
+        0.25680771470069885
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 8
+    },
+    "conversion_notes": {
+      "subdivision_control_meshes": 4
+    }
+  },
+  "food_beverage_coffeeCup_a01/nemotron-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "feb6393648e0e941f3aa4159b73cbe599bcf36e2453ed22c84d1a7610d044d4d",
+    "glb_sha256": "6bf96f402890067a861c9fabca73b295a218bbacdf83f1963c2d71ac7e07a100",
+    "bytes": 6964,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": null,
+    "composed_layer_sha256": [
+      "feb6393648e0e941f3aa4159b73cbe599bcf36e2453ed22c84d1a7610d044d4d"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 258,
+    "triangles": 252,
+    "bounds_m": [
+      [
+        -0.04500548541545868,
+        -0.058504391461610794,
+        -0.04500548541545868
+      ],
+      [
+        0.04500548541545868,
+        0.07850439101457596,
+        0.04500548541545868
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 2
+    },
+    "conversion_notes": {
+      "degenerate_triangles_omitted": 4,
+      "subdivision_control_meshes": 2
+    }
+  },
+  "handTool_hammer_crossPeen_a01/nemotron-pi": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "f1e400625e28ff9e2b462ac669471da3d0489b9067cc3fbf166b596fc1bdd4a9",
+    "glb_sha256": "1737ab5771c3212784b2fb1556e7aee05de402a5e1b092a0373e0cc56813d271",
+    "bytes": 2852,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.9999806686993473,
+          -0.006217895753883384,
+          0.0
+        ],
+        [
+          0.006217895753883384,
+          -0.9999806686993473,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.035790651003271015,
+        0.00011981637236527123,
+        0.02155562084964849
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "f1e400625e28ff9e2b462ac669471da3d0489b9067cc3fbf166b596fc1bdd4a9"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 80,
+    "triangles": 88,
+    "bounds_m": [
+      [
+        -0.2359577864408493,
+        -0.01094437763094902,
+        -0.028862863779067993
+      ],
+      [
+        0.1643049716949463,
+        0.05405561998486519,
+        0.02675786241889
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 4
+    },
+    "conversion_notes": {
+      "subdivision_control_meshes": 4
+    }
+  },
+  "accessory_eyeglasses_a01/sol-codex-orichalcum": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "e9ffebacdcf8da3776a5f79de474d872458073afe435fec21c78b758f7e9bc21",
+    "glb_sha256": "1a3f89e2c36bf95779d46f0975a122ed62112c2e732deea02baaf8191d635658",
+    "bytes": 1030412,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.008719074026426483,
+          -0.9999619881516105,
+          0.0
+        ],
+        [
+          0.9999619881516105,
+          -0.008719074026426483,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.0352025918322219,
+        -0.0012610861956706722,
+        -0.0066614992163103945
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "e9ffebacdcf8da3776a5f79de474d872458073afe435fec21c78b758f7e9bc21"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 28652,
+    "triangles": 57144,
+    "bounds_m": [
+      [
+        -0.12289135903120041,
+        -0.006661499384790659,
+        -0.07171763479709625
+      ],
+      [
+        0.051954444497823715,
+        0.05026240646839142,
+        0.07285691052675247
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 41
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 25724
+    }
+  },
+  "bucket_utility_red_a01/sol-codex-orichalcum": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "ccb7925847beb1116b69069706e57053df96d7af5689eb3bd1d3947e95dc0524",
+    "glb_sha256": "ab341e4375d0d8e99c12a0e79c04eade530e3c23aefd340b0d12855e2590282f",
+    "bytes": 2180848,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.9264061391440466,
+          0.3765257831227782,
+          0.0
+        ],
+        [
+          -0.3765257831227782,
+          -0.9264061391440466,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        0.002937536257913086,
+        -0.007106197164425676,
+        0.0029292332974279744
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "ccb7925847beb1116b69069706e57053df96d7af5689eb3bd1d3947e95dc0524"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 60558,
+    "triangles": 121108,
+    "bounds_m": [
+      [
+        -0.17909513413906097,
+        0.0029292332474142313,
+        -0.17879146337509155
+      ],
+      [
+        0.15320748090744019,
+        0.2617122232913971,
+        0.166445791721344
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 6
+    },
+    "conversion_notes": {}
+  },
+  "chair_office_amf_black_a01/sol-codex-orichalcum": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "7e59584690bd4721dc8b197a2dc8b05778a7be457494e78bf9f36e0f03012d72",
+    "glb_sha256": "7128dbda4880dcfce169d1b04517b53ae808c9e5e135160834ea3f7c7eef2ef8",
+    "bytes": 458940,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          0.9999999408391345,
+          -0.0003439792544297968,
+          0.0
+        ],
+        [
+          0.0003439792544297968,
+          0.9999999408391345,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.0013953153850309527,
+        0.001953707866655857,
+        -0.0029587130492249036
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "7e59584690bd4721dc8b197a2dc8b05778a7be457494e78bf9f36e0f03012d72"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 12762,
+    "triangles": 25412,
+    "bounds_m": [
+      [
+        -0.2713122069835663,
+        -0.002958713099360466,
+        -0.2880271077156067
+      ],
+      [
+        0.26855218410491943,
+        0.806645929813385,
+        0.28427356481552124
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 28
+    },
+    "conversion_notes": {}
+  },
+  "food_beverage_coffeeCup_a01/sol-codex-orichalcum": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "6efe7fb78a1fcaa4800eb218c80d3ab7e281ac2bb65085dd6a84126048f3b391",
+    "glb_sha256": "4f63cfe03b466fe1741739bcd02b2169bf1d9a2c71de611503af531704d209ca",
+    "bytes": 524824,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          0.9246066772863655,
+          0.38092321052604144,
+          0.0
+        ],
+        [
+          -0.38092321052604144,
+          0.9246066772863655,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        0.0005892415753727459,
+        -7.282880681077275e-05,
+        0.0022055200062004038
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "6efe7fb78a1fcaa4800eb218c80d3ab7e281ac2bb65085dd6a84126048f3b391"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 16488,
+    "triangles": 27176,
+    "bounds_m": [
+      [
+        -0.04186868667602539,
+        0.0022055190056562424,
+        -0.04238509759306908
+      ],
+      [
+        0.04304716736078262,
+        0.11921430379152298,
+        0.04253075644373894
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 14
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 464
+    }
+  },
+  "handTool_hammer_crossPeen_a01/sol-codex-orichalcum": {
+    "status": "available",
+    "schema": "simreadybench.geometry-preview.v1",
+    "source_sha256": "f0c157a86bf19391d64574765018b47afc32082f0f8a05b61d689e325f9f5d05",
+    "glb_sha256": "316937f6370a29d33326d1935cb3f530493604bf0b8e58a9ebec47a0ea57a93f",
+    "bytes": 2120636,
+    "usd_version": "0.26.11",
+    "coordinates": "metres/Y-up",
+    "time": "default",
+    "materials": "neutral",
+    "alignment_m_z_up": {
+      "rotation": [
+        [
+          -0.9999947327368706,
+          -0.0032456892203069428,
+          0.0
+        ],
+        [
+          0.0032456892203069428,
+          -0.9999947327368706,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "translation_m": [
+        -0.020772711336368085,
+        -0.0004947861546113119,
+        -0.00026357757612522487
+      ],
+      "scale": 1.0
+    },
+    "composed_layer_sha256": [
+      "f0c157a86bf19391d64574765018b47afc32082f0f8a05b61d689e325f9f5d05"
+    ],
+    "analytic_segments": 64,
+    "animation": false,
+    "limits": "Shape preview; original materials, textures, physics and animation are omitted. Subdivision meshes use authored control surfaces.",
+    "vertices": 59464,
+    "triangles": 117184,
+    "bounds_m": [
+      [
+        -0.2180628627538681,
+        -0.00026357665774412453,
+        -0.06491659581661224
+      ],
+      [
+        0.17651647329330444,
+        0.044869665056467056,
+        0.064825139939785
+      ]
+    ],
+    "surface_types": {
+      "Mesh": 59
+    },
+    "conversion_notes": {
+      "nonplanar_faces_fan_triangulated": 54090
+    }
+  }
+}
