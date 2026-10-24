@@ -88,7 +88,17 @@ def _skills(entry):
         not isinstance(skill, str) for skill in skills
     ):
         raise ValueError("Leaderboard skills must be a list of names")
-    return ", ".join(_cell(skill) for skill in skills) if skills else "none"
+    return ", ".join(_cell(display_skill_label(skill)) for skill in skills) if skills else "none"
+
+
+def display_skill_label(value):
+    """Abbreviate private-input pins in labels, retaining source provenance."""
+    return re.sub(
+        r"\bOrichalcum(?:@|\s+)([0-9a-f]{9,64})\b",
+        lambda match: "Orichalcum …" + match.group(1)[-8:],
+        value,
+        flags=re.IGNORECASE,
+    )
 
 
 def _source(entry):

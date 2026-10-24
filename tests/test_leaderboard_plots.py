@@ -5,6 +5,18 @@ from PIL import Image
 from simready_bench.leaderboard_plots import render_leaderboard_plots
 
 
+def test_public_labels_show_only_pin_suffix_without_changing_provenance():
+    from simready_bench.benchmark_metadata import _skills
+    from simready_bench.leaderboard_plots import _label
+
+    pin = "1234567890abcdef1234567890abcdef12345678"
+    entry = {"skills": ["Orichalcum@" + pin, "other label"]}
+    assert "Orichalcum …12345678, other label" in _label(entry)
+    assert _skills(entry) == "Orichalcum &#8230;12345678, other label"
+    assert pin not in _label(entry)
+    assert entry["skills"] == ["Orichalcum@" + pin, "other label"]
+
+
 def test_plot_labels_distinguish_bounded_and_native_output_protocols():
     from simready_bench.leaderboard_plots import _label
 
@@ -82,6 +94,9 @@ def test_figures_are_real_pngs_with_stable_publication_paths():
         with Image.open(BytesIO(content)) as image:
             assert image.width == 2080
             assert image.height >= 544
+            colours = set(image.convert("RGB").getdata())
+            # Preserve the published subscore palette in all four HF figures.
+            assert {(0, 114, 178), (213, 94, 0), (0, 158, 115)} <= colours
     assert render_leaderboard_plots(board()) == figures
 
 
@@ -120,6 +135,12 @@ def test_partial_efficiency_points_show_small_asterisks_and_one_footnote(monkeyp
             "annotations": [text.get_text() for axis in figure.axes for text in axis.texts],
             "points": [float(line.get_xdata()[0]) for axis in figure.axes
                        for line in axis.lines if line.get_marker() == "o"],
+            "colours": [
+                {line.get_color() for line in axis.lines}
+                | {axis._left_title.get_color()}
+                | {text.get_color() for text in axis.texts if text.get_text() == "*"}
+                for axis in figure.axes
+            ],
         }
         return original(figure, *args, **kwargs)
 
@@ -129,4 +150,6 @@ def test_partial_efficiency_points_show_small_asterisks_and_one_footnote(monkeyp
     assert token["points"] == [1000, 1000, 1000]
     assert token["annotations"] == ["*", "*", "*"]
     assert token["text"].count("* Incomplete usage coverage.") == 1
+    for figure in captured.values():
+        assert figure["colours"] == [{"#0072b2"}, {"#d55e00"}, {"#009e73"}]
     assert "* Incomplete usage coverage." not in captured["Mean fidelity with 95% confidence intervals"]["text"]

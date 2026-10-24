@@ -40,6 +40,21 @@ python3 scripts/check_viewer_browser.py http://127.0.0.1:8765 --output /tmp/simr
 
 The check writes desktop/mobile screenshots and a verification receipt. Geometry export provenance, attribution and data rebuild instructions are in [assets/explorer/README.md](assets/explorer/README.md).
 
+## Score and inference Pareto chart
+
+The chart beneath the leaderboard uses the pinned local D3 7.9.0 bundle. Formal fidelity is blue, visual fidelity orange and kinematic fidelity green, matching the Hugging Face README figures. It initially overlays the three independent scores; controls isolate a score or separate them into panels. The x-axis label selects inference cost, inference time, tokens or elapsed reconstruction time per asset. Shapes identify model/harness/reasoning/Orichalcum configurations, and focus, click or touch opens their measurements and source links.
+
+`assets/pareto.json` contains measured numeric aggregates rebuilt from a pinned Hugging Face revision by `scripts/build_pareto_data.py`. Each point pairs its score with usage from the same reconstructions. Scores retain the leaderboard's mean over applicable reconstruction attempts; each resource coordinate uses those same attempts. Per asset means one reconstruction, rather than the combined cost of all four repetitions. Inapplicable kinematic observations are excluded from both coordinates. Missing measurements remain missing; complete measured subsets can be shown explicitly but do not enter the full-coverage frontier. Frontiers compare configurations only within matching reference revisions, validation profiles, evaluator versions and eligible reference cohorts. Model, harness, reasoning and output limits remain attributes of each configuration. The tooltip identifies the evaluator; configurations scored by different evaluator versions have separate frontiers. Pricing-derived costs retain their provenance labels.
+
+The allowlisted numeric receipt in `assets/pareto-evidence.json` supplies retained usage evidence that cannot be recovered from the public trajectories alone. It contains no private prompts, tool outputs or Orichalcum contents. The builder verifies source identities and recorded hashes. Private trajectories remain in their existing stores; the new receipt exposes only the numeric accounting needed for this chart.
+
+The Pages workflow rebuilds the data from the current HF head before capturing the chart and its numeric table into HTML. Visitors can use the captured table without JavaScript; a failed live data refresh preserves the captured chart and table. Each rebuild records its source revision and checksum.
+
+```sh
+python3 scripts/build_pareto_data.py --cache /tmp/simreadybench-pareto-cache --evidence site/assets/pareto-evidence.json
+python3 scripts/check_pareto_browser.py http://127.0.0.1:8765 --output /tmp/simreadybench-pareto-check
+```
+
 ## Search indexing
 
 The page serves its benchmark description, methods and documentation links in HTML. JavaScript adds the live leaderboard, with a Hugging Face link available before it loads. The HTML head contains the canonical URL, matching search and social descriptions, and linked `WebPage`/`SoftwareSourceCode` metadata.
