@@ -76,8 +76,9 @@ def score_summary(rows, name):
     measured = [r for r in eligible if score_value(r, name) is not None]
     complete = bool(eligible) and len(measured) == len(eligible)
     return {
-        "value": mean_reconstruction(measured, lambda r: score_value(r, name)) if complete else None,
-        "status": "measured" if complete else "unknown" if eligible else "not_applicable",
+        "value": mean_reconstruction(measured, lambda r: score_value(r, name)),
+        "status": "measured" if complete else "partial" if measured else "unknown" if eligible else "not_applicable",
+        "complete": complete,
         "lower": mean_reconstruction(eligible, lambda r: r.get(f"{name}_fidelity_lower_bound_percent")),
         "upper": mean_reconstruction(eligible, lambda r: r.get(f"{name}_fidelity_upper_bound_percent")),
         "coverage": len(measured) / len(eligible) if eligible else None,
@@ -85,6 +86,51 @@ def score_summary(rows, name):
         "measured_assets": len({r["asset_id"] for r in measured}),
         "eligible_assets": len({r["asset_id"] for r in eligible}),
     }
+
+
+def model_family(model):
+    """A model family, independent of provider, version, harness or private inputs."""
+    name = model.rsplit("/", 1)[-1].split(":", 1)[0]
+    for pattern, family in (
+        (r"^gpt-", "GPT"), (r"^claude-", "Claude"),
+        (r"^glm-", "GLM"), (r"nemotron", "Nemotron"),
+        (r"^deepseek-", "DeepSeek"), (r"^minimax-", "MiniMax"),
+        (r"^qwen", "Qwen"), (r"llama", "Llama"), (r"^gemma", "Gemma"),
+    ):
+        if re.search(pattern, name, re.IGNORECASE):
+            return family
+    return name
+
+
+def add_cumulative_scores(runs):
+    """Equal-weight mean of three z-scores, with a fixed snapshot population."""
+    components = {}
+    for name in SCORES:
+        values = [run["scores"][name]["value"] for run in runs
+                  if number(run["scores"][name].get("value"))]
+        mean = math.fsum(values) / len(values) if values else None
+        variance = math.fsum((value - mean) ** 2 for value in values) / len(values) if values else None
+        components[name] = {"mean": mean, "standard_deviation": math.sqrt(variance) if variance is not None else None,
+                            "configuration_count": len(values)}
+    for run in runs:
+        z_scores = {}
+        for name, normaliser in components.items():
+            value = run["scores"][name].get("value")
+            sigma = normaliser["standard_deviation"]
+            z_scores[name] = ((value - normaliser["mean"]) / sigma if sigma else 0.0) if number(value) else None
+        measured = all(value is not None for value in z_scores.values())
+        complete = measured and all(run["scores"][name].get("complete", False) for name in SCORES)
+        run["scores"]["cumulative"] = {
+            "value": math.fsum(z_scores.values()) / len(SCORES) if measured else None,
+            "status": "measured" if complete else "partial" if measured else "unknown",
+            "complete": complete, "components": z_scores, "unit": "mean z-score",
+        }
+    return {"method": "mean_z_score", "formula": "mean((subscore - population mean) / population standard deviation)",
+            "basis": "available subscore means across all configurations in this leaderboard snapshot",
+            "ddof": 0, "components": components,
+            "missing_components": "All three measured subscore means are required; missing observations are not imputed.",
+            "zero_variance": "A constant component contributes zero for every configuration.",
+            "axis_invariant": True}
 
 
 def metric_summary(rows, field):
@@ -358,7 +404,7 @@ def build_run(entry, document, *, run_id, source_url, results_sha256, trajectory
     if pin:
         label += " · Orichalcum …" + pin[-8:]
     return {
-        "id": run_id, "label": label, "model": entry["model"], "harness": entry["harness"],
+        "id": run_id, "label": label, "model": entry["model"], "model_family": model_family(entry["model"]), "harness": entry["harness"],
         "reasoning": entry.get("reasoning_effort"), "orichalcum_pin": pin,
         "protocol_id": protocol, "protocol": "64 turns · native output limit" if protocol == "authoring-64-native-output-v1" else "64 turns · 4,096-token output limit" if "4096" in (protocol or "") else protocol,
         "frontier_group": canonical_hash([evaluator_version or run_id, entry.get("reference_revision") or run_id,
@@ -397,9 +443,11 @@ def build_snapshot(revision, cache, supplements):
                          supplement=supplements.get(run))
     with ThreadPoolExecutor(max_workers=5) as pool:
         runs = list(pool.map(build, entries))
-    return {"schema_version": 1, "generated_at": datetime.now(timezone.utc).isoformat(),
+    normalisation = add_cumulative_scores(runs)
+    return {"schema_version": 2, "generated_at": datetime.now(timezone.utc).isoformat(),
             "source_revision": revision, "source_url": leaderboard_url, "source_sha256": sha256(raw),
-            "methodology": "For each metric, average matching measured score and usage from the same reconstruction attempts, following the leaderboard's attempt weighting. Per asset means one reconstruction, not the sum of four attempts. Kinematic scores and resources use only eligible attempts. Formal, visual and kinematic scores remain separate; no combined score is defined. Inference time sums request durations; elapsed reconstruction time is separate. Missing usage is null. Frontiers compare configurations with the same reference revision, scoring profile, evaluator and measured reference cohort. Authoring protocols and output limits remain configuration attributes. Incomplete cohorts are excluded from Pareto frontiers.",
+            "methodology": "Plot each configuration's available mean score against its available mean resource measurement, following the leaderboard's attempt weighting. Coverage may differ between axes and is reported for each mean. Per asset means one reconstruction, not the sum of four attempts. Kinematic means use eligible measured attempts. Cumulative score is the equal-weight mean of the three z-scores, normalised by population means and standard deviations across all leaderboard configurations in this snapshot; the normalisation is fixed across resource axes. Inference time sums request durations; elapsed reconstruction time is separate. Missing observations remain null and are never zero-filled. Frontiers include partial coverage and compare configurations sharing the reference revision, scoring profile and evaluator. Authoring protocols and output limits remain configuration attributes.",
+            "normalisation": normalisation,
             "runs": runs}
 
 

@@ -1,9 +1,10 @@
 import "./vendor/d3-7.9.0/d3.min.js";
-import { pairedScore, paretoFrontier } from "./pareto-math.js";
+import { availableScore, paretoFrontier } from "./pareto-math.js?v=available-20261024";
 
 const d3 = globalThis.d3;
 const root = document.getElementById("pareto-root");
 const scoreTypes = [
+  { id: "cumulative", label: "Cumulative score", colour: "#394955" },
   { id: "formal", label: "Formal fidelity", colour: "#0072b2" },
   { id: "visual", label: "Visual fidelity", colour: "#d55e00" },
   { id: "kinematic", label: "Kinematic fidelity", colour: "#009e73" },
@@ -94,21 +95,19 @@ function addDetail(cell, text) {
   if (text) cell.append(element("span", publicLabel(text), "metric-coverage"));
 }
 
-function makePoints(runs, metricId, scoreIds, includeSubsets) {
+function makePoints(runs, metricId, scoreIds) {
   const points = [];
   for (const run of runs) {
     const metric = run.metrics?.[metricId];
-    if (!metric?.complete && !includeSubsets) continue;
     for (const scoreId of scoreIds) {
-      const score = pairedScore(run, metric, scoreId);
+      const score = availableScore(run, metric, scoreId);
       if (!score) continue;
       const complete = metric.complete === true && score.complete === true;
-      if (!complete && !includeSubsets) continue;
       points.push({
         id: `${run.id}:${scoreId}`, run, metric, score, scoreId,
         x: score.x_value / axes[metricId].divisor, rawX: score.x_value, y: score.value,
         complete,
-        group: `${run.frontier_group || run.id}:${score.reference_cohort_sha256 || run.id}`,
+        group: run.frontier_group || run.id,
       });
     }
   }
@@ -124,9 +123,8 @@ async function initialise() {
   const table = document.getElementById("pareto-table-body");
   const xSelect = document.getElementById("pareto-x");
   const separate = document.getElementById("pareto-separate");
-  const subsets = document.getElementById("pareto-subsets");
   const scoreButtons = [...root.querySelectorAll("[data-pareto-score]")];
-  const controls = [...scoreButtons, separate, subsets, xSelect];
+  const controls = [...scoreButtons, separate, xSelect];
   const isSnapshot = new URLSearchParams(window.location.search).has("snapshot");
   controls.forEach((control) => { control.disabled = true; });
   root.dataset.loadState = "loading";
@@ -154,13 +152,14 @@ async function initialise() {
   const runs = data.runs;
   const symbols = [d3.symbolCircle, d3.symbolSquare, d3.symbolTriangle, d3.symbolDiamond,
     d3.symbolCross, d3.symbolStar, d3.symbolWye];
-  const runSymbol = new Map(runs.map((run, index) => [run.id, symbols[index % symbols.length]]));
-  let selectedScore = "all";
+  const familyName = (run) => run.model_family || run.model;
+  const families = [...new Set(runs.map(familyName))];
+  const familySymbol = new Map(families.map((family, index) => [family, symbols[index % symbols.length]]));
+  let selectedScore = "cumulative";
   let selectedPoint = null;
   let resizeFrame = null;
   xSelect.value = "cost_usd_per_asset";
   separate.checked = false;
-  subsets.checked = false;
   scoreButtons.forEach((button) => {
     const active = button.dataset.paretoScore === selectedScore;
     button.setAttribute("aria-pressed", String(active));
@@ -215,21 +214,30 @@ async function initialise() {
     }
     tooltip.append(element("strong", configLabel(point.run)));
     const scoreType = scoreTypes.find((score) => score.id === point.scoreId);
-    const measurement = element("p", `${scoreType.label}: ${number(point.y)} / 100`, "pareto-tooltip-score");
+    const cumulative = point.scoreId === "cumulative";
+    const measurement = element("p", `${scoreType.label}: ${number(point.y)}${cumulative ? "" : " / 100"}`, "pareto-tooltip-score");
     measurement.style.color = scoreType.colour;
     tooltip.append(measurement);
     tooltip.append(element("p", `${axes[xSelect.value].label}: ${axes[xSelect.value].format(point.rawX)} per asset`));
     tooltip.append(element("p", metricCoverage(point.metric), "table-note"));
-    const pairedCoverage = scoreCoverage(point.score);
-    if (pairedCoverage) tooltip.append(element("p", `Paired score cohort: ${pairedCoverage}`, "table-note"));
+    const measuredScoreCoverage = scoreCoverage(point.score);
+    if (measuredScoreCoverage) tooltip.append(element("p", `Score coverage: ${measuredScoreCoverage}`, "table-note"));
+    if (cumulative) {
+      tooltip.append(element("p", "Mean of the three standardised subscores", "table-note"));
+      for (const type of scoreTypes.filter((score) => score.id !== "cumulative")) {
+        const detail = element("p", `${type.label}: ${scoreText(point.run.scores[type.id])} / 100`, "table-note");
+        detail.style.color = type.colour;
+        addDetail(detail, scoreCoverage(point.run.scores[type.id]));
+        tooltip.append(detail);
+      }
+    }
     if (point.metric.source_description || point.metric.kind) {
       tooltip.append(element("p", publicLabel(point.metric.source_description || point.metric.kind), "table-note"));
     }
     if (point.run.protocol) tooltip.append(element("p", publicLabel(point.run.protocol), "table-note"));
     if (point.run.evaluator_version) tooltip.append(element("p", `Evaluator: ${point.run.evaluator_version}`, "table-note"));
-    tooltip.append(element("p", point.complete
-      ? point.frontier ? "On the frontier for this score and evaluator" : "Dominated within this score and evaluator"
-      : "Measured subset · excluded from frontier", "table-note"));
+    tooltip.append(element("p", point.frontier
+      ? "On the frontier for this score and evaluator" : "Dominated within this score and evaluator", "table-note"));
     const source = safeSource(point.metric.source_url || point.run.source_url);
     if (source) {
       const link = element("a", "Trajectory source");
@@ -257,13 +265,13 @@ async function initialise() {
         const score = run.scores[scoreType.id];
         const cell = element("td", scoreText(score), `metric-value pareto-${scoreType.id}-text`);
         addDetail(cell, scoreCoverage(score));
+        if (scoreType.id === "cumulative") addDetail(cell, "Mean z-score");
         row.append(cell);
       }
       for (const [metricId, axis] of Object.entries(axes)) {
         const metric = run.metrics[metricId];
         const cell = element("td", Number.isFinite(metric?.value) ? axis.format(metric.value) : "Not measured", "metric-value");
         addDetail(cell, metricCoverage(metric));
-        if (metric?.complete === false && Number.isFinite(metric?.value)) addDetail(cell, "Measured subset");
         if (metric?.kind) addDetail(cell, metric.kind);
         if (metric?.reason) addDetail(cell, metric.reason);
         row.append(cell);
@@ -283,11 +291,12 @@ async function initialise() {
   function renderLegend() {
     const legend = document.getElementById("pareto-run-legend");
     legend.replaceChildren();
-    runs.forEach((run) => {
+    families.forEach((family) => {
       const item = element("li");
+      item.dataset.family = family;
       const icon = d3.create("svg").attr("viewBox", "-12 -12 24 24").attr("aria-hidden", "true");
-      icon.append("path").attr("d", d3.symbol().type(runSymbol.get(run.id)).size(65)());
-      item.append(icon.node(), element("span", configLabel(run)));
+      icon.append("path").attr("d", d3.symbol().type(familySymbol.get(family)).size(65)());
+      item.append(icon.node(), element("span", family));
       legend.append(item);
     });
   }
@@ -295,12 +304,9 @@ async function initialise() {
   function renderChart() {
     hideTooltip();
     const metricId = xSelect.value;
-    const activeScores = selectedScore === "all" ? scoreTypes : scoreTypes.filter((score) => score.id === selectedScore);
-    const hasSubsets = makePoints(runs, metricId, activeScores.map((score) => score.id), true)
-      .some((point) => !point.complete);
-    document.getElementById("pareto-subsets-label").hidden = !hasSubsets;
-    if (!hasSubsets) subsets.checked = false;
-    const points = makePoints(runs, metricId, activeScores.map((score) => score.id), subsets.checked);
+    const activeScores = selectedScore === "all" ? scoreTypes.filter((score) => score.id !== "cumulative")
+      : scoreTypes.filter((score) => score.id === selectedScore);
+    const points = makePoints(runs, metricId, activeScores.map((score) => score.id));
     const grouped = d3.group(points, (point) => point.scoreId, (point) => point.group);
     const frontiers = [];
     for (const [scoreId, evaluatorGroups] of grouped) {
@@ -324,10 +330,16 @@ async function initialise() {
       .attr("width", width).attr("height", height).attr("role", "group")
       .attr("aria-label", `${activeScores.map((score) => score.label).join(", ")} against ${axes[metricId].label.toLowerCase()} per asset`);
     svg.append("title").text("Score and inference efficiency");
-    svg.append("desc").text("Higher scores and lower inference use are better. Focus or select a marker for configuration, paired measurement coverage and source. Colours identify independent fidelity scores; shapes identify run configurations.");
+    svg.append("desc").text("Higher scores and lower inference use are better. Focus or select a marker for configuration, measurement coverage and source. Colours identify fidelity scores; shapes identify model families. Shading shows the area attained below each frontier.");
     panels.forEach((panelScores, panelIndex) => {
       const panel = svg.append("g").attr("transform", `translate(0,${panelIndex * panelHeight})`);
-      const y = d3.scaleLinear().domain([0, 100]).range([panelHeight - margin.bottom, margin.top]);
+      const cumulative = panelScores[0].id === "cumulative";
+      const cumulativeValues = runs.map((run) => run.scores.cumulative?.value).filter(Number.isFinite);
+      const [low, high] = cumulativeValues.length ? d3.extent([0, ...cumulativeValues]) : [-1, 1];
+      const padding = (high - low || 1) * 0.12;
+      const y = d3.scaleLinear().domain(cumulative ? [low - padding, high + padding] : [0, 100])
+        .range([panelHeight - margin.bottom, margin.top]);
+      if (cumulative) y.nice();
       panel.append("g").attr("class", "pareto-grid").attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(5).tickSize(-(width - margin.left - margin.right)).tickFormat("")).call((g) => g.select(".domain").remove());
       panel.append("g").attr("class", "pareto-axis").attr("transform", `translate(${margin.left},0)`)
@@ -335,24 +347,32 @@ async function initialise() {
       panel.append("g").attr("class", "pareto-axis").attr("transform", `translate(0,${panelHeight - margin.bottom})`)
         .call(d3.axisBottom(x).ticks(width < 500 ? 4 : 7).tickFormat(axes[metricId].tick).tickSize(4).tickPadding(8));
       panel.append("text").attr("class", "pareto-axis-title").attr("x", margin.left).attr("y", isSeparate ? 17 : 13)
-        .text(isSeparate ? `${panelScores[0].label} / 100` : "Fidelity / 100");
+        .text(cumulative ? "Cumulative score · mean z-score" : isSeparate ? `${panelScores[0].label} / 100` : "Fidelity / 100");
       const panelIds = new Set(panelScores.map((score) => score.id));
-      frontiers.filter((frontier) => panelIds.has(frontier.scoreId) && frontier.points.length > 1)
+      frontiers.filter((frontier) => panelIds.has(frontier.scoreId) && frontier.points.length)
         .forEach((frontier) => {
+          const colour = scoreTypes.find((score) => score.id === frontier.scoreId).colour;
+          const attained = [...frontier.points, { ...frontier.points.at(-1), x: x.domain()[1] }];
+          panel.append("path").attr("class", "pareto-frontier-area")
+            .attr("data-score", frontier.scoreId).attr("data-frontier-group", frontier.group)
+            .attr("data-frontier-points", frontier.points.length).attr("fill", colour)
+            .attr("d", d3.area().curve(d3.curveStepAfter).x((point) => x(point.x))
+              .y0(y(y.domain()[0])).y1((point) => y(point.y))(attained));
           panel.append("path").attr("class", "pareto-frontier").attr("data-score", frontier.scoreId)
-            .attr("stroke", scoreTypes.find((score) => score.id === frontier.scoreId).colour)
-            .attr("d", d3.line().x((point) => x(point.x)).y((point) => y(point.y))(frontier.points));
+            .attr("stroke", colour)
+            .attr("d", d3.line().curve(d3.curveStepAfter).x((point) => x(point.x)).y((point) => y(point.y))(attained));
         });
       const panelPoints = points.filter((point) => panelIds.has(point.scoreId));
       const markers = panel.selectAll(".pareto-point").data(panelPoints, (point) => point.id).join("g")
         .attr("class", "pareto-point").attr("data-run-id", (point) => point.run.id)
+        .attr("data-family", (point) => familyName(point.run))
         .attr("data-score", (point) => point.scoreId).attr("data-point-id", (point) => point.id)
         .attr("data-frontier", (point) => String(Boolean(point.frontier))).attr("data-complete", (point) => String(point.complete))
         .attr("transform", (point) => `translate(${x(point.x)},${y(point.y)})`)
-        .attr("fill", (point) => point.complete ? scoreTypes.find((score) => score.id === point.scoreId).colour : "white")
+        .attr("fill", (point) => scoreTypes.find((score) => score.id === point.scoreId).colour)
         .attr("stroke", (point) => scoreTypes.find((score) => score.id === point.scoreId).colour)
         .attr("tabindex", isSnapshot ? null : 0).attr("role", isSnapshot ? "img" : "button")
-        .attr("aria-label", (point) => `${configLabel(point.run)}. ${scoreTypes.find((score) => score.id === point.scoreId).label}: ${number(point.y)}. ${axes[metricId].label}: ${axes[metricId].format(point.rawX)} per asset. ${metricCoverage(point.metric)}. ${point.complete ? point.frontier ? "On frontier." : "Dominated." : "Measured subset, excluded from frontier."}`)
+        .attr("aria-label", (point) => `${configLabel(point.run)}. ${scoreTypes.find((score) => score.id === point.scoreId).label}: ${number(point.y)}${point.scoreId === "cumulative" ? " mean z-score" : " / 100"}. ${axes[metricId].label}: ${axes[metricId].format(point.rawX)} per asset. ${metricCoverage(point.metric)}. ${point.frontier ? "On frontier." : "Dominated."}`)
         .on("pointerdown", (event) => { event.currentTarget._pointerFocus = true; })
         .on("pointercancel blur", (event) => { event.currentTarget._pointerFocus = false; })
         .on("pointerenter", (event, point) => { if (event.pointerType !== "touch") showTooltip(event, point); })
@@ -368,18 +388,17 @@ async function initialise() {
         });
       markers.append("circle").attr("class", "pareto-hit").attr("r", 12);
       markers.append("path").attr("class", "pareto-symbol")
-        .attr("d", (point) => d3.symbol().type(runSymbol.get(point.run.id)).size(width < 500 ? 105 : 85)());
+        .attr("d", (point) => d3.symbol().type(familySymbol.get(familyName(point.run))).size(width < 500 ? 105 : 85)());
       if (!panelPoints.length) panel.append("text").attr("class", "pareto-empty")
         .attr("x", (width + margin.left - margin.right) / 2).attr("y", panelHeight / 2)
-        .attr("text-anchor", "middle").text("No paired measurements for this selection");
+        .attr("text-anchor", "middle").text("No available measurements for this selection");
     });
     const plottedRuns = new Set(points.map((point) => point.run.id)).size;
-    const partialPoints = points.filter((point) => !point.complete).length;
+    const partialRuns = new Set(points.filter((point) => !point.complete).map((point) => point.run.id)).size;
     const missing = runs.length - plottedRuns;
     status.textContent = `${plottedRuns}/${runs.length} configurations · ${points.length} score observations`
-      + (partialPoints ? ` · ${partialPoints} measured subsets` : "")
-      + (missing ? ` · ${missing} without ${subsets.checked ? "" : "complete "}paired measurements for this axis` : "")
-      + ". Scores are independent; no combined score is calculated.";
+      + (partialRuns ? ` · ${partialRuns} with incomplete measurement coverage` : "")
+      + (missing ? ` · ${missing} without measurements for this axis` : "");
     root.dataset.axis = metricId;
     root.dataset.score = selectedScore;
     root.dataset.points = String(points.length);
@@ -395,7 +414,7 @@ async function initialise() {
     });
     renderChart();
   }));
-  [xSelect, separate, subsets].forEach((control) => control.addEventListener("change", renderChart));
+  [xSelect, separate].forEach((control) => control.addEventListener("change", renderChart));
   root.addEventListener("keydown", (event) => { if (event.key === "Escape") hideTooltip(); });
   root.addEventListener("click", (event) => {
     if (selectedPoint && !tooltip.contains(event.target) && !event.target.closest(".pareto-point")) hideTooltip();
@@ -403,7 +422,11 @@ async function initialise() {
   root.addEventListener("focusout", (event) => {
     if (!root.contains(event.relatedTarget)) hideTooltip();
   });
-  const resize = new ResizeObserver(() => {
+  let observedWidth = Math.round(plot.getBoundingClientRect().width);
+  const resize = new ResizeObserver((entries) => {
+    const width = Math.round(entries[0].contentRect.width);
+    if (width === observedWidth) return;
+    observedWidth = width;
     if (resizeFrame) cancelAnimationFrame(resizeFrame);
     resizeFrame = requestAnimationFrame(renderChart);
   });
@@ -411,7 +434,8 @@ async function initialise() {
   renderTable();
   renderLegend();
   const provenance = [data.generated_at ? `Measurements captured ${data.generated_at}` : "",
-    typeof data.methodology === "string" ? data.methodology : ""].filter(Boolean).join(". ");
+    typeof data.methodology === "string" ? data.methodology : "",
+    typeof data.normalisation?.description === "string" ? data.normalisation.description : ""].filter(Boolean).join(". ");
   document.getElementById("pareto-provenance").textContent = publicLabel(provenance);
   renderChart();
   root.dataset.loadState = "ready";

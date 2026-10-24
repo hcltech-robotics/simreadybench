@@ -138,7 +138,8 @@ pre:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px
 .pareto-axis .domain, .pareto-axis line { stroke: var(--border-color); }
 .pareto-axis-title { fill: var(--text-primary); font-size: 12px; font-weight: 500; }
 .pareto-grid line { stroke: var(--border-color); stroke-opacity: .6; }
-.pareto-frontier { fill: none; stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .6; pointer-events: none; }
+.pareto-frontier-area { fill-opacity: .1; stroke: none; pointer-events: none; }
+.pareto-frontier { fill: none; stroke-width: 1.3; opacity: .65; pointer-events: none; }
 .pareto-point { stroke-width: 1.5; cursor: pointer; outline: none; }
 .pareto-hit { fill: transparent; stroke: none; pointer-events: all; }
 .pareto-point:hover, .pareto-point.is-selected, .pareto-point:focus-visible { stroke: var(--text-primary); stroke-width: 3; }
@@ -148,13 +149,14 @@ pre:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px
 .pareto-x-label select { background: transparent; border-color: transparent; border-bottom-color: var(--border-color); border-radius: 0; padding-left: .4rem; font: inherit; font-weight: 500; height: 2.5rem; }
 .pareto-x-label .select::after { border-color: var(--text-secondary); }
 .pareto-run-legend { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; margin: 0 0 1rem; padding: 0; list-style: none; font-size: .75rem; color: var(--text-secondary); }
-.pareto-run-legend li { display: flex; gap: .4rem; align-items: flex-start; }
+.pareto-run-legend li { display: flex; gap: .4rem; align-items: center; }
 .pareto-run-legend svg { flex: 0 0 20px; width: 20px; height: 20px; fill: var(--text-secondary); }
 .pareto-note { font-size: .75rem; margin: .4rem 0; }
 .pareto-tooltip { position: absolute; z-index: 5; width: min(330px, calc(100% - 16px)); padding: 1rem 1.1rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; box-shadow: 0 2px 10px rgb(37 44 50 / 9%); font-size: .8rem; line-height: 1.5; overflow-wrap: anywhere; }
 .pareto-tooltip strong { display: block; padding-right: 1rem; font-weight: 600; }
 .pareto-tooltip p { margin: .45rem 0 0; }
 .pareto-tooltip .table-note { font-size: .72rem; line-height: 1.5; }
+.pareto-tooltip .metric-coverage { white-space: normal; font-size: .68rem; }
 .pareto-tooltip .pareto-tooltip-score { font-size: 1.2rem; font-weight: 700; }
 .pareto-tooltip a { display: inline-block; margin-top: .65rem; }
 .pareto-tooltip-close { position: absolute; top: .25rem; right: .25rem; padding: .25rem .55rem; border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-size: 1.3rem; cursor: pointer; }
@@ -171,11 +173,12 @@ pre:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px
 .pareto-section button:focus-visible, .pareto-section select:focus-visible, .pareto-section input:focus-visible, .pareto-section a:focus-visible, .pareto-section summary:focus-visible, .pareto-section .table-container:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
 @media (max-width: 768px) {
   .pareto-options { width: 100%; }
-  .pareto-run-legend { display: grid; gap: .4rem; }
+  .pareto-run-legend { gap: .4rem 1.2rem; }
 }
 @media (max-width: 420px) {
-  .pareto-score-controls { width: 100%; }
-  .pareto-score-controls .button { flex: 1; font-size: .68rem; padding: .45rem .5rem !important; }
+  .pareto-score-controls { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+  .pareto-score-controls .button { flex: 1; font-size: .68rem; padding: .45rem .5rem !important; margin-right: 0 !important; border-radius: 3px !important; }
+  .pareto-score-controls [data-pareto-score="all"] { grid-column: span 2; }
   .pareto-swatch { margin-right: .3rem; width: .45rem; height: .45rem; }
 }
 @media (max-width: 768px) {
