@@ -103,7 +103,7 @@ function renderReadout(variant) {
   } else if (variant.output_limit === "provider-native") {
     provenance.push("Output limit: provider-native");
   }
-  if (variant.orichalcum_pin) provenance.push(`Orichalcum ${variant.orichalcum_pin}`);
+  if (variant.orichalcum_pin) provenance.push(`Orichalcum …${variant.orichalcum_pin.slice(-8)}`);
   byId("provenance").textContent = provenance.join(" · ");
   byId("candidate-title").textContent = variant.label;
   byId("candidate-title").title = variant.model;
@@ -211,7 +211,7 @@ function selectObject(id) {
   byId("reference-source").href = safeURL(object.reference.source_url);
   const options = object.variants.map((variant) => {
     const label = [variant.label, variant.harness || "Harness unrecorded", `${variant.reasoning || "default"} reasoning`];
-    if (variant.orichalcum_pin) label.push(`Orichalcum ${variant.orichalcum_pin.slice(0, 12)}`);
+    if (variant.orichalcum_pin) label.push(`Orichalcum …${variant.orichalcum_pin.slice(-8)}`);
     return new Option(label.join(" · "), variant.id);
   });
   byId("variant").replaceChildren(...options);
