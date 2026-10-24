@@ -109,6 +109,11 @@ function usageCell(usage = {}, primary, details, format) {
   return cell;
 }
 
+function skillLabel(value) {
+  return value.replace(/\bOrichalcum(?:@|\s+)([0-9a-f]{9,64})\b/gi,
+    (_, pin) => `Orichalcum …${pin.slice(-8)}`);
+}
+
 function renderLeaderboard() {
   const entries = leaderboardEntries;
   leaderboardBody.replaceChildren();
@@ -117,7 +122,7 @@ function renderLeaderboard() {
   leaderboardArchive.hidden = Boolean(entries.length);
   entries.forEach((entry) => {
     const row = document.createElement("tr");
-    row.append(textCell(entry.model), textCell(entry.reasoning_effort || "Default"), textCell(entry.harness), textCell(entry.skills.length ? entry.skills.join(", ") : "None"));
+    row.append(textCell(entry.model), textCell(entry.reasoning_effort || "Default"), textCell(entry.harness), textCell(entry.skills.length ? entry.skills.map(skillLabel).join(", ") : "None"));
     compositeNames.forEach((name) => {
       row.append(metricCell(entry.composite_scores?.[name]));
       if (name === "formal") row.append(metricCell(entry.optional));
