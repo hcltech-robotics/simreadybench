@@ -29,12 +29,12 @@
   <link rel="sitemap" type="application/xml" href="https://hcltech-robotics.github.io/simreadybench/sitemap.xml">
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/index.css">
-  <link rel="stylesheet" href="style.css?v=explorer-20261023">
+  <link rel="stylesheet" href="style.css?v=viewer-format-20261023">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
   <script src="app.js?v=seo-snapshot-20261022" defer></script>
-  <script src="explorer.js?v=20261023" type="module"></script>
+  <script src="explorer.js?v=format-20261023" type="module"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -100,7 +100,7 @@
                   <span class="link-block"><a href="#paper" class="button is-normal is-rounded is-dark" aria-describedby="paper-status"><span>Paper (coming soon)</span></a></span>
                   <span class="link-block"><a href="https://github.com/hcltech-robotics/simreadybench" class="external-link button is-normal is-rounded is-dark"><span>Code</span></a></span>
                   <span class="link-block"><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench" class="external-link button is-normal is-rounded is-dark"><span>Results</span></a></span>
-                  <span class="link-block"><a href="#explorer" class="button is-normal is-rounded is-dark"><span>Explore objects</span></a></span>
+                  <span class="link-block"><a href="#explorer" class="button is-normal is-rounded is-dark"><span>Object comparison</span></a></span>
                   <span class="link-block"><a href="#quickstart" class="button is-normal is-rounded is-dark"><span>Quickstart</span></a></span>
                   <span class="link-block"><a href="#custom-benchmark" class="button is-normal is-rounded is-dark"><span>Your benchmark</span></a></span>
                   <span class="link-block"><a href="#reinforcement-learning" class="button is-normal is-rounded is-dark"><span>Reinforcement learning</span></a></span>
@@ -129,72 +129,72 @@
 
     <section class="section explorer-section" id="explorer" aria-labelledby="explorer-title">
       <div class="container is-max-desktop">
-        <div class="explorer-heading">
-          <p class="explorer-eyebrow">NV25 · Interactive comparison</p>
-          <h2 class="title is-3" id="explorer-title">Inspect the reconstruction</h2>
-          <p>Choose an object and a model run. Rotate the source and reconstruction together, then compare their measured fidelity and authoring resources.</p>
-        </div>
+        <h2 class="title is-3 has-text-centered" id="explorer-title">Object comparison</h2>
         <div class="explorer-controls">
-          <div class="explorer-field">
-            <label for="explorer-object">Reference object</label>
-            <select id="explorer-object" disabled><option>Loading objects…</option></select>
+          <div class="field explorer-field">
+            <label class="label" for="explorer-object">Reference object</label>
+            <div class="control"><div class="select is-fullwidth"><select id="explorer-object" disabled><option>Loading…</option></select></div></div>
           </div>
-          <div class="explorer-field explorer-condition-field">
-            <label for="explorer-variant">Model and run</label>
-            <select id="explorer-variant" disabled><option>Loading runs…</option></select>
+          <div class="field explorer-field explorer-condition-field">
+            <label class="label" for="explorer-variant">Model and run</label>
+            <div class="control"><div class="select is-fullwidth"><select id="explorer-variant" disabled><option>Loading…</option></select></div></div>
           </div>
         </div>
         <div class="explorer-toolbar">
-          <label class="explorer-lock"><input type="checkbox" id="explorer-link" checked> Link rotation</label>
-          <p>Drag to rotate · scroll or pinch to zoom</p>
-          <button type="button" class="explorer-reset" id="explorer-reset" disabled>Reset views</button>
+          <label class="checkbox explorer-lock"><input type="checkbox" id="explorer-link" checked> Link rotation</label>
+          <button type="button" class="button is-small is-dark explorer-reset" id="explorer-reset" disabled>Reset views</button>
         </div>
-        <p id="explorer-status" class="explorer-status" role="status" aria-live="polite">The interactive comparison loads as you reach this section.</p>
+        <p id="explorer-status" class="is-sr-only" role="status" aria-live="polite"></p>
         <div class="explorer-views">
           <article class="explorer-panel" aria-labelledby="explorer-reference-title">
             <div class="explorer-panel-heading">
-              <span class="explorer-panel-label">Reference</span>
-              <h3 id="explorer-reference-title">NV25 source asset</h3>
-              <p>Source geometry · not a scored reconstruction</p>
+              <span class="table-note explorer-panel-label">Reference</span>
+              <h3 class="title is-5" id="explorer-reference-title">NV25</h3>
             </div>
             <div class="explorer-stage" id="explorer-reference-stage" aria-busy="true"><p class="explorer-placeholder">3D reference preview</p></div>
             <div class="explorer-panel-footer">
               <div class="explorer-rotation" role="group" aria-label="Rotate reference">
-                <button type="button" data-view="reference" data-rotate="left" aria-label="Rotate reference left" disabled>←</button>
-                <button type="button" data-view="reference" data-rotate="right" aria-label="Rotate reference right" disabled>→</button>
-                <button type="button" data-view="reference" data-rotate="up" aria-label="Tilt reference up" disabled>↑</button>
-                <button type="button" data-view="reference" data-rotate="down" aria-label="Tilt reference down" disabled>↓</button>
+                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="left" aria-label="Rotate reference left" disabled>←</button>
+                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="right" aria-label="Rotate reference right" disabled>→</button>
+                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="up" aria-label="Tilt reference up" disabled>↑</button>
+                <button type="button" class="button is-small is-white" data-view="reference" data-rotate="down" aria-label="Tilt reference down" disabled>↓</button>
               </div>
-              <a id="explorer-reference-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Reference source ↗</a>
+              <a id="explorer-reference-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Source</a>
             </div>
           </article>
           <article class="explorer-panel explorer-candidate-panel" aria-labelledby="explorer-candidate-title">
             <div class="explorer-panel-heading">
-              <span class="explorer-panel-label">Reconstruction</span>
-              <h3 id="explorer-candidate-title">Select a model run</h3>
-              <p id="explorer-candidate-detail">Recorded output from a benchmark trial</p>
+              <span class="table-note explorer-panel-label">Reconstruction</span>
+              <h3 class="title is-5" id="explorer-candidate-title">Model</h3>
             </div>
             <div class="explorer-stage" id="explorer-candidate-stage" aria-busy="true"><p class="explorer-placeholder">3D reconstruction preview</p></div>
             <div class="explorer-panel-footer">
               <div class="explorer-rotation" role="group" aria-label="Rotate reconstruction">
-                <button type="button" data-view="candidate" data-rotate="left" aria-label="Rotate reconstruction left" disabled>←</button>
-                <button type="button" data-view="candidate" data-rotate="right" aria-label="Rotate reconstruction right" disabled>→</button>
-                <button type="button" data-view="candidate" data-rotate="up" aria-label="Tilt reconstruction up" disabled>↑</button>
-                <button type="button" data-view="candidate" data-rotate="down" aria-label="Tilt reconstruction down" disabled>↓</button>
+                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="left" aria-label="Rotate reconstruction left" disabled>←</button>
+                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="right" aria-label="Rotate reconstruction right" disabled>→</button>
+                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="up" aria-label="Tilt reconstruction up" disabled>↑</button>
+                <button type="button" class="button is-small is-white" data-view="candidate" data-rotate="down" aria-label="Tilt reconstruction down" disabled>↓</button>
               </div>
-              <a id="explorer-result-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Trial measurements ↗</a>
+              <a id="explorer-result-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Results</a>
             </div>
           </article>
         </div>
-        <div class="explorer-readout" id="explorer-readout" hidden>
-          <div class="explorer-readout-heading"><h3>Selected reconstruction</h3><p id="explorer-trial-label"></p></div>
-          <dl class="explorer-metrics" id="explorer-scores" aria-label="Reconstruction fidelity scores"></dl>
-          <dl class="explorer-metrics explorer-usage" id="explorer-usage" aria-label="Reconstruction cost, tokens and time"></dl>
-          <p class="explorer-provenance" id="explorer-provenance"></p>
+        <div class="explorer-readout content" id="explorer-readout" hidden>
+          <p class="table-note" id="explorer-trial-label"></p>
+          <div class="table-container">
+            <table class="table is-fullwidth explorer-table" aria-label="Reconstruction fidelity scores">
+              <thead><tr><th scope="col">Formal fidelity</th><th scope="col">Visual fidelity</th><th scope="col">Kinematic fidelity</th></tr></thead>
+              <tbody><tr id="explorer-scores"></tr></tbody>
+            </table>
+            <table class="table is-fullwidth explorer-table" aria-label="Reconstruction cost, tokens and time">
+              <thead><tr><th scope="col" id="explorer-cost-label">Cost</th><th scope="col">Tokens</th><th scope="col">Elapsed time</th></tr></thead>
+              <tbody><tr id="explorer-usage"></tr></tbody>
+            </table>
+          </div>
+          <p class="table-note explorer-provenance" id="explorer-provenance"></p>
         </div>
-        <p class="explorer-note">Browser previews show the recorded geometry with neutral materials. Fidelity scores come from the original USD evaluation; the browser does not simulate physics. Each model is framed independently, so the views do not imply matched scale.</p>
-        <p class="explorer-note" id="explorer-selection"></p>
-        <noscript><p class="explorer-note">Enable JavaScript to rotate the models. <a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Inspect the published measurements and captures on Hugging Face.</a></p></noscript>
+        <p class="table-note explorer-attribution" id="explorer-selection"></p>
+        <noscript><p class="table-note"><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">View results on Hugging Face</a> (JavaScript required for 3D).</p></noscript>
       </div>
     </section>
 

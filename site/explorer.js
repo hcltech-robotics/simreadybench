@@ -65,29 +65,18 @@ function element(tag, className, text) {
   return node;
 }
 
-function metric(title, value, detail, score) {
-  const group = element("div", "explorer-metric");
-  group.append(element("dt", "", title), element("dd", "explorer-metric-value", value));
-  if (score !== undefined) {
-    const bar = element("dd", "explorer-score-track");
-    bar.setAttribute("aria-hidden", "true");
-    const fill = element("span");
-    fill.style.width = measured(score) && score <= 100 ? `${score}%` : "0%";
-    bar.append(fill);
-    group.append(bar);
-  }
-  if (detail) group.append(element("dd", "explorer-metric-detail", detail));
-  return group;
+function metric(value, detail) {
+  const cell = element("td", "explorer-metric");
+  cell.append(element("span", "metric-value explorer-metric-value", value));
+  if (detail) cell.append(element("span", "metric-coverage explorer-metric-detail", detail));
+  return cell;
 }
 
 function renderReadout(variant) {
   const scores = variant.scores || {};
   byId("scores").replaceChildren(...["formal", "visual", "kinematic"].map((name) => {
     const part = scores[name];
-    const title = `${name[0].toUpperCase()}${name.slice(1)} fidelity`;
-    const detail = part?.status === "not_applicable" ? "No applicable reference criteria"
-      : measured(part?.value) ? "Score out of 100" : "Measurement unavailable";
-    return metric(title, scoreLabel(part), detail, part?.status === "not_applicable" ? null : part?.value ?? null);
+    return metric(scoreLabel(part));
   }));
   const usage = variant.usage || {};
   const totalCost = measured(usage.total_cost_usd);
@@ -96,29 +85,28 @@ function renderReadout(variant) {
   const inferenceCostKind = variant.inference_cost_kind || usage.inference_cost_kind;
   const pricingDerived = inferenceCost && typeof inferenceCostKind === "string"
     && /pricing[- ]derived/i.test(inferenceCostKind);
-  const costDetail = (totalCost
-    ? `USD · inference ${costLabel(usage.inference_cost_usd)} · compute ${costLabel(usage.compute_cost_usd)}`
-    : inferenceCost ? "USD · compute cost not measured" : "USD · cost not recorded")
-    + (pricingDerived ? " · inference calculated from pricing" : "");
+  const costDetail = totalCost
+    ? `Inference ${costLabel(usage.inference_cost_usd)} · compute ${costLabel(usage.compute_cost_usd)}`
+    : pricingDerived ? "Pricing-derived" : "";
   const tokenPart = (value) => measured(value) ? number(value) : "not measured";
+  byId("cost-label").textContent = `${totalCost ? "Total cost" : inferenceCost ? "Inference cost" : "Cost"} (USD)`;
   byId("usage").replaceChildren(
-    metric(totalCost ? "Total cost" : inferenceCost ? "Inference cost" : "Cost", costLabel(cost), costDetail),
-    metric("Tokens", measured(usage.total_tokens) ? number(usage.total_tokens) : "Not measured",
+    metric(costLabel(cost), costDetail),
+    metric(measured(usage.total_tokens) ? number(usage.total_tokens) : "Not measured",
       `Input ${tokenPart(usage.input_tokens)} · output ${tokenPart(usage.output_tokens)}`),
-    metric("Elapsed time", timeLabel(usage.elapsed_seconds), `Model requests: ${timeLabel(usage.model_request_seconds)}`),
+    metric(timeLabel(usage.elapsed_seconds), `Model requests: ${timeLabel(usage.model_request_seconds)}`),
   );
-  byId("trial-label").textContent = `Trial ${variant.repetition + 1} · per reconstruction`;
-  const provenance = [`${variant.harness || "Harness unrecorded"}`, `${variant.reasoning || "default"} reasoning`];
+  byId("trial-label").textContent = `Trial ${variant.repetition + 1} · fidelity scores / 100`;
+  const provenance = [];
   if (Number.isInteger(variant.max_output_tokens) && variant.max_output_tokens > 0) {
-    provenance.push(`Output allowance: ${number(variant.max_output_tokens)} tokens per request`);
+    provenance.push(`Output limit: ${number(variant.max_output_tokens)} tokens/request`);
   } else if (variant.output_limit === "provider-native") {
-    provenance.push("Provider-native output allowance");
+    provenance.push("Output limit: provider-native");
   }
   if (variant.orichalcum_pin) provenance.push(`Orichalcum ${variant.orichalcum_pin}`);
   byId("provenance").textContent = provenance.join(" · ");
   byId("candidate-title").textContent = variant.label;
   byId("candidate-title").title = variant.model;
-  byId("candidate-detail").textContent = `${variant.harness || "Harness unrecorded"} · ${variant.reasoning || "default"} reasoning · Trial ${variant.repetition + 1}`;
   byId("result-source").href = safeURL(variant.source_url);
   byId("readout").hidden = false;
 }
@@ -129,7 +117,7 @@ function updateStatus() {
   if (!state.object || !state.variant) return;
   const failed = ["reference", "candidate"].filter((role) => state.failed[role]);
   if (failed.length) {
-    byId("status").textContent = "A 3D preview is unavailable. The recorded measurements and source links remain available.";
+    byId("status").textContent = "3D preview unavailable.";
   } else if (state.ready.reference && state.ready.candidate) {
     byId("status").textContent = `${state.object.label} · ${state.variant.label} · Trial ${state.variant.repetition + 1}. Both previews ready.`;
   } else {
@@ -166,8 +154,7 @@ function mountModel(role, asset, objectLabel) {
     state.failed[role] = true;
     stage.setAttribute("aria-busy", "false");
     const message = element("div", "explorer-preview-error");
-    message.append(element("p", "", "3D preview unavailable"),
-      element("p", "", "This recorded reconstruction has no browser geometry. Its measured results remain available below."));
+    message.append(element("p", "", "3D preview unavailable"));
     stage.replaceChildren(message);
     updateStatus();
     return;
@@ -202,7 +189,7 @@ function mountModel(role, asset, objectLabel) {
     setRotationButtons(role, false);
     stage.setAttribute("aria-busy", "false");
     const message = element("div", "explorer-preview-error");
-    message.append(element("p", "", "3D preview unavailable"), element("p", "", "Open the source link below to inspect the recorded asset."));
+    message.append(element("p", "", "3D preview unavailable"));
     stage.replaceChildren(message);
     updateStatus();
   });
@@ -289,18 +276,18 @@ async function initialise() {
     root.querySelectorAll("[data-rotate]").forEach((button) => {
       button.addEventListener("click", () => rotate(button.dataset.view, button.dataset.rotate));
     });
-    byId("selection").textContent = typeof data.selection_policy === "string" ? data.selection_policy : "The first recorded trial is shown for every model run.";
+    byId("selection").textContent = "Neutral materials · independent scale";
     if (data.reference_license?.label && data.reference_license?.url) {
-      byId("selection").append(document.createTextNode(" Reference assets: "));
-      const link = element("a", "", data.reference_license.label);
+      byId("selection").append(document.createTextNode(" · "));
+      const link = element("a", "", "NVIDIA / CC BY 4.0");
       link.href = safeURL(data.reference_license.url);
-      byId("selection").append(link, document.createTextNode("."));
+      byId("selection").append(link);
     }
     root.dataset.state = "ready";
     selectObject(data.objects[0].id);
   } catch {
     root.dataset.state = "error";
-    byId("status").textContent = "The interactive comparison is temporarily unavailable. Published results remain available on Hugging Face.";
+    byId("status").textContent = "3D viewer unavailable. Results are available on Hugging Face.";
     for (const role of ["reference", "candidate"]) {
       const stage = byId(`${role}-stage`);
       stage.setAttribute("aria-busy", "false");
