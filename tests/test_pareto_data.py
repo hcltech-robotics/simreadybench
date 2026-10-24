@@ -49,6 +49,68 @@ class ParetoDataTests(unittest.TestCase):
         self.assertIsNone(metric["scores"]["visual"]["value"])
         self.assertEqual(metric["measured_attempts"], 0)
 
+    def test_cost_upper_bound_retains_published_value_and_qualification(self):
+        r = row()
+        r.update(inference_cost_usd=0.125, inference_cost_kind="provider_usage_priced_upper_bound",
+                 usage_reconstruction={"method": "unique-gateway-request-provider-usage-times-pinned-rates-v1",
+                                       "invoice_verified": False,
+                                       "cost_kind": "estimated inference cost upper bound"})
+        entry = {"model": "m", "harness": "pi", "completed_attempts": 1}
+        exported = p.build_run(entry, {"results": [r], "benchmark_complete": True}, run_id="run",
+                               source_url="https://example.org", results_sha256="abc", trajectory_loader=lambda _: None)
+        cost = exported["metrics"]["cost_usd_per_asset"]
+        self.assertEqual(cost["value"], 0.125)
+        self.assertEqual(cost["kind"], "estimated inference cost upper bound")
+        self.assertIn("1 attempts: estimated inference cost upper bound", cost["source_description"])
+        self.assertIn("provider usage times pinned rates", cost["source_description"])
+        self.assertIn("invoice not verified", cost["source_description"])
+        self.assertEqual(cost["scores"]["formal"]["x_value"], 0.125)
+        self.assertEqual(exported["metrics"]["tokens_per_asset"]["kind"], p.KINDS["total_tokens"])
+        self.assertNotIn("upper bound", exported["metrics"]["tokens_per_asset"]["source_description"])
+
+    def test_cost_upper_bound_preserves_specific_source_evidence(self):
+        r = row()
+        r.update(inference_cost_usd=0.5, inference_cost_kind="provider_usage_priced_upper_bound",
+                 _usage_source={"inference_cost_usd": "SHA-256-verified trajectory matched to retained provider request proofs"})
+        cost = p.metric_summary([r], "inference_cost_usd")
+        self.assertIn(r["_usage_source"]["inference_cost_usd"], cost["source_description"])
+        self.assertIn("estimated inference cost upper bound", cost["source_description"])
+        self.assertNotIn("invoice not verified", cost["source_description"])
+
+    def test_cost_upper_bound_mixed_and_missing_rows_keep_measured_counts(self):
+        upper = dict(row(), inference_cost_usd=0, inference_cost_kind="provider_usage_priced_upper_bound")
+        other = dict(row(repetition=1), inference_cost_usd=2)
+        missing = dict(row(repetition=2), inference_cost_usd=None, inference_cost_kind="provider_usage_priced_upper_bound")
+        cost = p.metric_summary([upper, other, missing], "inference_cost_usd")
+        self.assertEqual(cost["value"], 1)
+        self.assertEqual(cost["measured_attempts"], 2)
+        self.assertEqual(cost["total_attempts"], 3)
+        self.assertFalse(cost["complete"])
+        self.assertEqual(cost["kind"], "inference cost including estimated upper bounds")
+        self.assertEqual(cost["source_description"], "1 attempts: estimated inference cost upper bound; 1 attempts: published per-attempt measurement")
+
+    def test_missing_upper_bound_cost_does_not_qualify_other_measured_cost(self):
+        missing = dict(row(), inference_cost_usd=None, inference_cost_kind="provider_usage_priced_upper_bound")
+        known = dict(row(repetition=1), inference_cost_usd=0.25)
+        cost = p.metric_summary([missing, known], "inference_cost_usd")
+        self.assertEqual(cost["value"], 0.25)
+        self.assertEqual(cost["kind"], p.KINDS["inference_cost_usd"])
+        self.assertNotIn("upper bound", cost["source_description"])
+        absent = p.metric_summary([missing], "inference_cost_usd")
+        self.assertIsNone(absent["value"])
+        self.assertEqual(absent["source_description"], "Unavailable in retained evidence")
+        self.assertEqual(absent["measured_attempts"], 0)
+
+    def test_cost_qualification_requires_explicit_upper_bound_kind(self):
+        for kind in (None, "pricing-derived inference cost"):
+            with self.subTest(kind=kind):
+                r = dict(row(), inference_cost_usd=0.125, inference_cost_kind=kind,
+                         usage_reconstruction={"method": "unique-gateway-request-provider-usage-times-pinned-rates-v1",
+                                               "invoice_verified": False})
+                cost = p.metric_summary([r], "inference_cost_usd")
+                self.assertEqual(cost["kind"], p.KINDS["inference_cost_usd"])
+                self.assertEqual(cost["source_description"], "1 attempts: published per-attempt measurement")
+
     def test_partial_scores_use_available_mean_and_retain_coverage(self):
         score = p.score_summary([row(score=80), row(repetition=1, score=None)], "formal")
         self.assertEqual(score["value"], 80)

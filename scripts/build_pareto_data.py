@@ -33,6 +33,8 @@ KINDS = {
     "total_tokens": "input and output tokens, including cached input once",
     "elapsed_seconds": "elapsed reconstruction time, including tool execution",
 }
+UPPER_BOUND_COST_KIND = "provider_usage_priced_upper_bound"
+UPPER_BOUND_COST_LABEL = "estimated inference cost upper bound"
 
 
 def number(value):
@@ -133,6 +135,21 @@ def add_cumulative_scores(runs):
             "axis_invariant": True}
 
 
+def metric_source(row, field):
+    """Keep explicit cost qualifications alongside the retained source evidence."""
+    source = row.get("_usage_source", {}).get(field, "published per-attempt measurement")
+    if field != "inference_cost_usd" or row.get("inference_cost_kind") != UPPER_BOUND_COST_KIND:
+        return source
+    proof = row.get("usage_reconstruction") or {}
+    details = []
+    if proof.get("method") == "unique-gateway-request-provider-usage-times-pinned-rates-v1":
+        details.append("provider usage times pinned rates")
+    if proof.get("invoice_verified") is False:
+        details.append("invoice not verified")
+    qualifier = UPPER_BOUND_COST_LABEL + (" (" + "; ".join(details) + ")" if details else "")
+    return qualifier if source == "published per-attempt measurement" else source + "; " + qualifier
+
+
 def metric_summary(rows, field):
     measured = [r for r in rows if number(r.get(field))]
     paired = {}
@@ -149,14 +166,19 @@ def metric_summary(rows, field):
             "cohort_sha256": canonical_hash(sorted(r["condition_id"] for r in selected)),
             "reference_cohort_sha256": canonical_hash(sorted([r["asset_id"], r["repetition"]] for r in selected)),
         }
-    sources = Counter(r.get("_usage_source", {}).get(field, "published per-attempt measurement") for r in measured)
+    sources = Counter(metric_source(r, field) for r in measured)
+    kind = KINDS[field]
+    if field == "inference_cost_usd":
+        upper_bounds = sum(r.get("inference_cost_kind") == UPPER_BOUND_COST_KIND for r in measured)
+        if upper_bounds:
+            kind = UPPER_BOUND_COST_LABEL if upper_bounds == len(measured) else "inference cost including estimated upper bounds"
     return {
         "value": mean_reconstruction(measured, lambda r: r[field]),
         "complete": bool(rows) and len(measured) == len(rows),
         "measured_attempts": len(measured), "total_attempts": len(rows),
         "measured_assets": len({r["asset_id"] for r in measured}),
         "total_assets": len({r["asset_id"] for r in rows}),
-        "kind": KINDS[field], "source_description": "; ".join(f"{n} attempts: {s}" for s, n in sorted(sources.items())) or "Unavailable in retained evidence",
+        "kind": kind, "source_description": "; ".join(f"{n} attempts: {s}" for s, n in sorted(sources.items())) or "Unavailable in retained evidence",
         "scores": paired,
     }
 
