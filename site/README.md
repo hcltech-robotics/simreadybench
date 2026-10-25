@@ -46,7 +46,7 @@ The chart beneath the leaderboard uses the pinned local D3 7.9.0 bundle. It init
 
 `assets/pareto.json` contains measured numeric aggregates rebuilt from a pinned Hugging Face revision by `scripts/build_pareto_data.py`. Original scores retain the leaderboard's means over applicable reconstruction attempts; resource means independently use all available measurements. Each available mean is plotted and eligible for its frontier even when coverage is incomplete. Missing observations are not zero-filled, and coverage remains visible in the tooltip and table. Per asset means one reconstruction, rather than the combined cost of all four repetitions. Inapplicable kinematic observations are excluded from its score. Frontiers compare configurations only within matching reference revisions, validation profiles and evaluator versions. Model, harness, reasoning and output limits remain attributes of each configuration. The tooltip identifies the evaluator; configurations scored by different evaluator versions have separate frontiers. Pricing-derived costs retain their provenance labels. Shading runs below each frontier as a stepped attained area: it begins at the first frontier observation and extends the last attained score to the right edge, including a single-observation frontier. The steps do not imply unobserved intermediate improvements.
 
-The allowlisted numeric receipt in `assets/pareto-evidence.json` supplies retained usage evidence that cannot be recovered from the public trajectories alone. It contains no private prompts, tool outputs or Orichalcum contents. The builder verifies source identities and recorded hashes. Private trajectories remain in their existing stores; the new receipt exposes only the numeric accounting needed for this chart.
+Additional numeric usage measurements in `assets/pareto-evidence.json` supplement the public trajectory records. The builder checks source identities and recorded hashes before including those measurements in the chart.
 
 The Pages workflow rebuilds the data from the current HF head before capturing the chart and its numeric table into HTML. Visitors can use the captured table without JavaScript; a failed live data refresh preserves the captured chart and table. Each rebuild records its source revision and checksum.
 
@@ -63,4 +63,5 @@ After deployment, submit `https://hcltech-robotics.github.io/simreadybench/sitem
 
 GitHub Pages hosts this project under `/simreadybench/`. Crawlers read `robots.txt` at `https://hcltech-robotics.github.io/robots.txt`, which belongs to the organisation's root site. A `robots.txt` in this directory would not control crawling. If the organisation maintains a root robots file, it can advertise this sitemap there.
 
-When moving the site, update the canonical URL, social URLs, JSON-LD identifiers and sitemap together. Keep the software version consistent with `pyproject.toml` and add publication metadata when the paper is available.
+When moving the site, update the canonical URL, social URLs, JSON-LD identifiers and sitemap together. Keep the software version consistent with `pyproject.toml`.
+
