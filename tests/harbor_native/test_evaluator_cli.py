@@ -223,6 +223,29 @@ def test_renderer_failure_preserves_formal_geometry_and_kinematic_evidence(tmp_p
     assert result["scores"]["visual"]["score_percent"] is None
 
 
+def test_render_conversion_can_use_remaining_final_budget_without_extending_deadline(tmp_path, frozen_fixtures, monkeypatch):
+    require_validator()
+    fixtures, config = frozen_fixtures
+    root = submission(tmp_path)
+    original = cli._run_worker
+    calls = []
+    def capture(mode, request, scratch, deadline, **kwargs):
+        if mode == 'render':
+            calls.append((request, deadline, kwargs))
+            return {'status': 'unknown', 'reason': 'measurement_not_run_in_budget_regression'}
+        return original(mode, request, scratch, deadline, **kwargs)
+    monkeypatch.setattr(cli, '_run_worker', capture)
+    started = time.monotonic()
+    result = cli.evaluate_submission(root, fixtures, config, tmp_path / 'out')
+    assert result['scores']['geometry']['score_percent'] == pytest.approx(100)
+    assert len(calls) == 1
+    request, deadline, kwargs = calls[0]
+    assert kwargs['seconds'] == config['final_seconds'] == 600
+    assert started + 599 <= deadline <= started + 601
+    assert request['timeout'] <= 180  # The Blender subprocess keeps its bound.
+    assert cli.RENDER_ADDRESS_SPACE_BYTES == 12 * 1024**3
+
+
 def test_frozen_candidate_copy_rejects_links_and_detects_changes(tmp_path):
     root = submission(tmp_path)
     frozen = tmp_path / "frozen"

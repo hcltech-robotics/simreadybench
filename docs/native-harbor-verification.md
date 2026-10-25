@@ -116,9 +116,10 @@ Bed executed the pre-ICC-clear compiler; a separate 22-file equivalence proof
 records four native PNG16 copies and 18 unchanged canonical PNG8 outputs under
 the final compiler. Toolbox executed the final compiler directly. The bed
 bridge's pixel-buffer estimate peaked at 176 MiB and retained no decoded bank.
-Neither probe establishes candidate/full-grader eligibility: their complete
-render workloads exceed the outer 180s render worker, and original source
-texture bytes exceed the candidate package allowance. No limits were raised.
+Neither probe establishes candidate/full-grader eligibility: original source
+texture bytes exceed the candidate package allowance and all evaluation phases
+must fit the existing 600s deadline. The original extra outer 180s render-worker
+cap was incompatible with these measured workloads; its correction is below.
 One additional targeted test confirms resource-bound MemoryError is a typed
 unknown with no images, rather than unsupported content or model-quality zero.
 
@@ -179,6 +180,19 @@ It preserves both original failed and corrected runs, the verified corrected
 bundle, live output-publication trace and host pre/postflight. The reported
 corrected job has one completed trial, zero errors and no exception. The same
 20 service containers and existing Python process remained untouched.
+
+Existing bed timestamps/logs establish that texture extraction was still active
+at approximately 190.55s, before Blender; comparison RGB/mask render calls total
+69.85s and the separate observation pair adds 17.47s. Subtracting the observation
+pair gives a 372.69s four-view whole-job estimate, not a separately executed
+four-view measurement. Thus the extra 180s whole render-worker cap fails even
+before view count matters. The worker now receives remaining time from the
+existing final deadline, while Blender still has 180s and render address space
+stays 12 GiB. Overall wall time remains 600s; candidate package/geometry/texture
+rules, image recipes and unknown scoring semantics are unchanged. The new
+genuine SDK comparison/dispatch regression reproduced 180 before the change;
+36 contract/CLI tests pass with the corrected allocation. No accepted STC run
+or reference render was repeated for this diagnosis.
 
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses

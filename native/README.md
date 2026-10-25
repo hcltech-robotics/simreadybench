@@ -131,7 +131,10 @@ establish a whole-dataset runtime or memory qualification.
 
 The final verifier bounds the render worker at 12 GiB of address space inside
 its 16 GiB container; other workers keep their own bounds and the overall
-600-second deadline remains unchanged. Run large preparation jobs one at a time
+600-second deadline remains unchanged. Conversion and rendering use time left
+in that same final deadline; Blender itself retains a 180-second subprocess
+bound. An additional 180-second cap on conversion plus Blender was removed
+after measured extraction alone exceeded it. Run large preparation jobs one at a time
 on a 16 GiB host. This draft is usable for qualified smaller assets. The
 1,931,457-triangle locker produced only partial comparison images before the
 180-second Blender limit and is not a qualified workload for this draft.
@@ -154,9 +157,9 @@ The corrected streaming bridge also completed full-resolution, full-geometry
 render-only probes for the 853847-triangle hospital bed (390.16s, 3.36 GiB child
 RSS) and 742798-triangle foldout toolbox (297.42s, 2.97 GiB). Each produced five
 RGBs and five masks with original PNG16 samples and unchanged source hashes.
-These are not full-grader eligibility claims: both render workloads exceed the
-current outer 180-second final render-worker allowance, and their original
-texture closures exceed the declared candidate package limit. Keep the original
+These are not full-grader eligibility claims: their original texture closures
+exceed the declared candidate package limit, and complete evaluation must fit
+the unchanged 600-second total. Keep the original
 execution receipts and any final-code equivalence proof separate.
 
 Finite nonzero authored normals retain their original corners and are normalized.

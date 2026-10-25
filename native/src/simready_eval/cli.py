@@ -434,7 +434,9 @@ def evaluate_submission(submission, fixtures, config, output):
                                 "cameras": cameras, "alignment": comparison["alignment"],
                                 "images": images, "output": str(output / "candidate-renders"),
                                 "timeout": max(1, min(180, deadline - time.monotonic()))},
-                                scratch / "render", deadline, seconds=180)
+                                # Conversion shares the existing final deadline;
+                                # the request separately bounds Blender itself.
+                                scratch / "render", deadline, seconds=config["final_seconds"])
                             report["render"] = receipt
                             report["scores"]["appearance"] = _component(receipt.get("appearance", {}), receipt.get("reason", "render_unavailable"))
                         report["scores"]["visual"] = contract.visual_score(report["scores"]["geometry"], report["scores"]["appearance"])
