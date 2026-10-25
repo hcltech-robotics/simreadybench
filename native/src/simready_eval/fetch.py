@@ -139,18 +139,24 @@ def _verify_tree(root, files):
         for name in dirs:
             path = Path(directory) / name
             if path.is_symlink() or path.relative_to(root).as_posix() not in expected_dirs:
-                raise ValueError("unexpected directory or symlink in asset tree")
+                raise ValueError(f"unexpected directory or symlink in asset tree: {path.relative_to(root).as_posix()!r}")
         for name in names:
             path = Path(directory) / name
             mode = path.lstat().st_mode
             if not stat.S_ISREG(mode) or path.stat().st_nlink != 1:
-                raise ValueError("asset tree must contain independent regular files")
+                raise ValueError(f"asset tree must contain independent regular files: {path.relative_to(root).as_posix()!r}, mode={oct(mode)}, links={path.lstat().st_nlink}")
             found.add(path.relative_to(root).as_posix())
     if found != expected:
-        raise ValueError("asset tree has missing or unexpected files")
+        missing, extra = sorted(expected - found), sorted(found - expected)
+        raise ValueError(f"asset tree has missing or unexpected files: missing={missing[:10]!r}, extra={extra[:10]!r}, counts={len(missing)}/{len(extra)}")
     for entry in files:
-        if _digest(root / entry["destination"], entry["size_bytes"]) != entry["sha256"]:
-            raise ValueError("asset sha256 mismatch")
+        path = root / entry["destination"]
+        try:
+            actual = _digest(path, entry["size_bytes"])
+        except ValueError as error:
+            raise ValueError(f"asset {entry['destination']!r}: {error}; expected_size={entry['size_bytes']}, observed_size={path.stat().st_size}") from None
+        if actual != entry["sha256"]:
+            raise ValueError(f"asset sha256 mismatch: {entry['destination']!r}, expected_sha256={entry['sha256']}, observed_sha256={actual}, expected_size={entry['size_bytes']}, observed_size={path.stat().st_size}")
 
 
 def _copy_verified(source, target, entry):

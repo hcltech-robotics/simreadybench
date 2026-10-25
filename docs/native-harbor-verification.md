@@ -448,3 +448,13 @@ payload bytes remain at the previously verified `631fd67d...` revision. These
 remote operations were performed only by the sole STC publisher. This source fix
 prevents subsequent exports from reintroducing the removed public narration;
 it does not independently publish or claim the pending trial succeeded.
+
+## Setup integrity diagnostics
+
+The exact-tree setup verifier now identifies mismatching relative paths,
+expected/observed SHA-256 and sizes, missing/extra entries, or nonregular/link
+metadata. The two new regressions first reproduced generic hash/size errors;
+the final export/helper/selective-fetch suite passes 126 tests. No integrity,
+permissions, networking, resource, scoring or rendering check was relaxed.
+This supplies source-backed diagnostics for the sole publisher's Compose-only
+inline assertion failure; its root cause is not yet established by this worker.

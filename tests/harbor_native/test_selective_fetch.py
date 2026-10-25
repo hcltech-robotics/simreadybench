@@ -396,3 +396,33 @@ def test_setup_deadline_interrupts_stalled_transport_without_publishing(tmp_path
 def test_invalid_setup_deadline_fails_before_transport(tmp_path, timeout):
     with pytest.raises(ValueError):
         fetch_module().fetch_assets(manifest_for(), tmp_path / "out", cache_dir=tmp_path / "cache", timeout_seconds=timeout, downloader=lambda **_: pytest.fail("invalid deadline used transport"))
+
+
+def test_exact_tree_hash_failure_identifies_public_file_and_both_digests(tmp_path, hub):
+    fetch = fetch_module()
+    manifest = manifest_for()
+    root = tmp_path / "public"
+    fetch.fetch_assets(manifest, root, cache_dir=tmp_path / "cache", downloader=hub["downloader"])
+    image = root / "observation.png"
+    original = image.read_bytes()
+    changed = bytes([original[0] ^ 1]) + original[1:]
+    image.write_bytes(changed)
+    with pytest.raises(ValueError) as caught:
+        fetch._verify_tree(root, manifest["files"])
+    message = str(caught.value)
+    assert "observation.png" in message
+    assert hashlib.sha256(original).hexdigest() in message
+    assert hashlib.sha256(changed).hexdigest() in message
+
+
+def test_exact_tree_size_failure_reports_actual_and_expected_without_relaxation(tmp_path, hub):
+    fetch = fetch_module(); manifest = manifest_for()
+    root = tmp_path / "public"
+    fetch.fetch_assets(manifest, root, cache_dir=tmp_path / "cache", downloader=hub["downloader"])
+    image = root / "observation.png"; original = image.read_bytes(); image.write_bytes(original + b"x")
+    with pytest.raises(ValueError) as caught:
+        fetch._verify_tree(root, manifest["files"])
+    message = str(caught.value)
+    assert "observation.png" in message
+    assert f"expected_size={len(original)}" in message
+    assert f"observed_size={len(original) + 1}" in message
