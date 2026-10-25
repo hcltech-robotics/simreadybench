@@ -4,7 +4,8 @@
 Run in an environment containing the accepted evaluator wheel and Harbor 0.24.0.
 The owner flag acknowledges the completed 100-task/500-frame freeze, licenses,
 and checksums. It is owner evidence, not an asset audit performed by this tool.
-The only remote operation is an unauthenticated public HF revision-metadata GET.
+Remote reads are the public HF revision metadata and the two declared actor
+inputs per task. A verified local mirror can replace the actor input downloads.
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ ROOT_FILES = {"dataset.toml", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", 
 DATASET_FILES = ROOT_FILES - {"dataset.toml", "inventory.json"}
 TASK_FILES = {"instruction.md", "task.toml", "environment/Dockerfile", "environment/Dockerfile.feedback",
               "environment/docker-compose.yaml", "environment/actor-assets.json", "environment/actor.requirements.txt",
+              "environment/observation.png", "environment/instruction.md",
               "environment/feedback.requirements.txt", "tests/Dockerfile", "tests/verifier-assets.json",
               "tests/verifier.requirements.txt", "tests/evaluator.json", "tests/test.sh"}
 STATUS = {"fixture": False, "release_owner_asset_freeze_verified": True, "ready_for_publication": True,
@@ -57,7 +59,8 @@ HF dataset is `{release['repo_id']}` at full revision `{release['revision']}`.
 That revision's public identity was checked while preparing this local handoff.
 
 Run the tasks with standard Harbor 0.24.0. Setup fetches only each role's pinned
-HF assets; final scoring is offline. Runner provider endpoints belong in
+HF verifier assets; final scoring is offline. Each task package includes its frozen
+public observation PNG and instruction bytes, verified against its role manifest. Runner provider endpoints belong in
 `agents[].extra_allowed_hosts`. The agent phase begins with an empty allowlist,
 so HF/Xet reference access stays blocked. Blender is reserved for the verifier
 renderer and is prohibited for agent authoring.
@@ -65,7 +68,7 @@ renderer and is prohibited for agent authoring.
 Published consumption and runtime validation of all 100 tasks remain unverified.
 No task-specific oracle has been supplied. The owner's freeze acknowledgment and
 local package/schema/hash checks establish readiness for publication; this
-helper performs no upload, publication, asset re-audit, or renderer execution.
+helper performs no upload, publication, full asset re-audit, or renderer execution.
 '''
 
 
@@ -119,7 +122,7 @@ def _validate_tree(root, release, wheel_name):
     return dataset
 
 
-def prepare_hub_release(release, wheel, output, *, asset_freeze_verified=False, metadata_getter=None):
+def prepare_hub_release(release, wheel, output, *, asset_freeze_verified=False, metadata_getter=None, public_assets=None):
     """Finalize a local handoff after trusted owner acknowledgment.
 
     ``metadata_getter`` is an internal test transport seam accepting the exact
@@ -142,10 +145,12 @@ def prepare_hub_release(release, wheel, output, *, asset_freeze_verified=False, 
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".simready-hub-handoff-", dir=output.parent) as temporary:
         staged = Path(temporary) / "release"
-        export_release(release, staged, wheel, fixture=False)
+        export_release(release, staged, wheel, fixture=False, public_assets=public_assets)
         finalized = {**release, "export": dict(STATUS)}
         _write_json(staged / "release.json", finalized)
-        (staged / "README.md").write_text(_readme(release), encoding="utf-8")
+        previews = (staged / "README.md").read_text().split("## Frozen task observations", 1)[1]
+        (staged / "README.md").write_text(_readme(release) + "\n## Frozen task observations" + previews,
+                                          encoding="utf-8")
         from harbor.models.dataset.manifest import DatasetManifest
         dataset = DatasetManifest.from_toml_file(staged / "dataset.toml")
         for file in dataset.files:
@@ -169,11 +174,12 @@ def main(argv=None):
     parser.add_argument("--wheel", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--asset-freeze-verified", action="store_true")
+    parser.add_argument("--public-assets", type=Path, help="Optional local mirror of the pinned public HF paths")
     args = parser.parse_args(argv)
     try:
         receipt = prepare_hub_release(json.loads(args.release.read_text()), args.wheel, args.output,
-                                      asset_freeze_verified=args.asset_freeze_verified)
-    except (ValueError, OSError) as error:
+                                      asset_freeze_verified=args.asset_freeze_verified, public_assets=args.public_assets)
+    except (ValueError, RuntimeError, OSError) as error:
         parser.exit(1, f"Hub handoff preparation failed: {error}\n")
     print(json.dumps(receipt, sort_keys=True, indent=2))
     return 0

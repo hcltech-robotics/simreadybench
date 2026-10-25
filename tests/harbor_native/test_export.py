@@ -60,6 +60,96 @@ def wheel(tmp_path):
     return path
 
 
+@pytest.fixture(autouse=True)
+def synthetic_public_download(tmp_path, monkeypatch):
+    source = tmp_path / "public-download"
+    source.write_bytes(b"x")
+    calls = []
+    def download(**kwargs):
+        calls.append(kwargs)
+        return source
+    monkeypatch.setattr("simready_eval.fetch._hub_download", download)
+    return calls
+
+
+def test_export_bundles_only_frozen_actor_inputs_and_exposes_preview(tmp_path, wheel, synthetic_public_download):
+    release = release_input()
+    root = tmp_path / "release"
+    inventory = exporter().export_release(release, root, wheel, fixture=True)
+    task = root / "nv100-fixture-000"
+    for file in release["tasks"][0]["actor"]["files"]:
+        path = task / "environment" / file["destination"]
+        assert path.is_file(), "published task folder must include its public input bytes"
+        assert path.read_bytes() == b"x"
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == file["sha256"]
+    assert {call["filename"] for call in synthetic_public_download} == {
+        file["path"] for file in release["tasks"][0]["actor"]["files"]}
+    assert all(call["revision"] == REVISION and call["token"] is False for call in synthetic_public_download)
+    image = f"https://huggingface.co/datasets/{REPO}/resolve/{REVISION}/benchmark/nv100/v1/tasks/fixture-000/public/observation.png"
+    assert f"![" in (task / "instruction.md").read_text()
+    assert image in (task / "instruction.md").read_text()
+    assert "environment/observation.png" in (task / "instruction.md").read_text()
+    assert image in (root / "README.md").read_text()
+    assert (root / "dataset.toml").read_text().count('version = "1.0.1"') == 1
+    assert 'version = "1.0.1"' in (task / "task.toml").read_text()
+    names = {row["path"] for row in inventory}
+    assert "nv100-fixture-000/environment/observation.png" in names
+    assert not any(path.suffix in (".usd", ".usda", ".usdc", ".parquet") for path in root.rglob("*"))
+
+
+def test_export_rejects_tampered_public_input_without_partial_package(tmp_path, wheel, monkeypatch):
+    wrong = tmp_path / "wrong"
+    wrong.write_bytes(b"y")
+    monkeypatch.setattr("simready_eval.fetch._hub_download", lambda **_: wrong)
+    with pytest.raises((ValueError, RuntimeError)):
+        exporter().export_release(release_input(), tmp_path / "release", wheel, fixture=True)
+    assert not (tmp_path / "release").exists()
+
+
+def test_export_uses_verified_local_hf_mirror_and_build_rechecks_inputs(tmp_path, wheel, monkeypatch):
+    release = release_input()
+    mirror = tmp_path / "mirror"
+    import base64
+    png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ3kAAAAASUVORK5CYII=")
+    payloads = {"observation.png": png, "instruction.md": b"Reconstruct this frozen observation; nominal dimensions 1 x 1 x 1 m.\n"}
+    for file in release["tasks"][0]["actor"]["files"]:
+        data = payloads[file["destination"]]
+        file["size_bytes"] = len(data)
+        file["sha256"] = hashlib.sha256(data).hexdigest()
+        path = mirror / file["path"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    (mirror / "private.usd").write_bytes(b"must not export")
+    monkeypatch.setattr("simready_eval.fetch._hub_download", lambda **_: pytest.fail("local mirror must avoid transport"))
+    root = tmp_path / "release"
+    exporter().export_release(release, root, wheel, fixture=True, public_assets=mirror)
+    environment = root / "nv100-fixture-000/environment"
+    docker = (environment / "Dockerfile").read_text()
+    assert "COPY observation.png instruction.md /task/" in docker
+    assert "--verify-only" in docker
+    assert "--cache /tmp/actor-cache" not in docker
+    # Run the actual generated read-only manifest check, then prove tampering fails.
+    command = next(line.removeprefix("RUN ").split(" && ")[0] for line in docker.splitlines()
+                   if line.startswith("RUN python -m simready_eval.fetch"))
+    command = command.replace("/opt/setup/actor-assets.json", str(environment / "actor-assets.json"))
+    command = command.replace("/task", str(environment))
+    # Build /task contains exactly the copied pair; mirror that actual Docker COPY.
+    actual = tmp_path / "task"
+    actual.mkdir()
+    import shutil
+    for name in ("observation.png", "instruction.md"):
+        shutil.copyfile(environment / name, actual / name)
+    command = command.replace(str(environment) + " --verify-only", str(actual) + " --verify-only")
+    passed = subprocess.run(command, shell=True, capture_output=True, text=True)
+    assert passed.returncode == 0, passed.stderr
+    assert (actual / "observation.png").read_bytes() == png
+    (actual / "observation.png").write_bytes(bytes([png[0] ^ 1]) + png[1:])
+    failed = subprocess.run(command, shell=True, capture_output=True, text=True)
+    assert failed.returncode != 0
+    assert "sha256 mismatch" in failed.stderr
+    assert not (root / "private.usd").exists()
+
+
 def test_fixture_export_parses_with_standard_harbor_and_hashes_all_generated_files(tmp_path, wheel):
     from harbor.models.task.task import Task
     from harbor.models.dataset.manifest import DatasetManifest
@@ -151,7 +241,7 @@ def test_build_contexts_have_role_scoped_fetch_and_no_target_data_in_feedback(tm
     feedback_docker = (environment / "Dockerfile.feedback").read_text()
     assert actor_docker.startswith("FROM " + BASE + "\n")
     assert verifier_docker.startswith("FROM " + BASE + "\n")
-    assert "simready_eval.fetch" in actor_docker and "--destination /task" in actor_docker
+    assert "simready_eval.fetch" in actor_docker and "--destination /task --verify-only" in actor_docker
     assert "simready_eval.fetch" in verifier_docker and "--destination /fixtures" in verifier_docker
     assert "COPY test.sh /tests/test.sh" in verifier_docker
     assert "USER 1000" in actor_docker
@@ -177,7 +267,8 @@ def test_build_contexts_have_role_scoped_fetch_and_no_target_data_in_feedback(tm
     assert compose["services"]["main"]["depends_on"]["feedback"]["condition"] == "service_healthy"
     assert "/health" in " ".join(feedback["healthcheck"]["test"])
     assert "127.0.0.1:8080" in (task / "instruction.md").read_text()
-    assert not any(path.suffix in (".png", ".usd", ".usda", ".usdc", ".parquet") for path in root.rglob("*"))
+    assert [path.relative_to(root).as_posix() for path in root.rglob("*.png")] == ["nv100-fixture-000/environment/observation.png"]
+    assert not any(path.suffix in (".usd", ".usda", ".usdc", ".parquet") for path in root.rglob("*"))
 
 
 def test_export_is_deterministic_for_identical_inputs(tmp_path, wheel):
@@ -250,7 +341,12 @@ def test_output_must_be_fresh_and_outside_any_git_checkout(tmp_path, wheel):
 def test_export_cli_produces_reviewable_fixture_inventory(tmp_path, wheel):
     manifest = tmp_path / "release-input.json"
     manifest.write_text(json.dumps(release_input()))
-    process = subprocess.run([sys.executable, "-m", "simready_eval.export", "--release", str(manifest), "--output", str(tmp_path / "export"), "--wheel", str(wheel), "--fixture"], text=True, capture_output=True)
+    public = tmp_path / "public"
+    for file in release_input()["tasks"][0]["actor"]["files"]:
+        source = public / file["path"]
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_bytes(b"x")
+    process = subprocess.run([sys.executable, "-m", "simready_eval.export", "--release", str(manifest), "--output", str(tmp_path / "export"), "--wheel", str(wheel), "--fixture", "--public-assets", str(public)], text=True, capture_output=True)
     assert process.returncode == 0, process.stderr
     assert isinstance(json.loads(process.stdout), list)
     assert (tmp_path / "export/inventory.json").is_file()

@@ -344,13 +344,20 @@ def main(argv=None):
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--destination", required=True, type=Path)
     parser.add_argument("--cache", type=Path)
+    parser.add_argument("--verify-only", action="store_true", help="Check an existing exact tree without transport or cache writes")
     parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--timeout-seconds", type=float, default=300)
     args = parser.parse_args(argv)
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-        receipt = fetch_assets(manifest, args.destination, cache_dir=args.cache, attempts=args.attempts,
-                               timeout_seconds=args.timeout_seconds)
+        if args.verify_only:
+            manifest = validate_manifest(manifest)
+            _verify_tree(_checked_path(args.destination), manifest["files"])
+            receipt = {"schema": "simready-asset-verification-v1", "role": manifest["role"],
+                       "task_id": manifest["task_id"], "revision": manifest["revision"], "verified": True}
+        else:
+            receipt = fetch_assets(manifest, args.destination, cache_dir=args.cache, attempts=args.attempts,
+                                   timeout_seconds=args.timeout_seconds)
     except (ValueError, RuntimeError, OSError) as error:
         parser.exit(1, f"asset setup failed: {error}\n")
     print(json.dumps(receipt, sort_keys=True))

@@ -3,12 +3,15 @@
 Run this on STC with the existing approved Harbor login. Credentials stay on STC;
 do not copy a key, credentials file, home directory, or working checkout into this
 handoff, a task, HF, or a container. This handoff prepares local files and makes
-one public HF metadata read. It never logs in or publishes automatically.
+public HF metadata and actor-file reads (or use the verified local mirror). It never logs in or publishes automatically.
 
-The runtime is the accepted 1 GiB evaluator from commit
-`364d77e46f258724875a925345cc54069cfa08e6`; wheel SHA-256 is
-`4ffb2ada910496506f85300493e0ff3475f78c31a8133672472a88d853e6e3e9`.
-Its renderer and frozen images are unchanged. The source NVIDIA collection is
+The accepted scoring/rendering runtime is unchanged. Packaging version 1.0.1
+fixes the public-input omission: every task includes `environment/observation.png`
+and `environment/instruction.md`, acquired and hash-verified during export.
+The actor Dockerfile COPYs exactly that pair and verifies it without a build-time
+HF fetch. Comparison views and reference USD remain verifier-only. See the
+bundled `HANDOFF.json` for the exact source commit and wheel SHA-256.
+The source NVIDIA collection remains
 `nvidia/simready-assets@f4860aa0c75607adb50a78bf96e77510bffc040f`.
 
 ## Inputs from the asset publication owner
@@ -26,7 +29,7 @@ exactly these top-level fields: `schema`, `repo_id`, `revision`, `source_commit`
 
 - `schema`: `simready-harbor-release-v1`; `repo_id`:
   `hcltech-robotics/simreadybench`; `revision`: immutable 40-hex HF commit.
-- `source_commit`: the exact runtime source commit above; `source_collection`:
+- `source_commit`: the exact source commit in `HANDOFF.json`; `source_collection`:
   the exact NVIDIA repository/revision above.
 - `tasks`: exactly 100 objects, each with `id`, `actor`, `verifier`, `reference`,
   `entrypoint`, `views`, `budgets`. Keep frozen `nv100_<hash>` IDs unchanged.
@@ -57,14 +60,15 @@ Verify `SHA256SUMS` before using the extracted handoff. Use the existing dedicat
 Harbor 0.24.0 Python environment; install only the bundled neutral wheel there:
 
 ```sh
-python -m pip install --no-deps ./simreadybench_eval-1.0.0-py3-none-any.whl
+python -m pip install --no-deps ./simreadybench_eval-1.0.1-py3-none-any.whl
 harbor --version
 harbor auth status
 harbor auth org list --search hcltech-robotics --columns name,role
 python prepare_hub_release.py --release /path/to/release-input.json \
-  --wheel ./simreadybench_eval-1.0.0-py3-none-any.whl \
+  --wheel ./simreadybench_eval-1.0.1-py3-none-any.whl \
   --output /tmp/nv100-clean-hub-release --asset-freeze-verified \
   > /tmp/nv100-clean-hub-release-receipt.json
+# Optional offline actor acquisition: add --public-assets /path/to/hf-path-mirror
 ```
 
 The output must be a fresh directory outside every Git checkout. The helper
@@ -73,7 +77,8 @@ the seven declared dataset files, and validates task schema 1.4 / dataset 1.0,
 official publisher digests, root file digests and the complete allowlist.
 It finalizes the draft README/status truthfully: owner freeze verified and ready
 for publication; published consumption remains unverified and no task-specific
-oracle is claimed. No asset binaries, results or working repository are bundled.
+oracle is claimed. Only the two declared public files are bundled per task. No reference USD,
+comparison images, results or working repository are bundled.
 Inspect the receipt, `release.json`, `inventory.json`, and dataset namespace.
 
 ## Publish only after the HF freeze
@@ -81,7 +86,7 @@ Inspect the receipt, `release.json`, `inventory.json`, and dataset namespace.
 The following is the publication action; the helper does not execute it:
 
 ```sh
-harbor publish /tmp/nv100-clean-hub-release --public --tag nv100-v1 --concurrency 4
+harbor publish /tmp/nv100-clean-hub-release --public --tag nv100-v1.0.1 --concurrency 4
 ```
 
 Names in task.toml and dataset.toml select `hcltech-robotics`, not the personal

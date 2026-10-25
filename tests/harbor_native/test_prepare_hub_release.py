@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from test_export import REPO, REVISION, release_input, wheel
+from test_export import REPO, REVISION, release_input, wheel, synthetic_public_download
 
 
 def tool():
@@ -90,6 +90,10 @@ def test_verified_freeze_finalizes_100_task_handoff_with_consistent_root_hashes(
     assert "not publish ready" not in readme
     assert "task-specific oracle" in readme.lower()
     assert "unverified" in readme
+    assert "## Frozen task observations" in readme
+    assert readme.count("[preview/download]") == 100
+    assert len(list(output.glob("*/environment/observation.png"))) == 100
+    assert len(list(output.glob("*/environment/instruction.md"))) == 100
     assert receipt["ready_for_publication"] is True
     assert receipt["published_consumption_verified"] is False
     assert receipt["task_count"] == 100

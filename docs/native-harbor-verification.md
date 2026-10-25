@@ -357,3 +357,43 @@ was corrected. `native/tools/HUB_HANDOFF.md` gives the exact STC commands.
 The helper does not publish or obtain credentials; existing approved Hub login
 stays only on STC. The required order remains full immutable HF freeze, clean Hub
 publication, then consumption of the published content digest on STC.
+
+## Public input packaging correction (1.0.1)
+
+The 1.0.0 exporter omitted the two actor input files from published task folders
+and acquired them only during the image build. A successful no-output trial did
+not establish folder-level completeness. The upstream exporter now acquires
+exactly the pinned actor observation PNG and instruction bytes during export,
+checks their manifest sizes and hashes, and includes them in each task's
+`environment/`. An optional local mirror uses the same checks and exact HF paths.
+Reference USD, dependencies and four comparison views are not acquired by export.
+
+The actor Dockerfile explicitly COPYs just the public pair and invokes the new
+read-only `simready_eval.fetch --verify-only` exact-tree/hash check before making
+`/task` immutable. No actor input network request is needed during build. Root
+task instructions include a pinned observation preview/download and packaged-file
+links; the dataset README includes all 100 pinned observation links. The handoff
+helper's allowlist and hashes include the new files. Task, dataset and wheel
+versions are 1.0.1; all task content digests change.
+
+Regression tests first reproduced the absent inputs, missing transport-integrity
+failure, and missing local-mirror API. The final export/handoff/selective-fetch
+suite passed 116 checks. Tests verify all 100 task public pairs and dataset/task
+publisher hashes, transport role isolation, tampered input rejection without a
+partial package, deterministic exports, and actual generated build-check commands.
+Independent review found no substantive issue.
+
+A genuine Docker build using the existing neutral actor base and no build network
+executed the generated COPY/verify/permission commands with the rebuilt 1.0.1
+wheel. A read-only, network-none, capability-free container as UID 1000 decoded
+the neutral PNG, verified both original file hashes, confirmed exactly two /task
+files and mode 0444. This is focused public-input packaging evidence, not a new
+full Harbor trial. The first readback launch was blocked by local disk exhaustion;
+unused build cache was removed and the check then passed. Existing source and
+images were preserved.
+
+The wheel differs from accepted 1.0.0 only in `__init__.py`, `export.py`, and
+`fetch.py` plus distribution metadata. Renderer, material handling, geometry,
+formal/visual/kinematic scores, budgets and isolation settings are byte-identical.
+No image rerender is required. The sole STC publisher owns republishing and all
+100 pulled-folder checks plus the fresh published-package runtime trial.

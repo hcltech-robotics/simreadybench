@@ -1,4 +1,4 @@
-"""Generate clean, deterministic native Harbor packages without network access."""
+"""Generate clean native Harbor packages including pinned public task inputs."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +13,7 @@ import tempfile
 import os
 import zipfile
 
-from .fetch import REPO_ID, validate_manifest
+from .fetch import REPO_ID, fetch_assets, validate_manifest
 from .dependencies import runtime_lock
 from .limits import FEEDBACK_SCRATCH_BYTES
 
@@ -192,7 +192,7 @@ artifacts = [{{source = "/output/submission", destination = "candidate"}}]
 
 [task]
 name = "hcltech-robotics/{_task_name(task['id'])}"
-version = "1.0.0"
+version = "1.0.1"
 description = "SimReadyBench single-observation USD reconstruction"
 
 [metadata]
@@ -233,7 +233,8 @@ COPY {wheel} /opt/wheels/{wheel}
 COPY actor.requirements.txt /opt/locks/actor.requirements.txt
 RUN python -m pip install --no-cache-dir --require-hashes --no-deps -r /opt/locks/actor.requirements.txt && python -m pip install --no-cache-dir --no-deps '/opt/wheels/{wheel}'
 COPY actor-assets.json /opt/setup/actor-assets.json
-RUN python -m simready_eval.fetch --manifest /opt/setup/actor-assets.json --destination /task --cache /tmp/actor-cache && chmod -R a+rX /task && chmod -R a-w /task && rm -rf /tmp/actor-cache
+COPY observation.png instruction.md /task/
+RUN python -m simready_eval.fetch --manifest /opt/setup/actor-assets.json --destination /task --verify-only && chmod -R a+rX /task && chmod -R a-w /task
 RUN useradd --create-home --uid 1000 agent && mkdir -p /output/submission && chown -R 1000:1000 /output /home/agent
 ENV HOME=/home/agent
 WORKDIR /output
@@ -313,7 +314,13 @@ def _task_files(task, wheel_name, wheel_payload, fixture):
                  "entrypoint": task["entrypoint"], "reference": task["reference"],
                  "cameras": "comparison/cameras.json", "eligibility": "reference/eligibility.json",
                  "fidelity_settings": {"enabled": True}, "final_seconds": task["budgets"]["final_seconds"]}
-    instruction = f'''Reconstruct the asset shown in /task/observation.png as a self-contained USD package.
+    image = next(file for file in task["actor"]["files"] if file["destination"] == "observation.png")
+    image_url = f"https://huggingface.co/datasets/{task['actor']['repo_id']}/resolve/{task['actor']['revision']}/{image['path']}"
+    instruction = f'''![Frozen task observation]({image_url})
+
+[Download the frozen observation]({image_url}) · [Packaged image](environment/observation.png) · [Public instructions](environment/instruction.md)
+
+Reconstruct the asset shown in /task/observation.png as a self-contained USD package.
 Read /task/instruction.md for the task-specific public instructions.
 Save the package under /output/submission, with its entrypoint at {task['entrypoint']}.
 Do not use Blender for authoring; Blender is used only by the verifier renderer.
@@ -364,10 +371,15 @@ def _fresh_output(output):
     return output
 
 
-def export_release(release, output, wheel, *, fixture=False):
+def export_release(release, output, wheel, *, fixture=False, public_assets=None):
     """Export only supplied release tasks; return sorted file hashes and sizes.
 
-    This performs no asset fetch or publication. ``fixture=True`` permits a
+    Only the two declared actor inputs are materialized, with size/hash checking.
+    By default they are fetched anonymously at the immutable HF revision. An
+    optional local ``public_assets`` root mirrors the manifest's HF paths and
+    avoids network access; only the exact actor file paths are read. No reference
+    or comparison file is acquired or embedded. No publication occurs.
+    ``fixture=True`` permits a
     smaller synthetic roster, visibly marked non-publish-ready. Qualification,
     actual asset freeze and task-specific oracle evidence remain release-owner
     responsibilities; a syntactically valid export does not certify them.
@@ -379,26 +391,41 @@ def export_release(release, output, wheel, *, fixture=False):
     output = _fresh_output(output)
     wheel_name, wheel_payload, metric = _wheel_inputs(wheel)
     files, task_refs = {}, []
-    for task in sorted(release["tasks"], key=lambda task: task["id"]):
-        task_files = {path: payload.encode() if isinstance(payload, str) else payload
-                      for path, payload in _task_files(task, wheel_name, wheel_payload, fixture).items()}
-        name = _task_name(task["id"])
-        files.update({name + "/" + path: payload for path, payload in task_files.items()})
-        task_refs.append({"name": "hcltech-robotics/" + name, "digest": _publisher_digest(task_files)})
+    with tempfile.TemporaryDirectory(prefix="simready-export-public-") as temporary:
+        staging = Path(temporary)
+        local_root = Path(public_assets) if public_assets is not None else None
+        downloader = None if local_root is None else lambda **kwargs: local_root / kwargs["filename"]
+        for task in sorted(release["tasks"], key=lambda task: task["id"]):
+            public = staging / task["id"]
+            fetch_assets(task["actor"], public, cache_dir=staging / "cache", downloader=downloader,
+                         timeout_seconds=300)
+            task_files = {path: payload.encode() if isinstance(payload, str) else payload
+                          for path, payload in _task_files(task, wheel_name, wheel_payload, fixture).items()}
+            for file in task["actor"]["files"]:
+                task_files["environment/" + file["destination"]] = (public / file["destination"]).read_bytes()
+            name = _task_name(task["id"])
+            files.update({name + "/" + path: payload for path, payload in task_files.items()})
+            task_refs.append({"name": "hcltech-robotics/" + name, "digest": _publisher_digest(task_files)})
     release["export"] = {"fixture": fixture, "publish_ready": False,
                          "blockers": ["Release-owner asset qualification, immutable HF freeze and task-specific oracle evidence require independent verification."]}
     files.update({"metric.py": metric, "release.json": _json(release).encode(), "LICENSE": LICENSE.encode(),
                   "README.md": ("# SimReadyBench NV100\n\n" + ("Fixture export; not publish ready.\n\n" if fixture else "Local release candidate; not publish ready.\n\n") +
-                    "Run tasks with standard Harbor 0.24.0. Build setup fetches only each role's pinned HF files; final scoring is offline. "
+                    "Run tasks with standard Harbor 0.24.0. The observation PNG and public instructions are bundled in each task environment; build setup fetches only verifier references from pinned HF files. Final scoring is offline. "
                     "The runner must provide agent provider endpoints through agents[].extra_allowed_hosts. The agent phase starts with an empty allowlist, denying HF/Xet references. "
-                    "No data payloads or historical results are embedded. No task-specific oracle has been supplied. "
+                    "Only the two allowed public inputs are embedded; no reference assets, comparison views or historical results are embedded. No task-specific oracle has been supplied. "
                     "The real qualified 100-asset roster, eligibility closure and release freeze require independent release-owner evidence. "
                     "The export is a local review artifact and performs no publication.\n").encode(),
-                  "THIRD_PARTY_NOTICES.md": ("# Third-party notices\n\nEvaluator code is MIT licensed. Downloaded NVIDIA assets retain their upstream license and provenance; no NVIDIA asset payload is bundled. "
+                  "THIRD_PARTY_NOTICES.md": ("# Third-party notices\n\nEvaluator code is MIT licensed. Downloaded NVIDIA assets retain their upstream license and provenance; only the frozen public observation PNGs and instructions are bundled; verifier USD, dependencies and comparison images remain external. "
                     "The source collection is nvidia/simready-assets at " + SOURCE_COLLECTION["revision"] + ". "
                     "Runtime dependencies retain their own licenses, including Blender (GPL-3.0-or-later), OpenUSD (Apache-2.0), Pillow (HPND), NumPy (BSD-3-Clause), and HF Hub/Xet (Apache-2.0). "
                     "Review the frozen release's per-asset source/license provenance before distributing its assets.\n").encode()})
-    dataset = 'schema_version = "1.0"\n\n[dataset]\nname = "hcltech-robotics/nv100"\nversion = "1.0.0"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
+    previews = "\n## Frozen task observations\n\n" + "\n".join(
+        f"- [{_task_name(task['id'])}]({_task_name(task['id'])}/instruction.md): "
+        f"[preview/download](https://huggingface.co/datasets/{release['repo_id']}/resolve/{release['revision']}/"
+        + next(file["path"] for file in task["actor"]["files"] if file["destination"] == "observation.png") + ")"
+        for task in sorted(release["tasks"], key=lambda task: task["id"])) + "\n"
+    files["README.md"] += previews.encode()
+    dataset = 'schema_version = "1.0"\n\n[dataset]\nname = "hcltech-robotics/nv100"\nversion = "1.0.1"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
     for task in task_refs:
         dataset += '\n[[tasks]]\nname = ' + json.dumps(task["name"]) + '\ndigest = ' + json.dumps(task["digest"]) + '\n'
     for name in ("metric.py", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "release.json"):
@@ -426,10 +453,11 @@ def main(argv=None):
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--wheel", required=True, type=Path)
     parser.add_argument("--fixture", action="store_true")
+    parser.add_argument("--public-assets", type=Path, help="Optional local mirror of pinned HF paths; checksums are still enforced")
     args = parser.parse_args(argv)
     try:
-        inventory = export_release(json.loads(args.release.read_text()), args.output, args.wheel, fixture=args.fixture)
-    except (ValueError, OSError) as error:
+        inventory = export_release(json.loads(args.release.read_text()), args.output, args.wheel, fixture=args.fixture, public_assets=args.public_assets)
+    except (ValueError, RuntimeError, OSError) as error:
         parser.exit(1, f"native export failed: {error}\n")
     print(_json(inventory), end="")
     return 0

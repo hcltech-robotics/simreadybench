@@ -195,7 +195,12 @@ Missing PhysX native bindings can make specific validator checks unknown.
 `python -m simready_eval.export --release release.json --wheel evaluator.whl
 --output /fresh/export` creates only an allowlisted standalone task distribution.
 It requires exactly 100 tasks unless `--fixture` is explicit, and never uploads.
-HF `benchmark/` assets are fetched role-selectively at a full commit plus file
+The exporter embeds exactly the actor observation PNG and public instructions,
+verified against their frozen manifest. The actor build COPYs these two files and
+checks their hashes without HF access. Root task instructions link to the packaged
+image and the pinned public HF preview/download. An optional `--public-assets`
+root mirrors the manifest HF paths for offline export; unrelated local files are
+never included. Verifier `benchmark/` assets are fetched role-selectively at a full commit plus file
 checksums during setup. Offline scoring reads only the declared submission and
 frozen fixtures. The feedback sidecar persists five calls and runs candidate
 parsing under an unprivileged UID separated from its control ledger.
