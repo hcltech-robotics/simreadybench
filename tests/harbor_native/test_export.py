@@ -205,6 +205,7 @@ def test_fixture_export_parses_with_standard_harbor_and_hashes_all_generated_fil
     assert [(item.source, item.destination) for item in config.artifacts] == [("/output/submission", "candidate")]
     dataset = DatasetManifest.from_toml_file(output / "dataset.toml")
     assert dataset.schema_version == "1.0"
+    assert tomllib.loads((output / "dataset.toml").read_text())["dataset"]["name"] == "hcltech-robotics/simreadybench"
     expected_digest, _ = Packager.compute_content_hash(task.task_dir)
     assert dataset.tasks[0].digest == "sha256:" + expected_digest
     assert dataset.tasks[0].name == config.task.name

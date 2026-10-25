@@ -458,3 +458,16 @@ the final export/helper/selective-fetch suite passes 126 tests. No integrity,
 permissions, networking, resource, scoring or rendering check was relaxed.
 This supplies source-backed diagnostics for the sole publisher's Compose-only
 inline assertion failure; its root cause is not yet established by this worker.
+
+## Approved Hub dataset destination
+
+The source now fixes the approved dataset identity to
+`hcltech-robotics/simreadybench` through shared `DATASET_NAME`. The manifest,
+public usage command, download/run instructions and local receipt use it. The
+helper explicitly rejects another dataset identity even when all file hashes
+and the inventory have been recomputed consistently. Existing
+`hcltech-robotics/nv100_<id>` task names remain unchanged. The regression first
+reproduced the old `hcltech-robotics/nv100` dataset default. The exporter/helper
+suite passes 63 checks including the explicit destination guard. The handoff
+also documents installing the neutral wheel with the existing STC `uv` into its
+dedicated no-pip environment. No publication is performed by these changes.

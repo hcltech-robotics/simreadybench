@@ -17,7 +17,7 @@ from pathlib import Path
 import tempfile
 from urllib.request import Request, urlopen
 
-from simready_eval.export import _fresh_output, _validate_release, export_release
+from simready_eval.export import DATASET_NAME, _fresh_output, _validate_release, export_release
 from simready_eval.fetch import REPO_ID
 
 ROOT_FILES = {"dataset.toml", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "release.json", "metric.py", "inventory.json"}
@@ -80,6 +80,8 @@ def _validate_tree(root, release, wheel_name):
     if actual != expected or {path.name for path in root.iterdir() if path.is_dir()} != names:
         raise ValueError("handoff must contain exactly the 100 source-ID task directories and allowed generated files")
     dataset = DatasetManifest.from_toml_file(root / "dataset.toml")
+    if dataset.dataset.name != DATASET_NAME:
+        raise ValueError("dataset package name must be " + DATASET_NAME)
     expected_names = {"hcltech-robotics/" + name for name in names}
     if dataset.schema_version != "1.0" or len(dataset.tasks) != 100 or {task.name for task in dataset.tasks} != expected_names:
         raise ValueError("dataset schema or exact source-ID task names do not match the frozen release")
@@ -134,7 +136,7 @@ def prepare_hub_release(release, wheel, output, *, asset_freeze_verified=False, 
         _write_json(staged / "inventory.json", _inventory(staged))
         dataset = _validate_tree(staged, release, wheel.name)
         receipt = {"schema": "simready-hub-handoff-v1", "canonical": {"repo_id": REPO_ID, "revision": release["revision"]},
-                   **STATUS, "task_count": len(dataset.tasks), "harbor_version": "0.24.0",
+                   **STATUS, "task_count": len(dataset.tasks), "harbor_version": "0.24.0", "dataset_name": DATASET_NAME,
                    "dataset_digest": "sha256:" + dataset.compute_content_hash(),
                    "inventory_sha256": _sha((staged / "inventory.json").read_bytes()),
                    "wheel_sha256": _sha(wheel.read_bytes()), "hf_revision_metadata_verified": True}

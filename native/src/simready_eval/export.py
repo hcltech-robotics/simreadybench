@@ -18,6 +18,8 @@ from .fetch import REPO_ID, fetch_assets, validate_manifest
 from .dependencies import runtime_lock
 from .limits import FEEDBACK_SCRATCH_BYTES
 
+DATASET_NAME = "hcltech-robotics/simreadybench"
+
 BASE_IMAGE = "python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704"
 SOURCE_COLLECTION = {"repo_id": "nvidia/simready-assets", "revision": "f4860aa0c75607adb50a78bf96e77510bffc040f"}
 BLENDER_PACKAGE_VERSION = "4.3.2+dfsg-2"
@@ -388,7 +390,7 @@ Use Linux x86_64 with Docker, Compose and Harbor 0.24.0:
 
 ```sh
 python -m pip install 'harbor==0.24.0'
-harbor run --dataset hcltech-robotics/nv100 --agent YOUR_AGENT --model YOUR_MODEL
+harbor run --dataset {DATASET_NAME} --agent YOUR_AGENT --model YOUR_MODEL
 ```
 
 Use the dataset content digest to reproduce a specific release. Configure the
@@ -512,7 +514,7 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
                     "The source collection is nvidia/simready-assets at " + SOURCE_COLLECTION["revision"] + ". "
                     "Runtime dependencies retain their own licenses, including Blender (GPL-3.0-or-later), OpenUSD (Apache-2.0), Pillow (HPND), NumPy (BSD-3-Clause), and HF Hub/Xet (Apache-2.0). "
                     "Per-asset source and licence provenance accompany the pinned dataset.\n").encode()})
-    dataset = 'schema_version = "1.0"\n\n[dataset]\nname = "hcltech-robotics/nv100"\nversion = "1.0.2"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
+    dataset = f'schema_version = "1.0"\n\n[dataset]\nname = {json.dumps(DATASET_NAME)}\nversion = "1.0.2"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
     for task in task_refs:
         dataset += '\n[[tasks]]\nname = ' + json.dumps(task["name"]) + '\ndigest = ' + json.dumps(task["digest"]) + '\n'
     for name in ("metric.py", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "release.json"):

@@ -3,6 +3,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -73,6 +74,7 @@ def test_verified_freeze_finalizes_100_task_handoff_with_consistent_root_hashes(
     assert requested == [f"https://huggingface.co/api/datasets/{REPO}/revision/{REVISION}"]
     dataset = DatasetManifest.from_toml_file(output / "dataset.toml")
     assert dataset.schema_version == "1.0" and len(dataset.tasks) == 100
+    assert tomllib.loads((output / "dataset.toml").read_text())["dataset"]["name"] == REPO
     expected_names = {"hcltech-robotics/" + task["id"] for task in release["tasks"]}
     assert {task.name for task in dataset.tasks} == expected_names
     for ref in dataset.tasks:
@@ -98,6 +100,7 @@ def test_verified_freeze_finalizes_100_task_handoff_with_consistent_root_hashes(
         assert unwanted not in readme.lower()
     assert "## Frozen task observations" in readme
     assert readme.count("[preview/download]") == 100
+    assert "harbor run --dataset hcltech-robotics/simreadybench " in readme
     assert len(list(output.glob("*/environment/observation.png"))) == 100
     assert len(list(output.glob("*/environment/instruction.md"))) == 100
     assert receipt["ready_for_publication"] is True
@@ -113,3 +116,23 @@ def test_verified_freeze_finalizes_100_task_handoff_with_consistent_root_hashes(
         assert item["sha256"] == hashlib.sha256(data).hexdigest()
     assert {path.name for path in output.iterdir() if path.is_dir()} == {task["id"] for task in release["tasks"]}
     assert not any(path.is_symlink() for path in output.rglob("*"))
+
+
+def test_helper_rejects_even_consistently_rehashed_wrong_dataset_name(tmp_path, wheel):
+    module = tool()
+    output = tmp_path / "release"
+    release = canonical_input()
+    module.prepare_hub_release(release, wheel, output, asset_freeze_verified=True,
+        metadata_getter=lambda _: {"id": REPO, "sha": REVISION, "private": False, "gated": False})
+    manifest = output / "dataset.toml"
+    text = manifest.read_text()
+    name = tomllib.loads(text)["dataset"]["name"]
+    manifest.write_text(text.replace('name = "' + name + '"', 'name = "hcltech-robotics/wrong-dataset"', 1))
+    # Keep the inventory valid, so only the explicit destination guard can reject.
+    inventory = json.loads((output / "inventory.json").read_text())
+    for row in inventory:
+        if row["path"] == "dataset.toml":
+            data = manifest.read_bytes();row.update(size_bytes=len(data),sha256=hashlib.sha256(data).hexdigest())
+    module._write_json(output / "inventory.json", inventory)
+    with pytest.raises(ValueError, match="dataset package name"):
+        module._validate_tree(output, release, wheel.name)

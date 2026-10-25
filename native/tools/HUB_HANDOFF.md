@@ -67,10 +67,18 @@ the reference. Do not substitute reduced candidate-probe frames.
 ## Prepare and inspect locally
 
 Verify `SHA256SUMS` before using the extracted handoff. Use the existing dedicated
-Harbor 0.24.0 Python environment; install only the bundled neutral wheel there:
+Harbor 0.24.0 Python environment; install only the bundled neutral wheel there.
+The existing STC environment has `uv` and no pip; use its existing installer:
 
 ```sh
-python -m pip install --force-reinstall --no-deps ./simreadybench_eval-1.0.2-py3-none-any.whl
+uv pip install --python /path/to/harbor-venv/bin/python --reinstall --no-deps ./simreadybench_eval-1.0.2-py3-none-any.whl
+```
+
+For an environment with pip, the equivalent is `python -m pip install
+--force-reinstall --no-deps ./simreadybench_eval-1.0.2-py3-none-any.whl`.
+Run the following with that dedicated environment active:
+
+```sh
 harbor --version
 harbor auth status
 harbor auth org list --search hcltech-robotics --columns name,role
@@ -99,8 +107,8 @@ The following is the publication action; the helper does not execute it:
 harbor publish /tmp/nv100-clean-hub-release --public --tag nv100-v1.0.2 --concurrency 4
 ```
 
-Names in task.toml and dataset.toml select `hcltech-robotics`, not the personal
-namespace. Harbor auto-discovers immediate task child directories and synchronizes
+The dataset package is `hcltech-robotics/simreadybench`. Stable NV100 task
+packages retain their `hcltech-robotics/nv100_<id>` names. Harbor auto-discovers immediate task child directories and synchronizes
 digests: pass only the audited clean root, never its parent or a working checkout.
 Keep the final publisher output and dataset.toml. Versions/tags, including the
 automatically added latest tag, are mutable; retain and use returned content
@@ -118,9 +126,9 @@ credentials, paid inference, timeout multiplier, extra HF agent host or security
 relaxation is needed:
 
 ```sh
-harbor download 'hcltech-robotics/nv100@sha256:<DATASET_DIGEST>' \
+harbor download 'hcltech-robotics/simreadybench@sha256:<DATASET_DIGEST>' \
   --output-dir /tmp/nv100-published-download --export
-harbor run --dataset 'hcltech-robotics/nv100@sha256:<DATASET_DIGEST>' \
+harbor run --dataset 'hcltech-robotics/simreadybench@sha256:<DATASET_DIGEST>' \
   --agent nop --n-tasks 1 --n-concurrent 1 --max-retries 0 \
   --job-name nv100-published-consumption --jobs-dir /tmp/nv100-published-jobs
 ```
