@@ -15,6 +15,7 @@ import xml.etree.ElementTree as ET
 
 VERSION = "package-checks-2"
 LIMIT_BYTES = 256 * 1024 * 1024
+REFERENCE_LIMIT_BYTES = 2 * 1024**3
 LIMIT_FILES = 10000
 USD_EXTS = {".usd", ".usda", ".usdc"}
 EXEC_EXTS = {
@@ -37,13 +38,18 @@ EXEC_EXTS = {
 }
 
 
-def inspect_package(root, *, entrypoint="asset.usd", allow_nested_entrypoint=False):
+def inspect_package(root, *, entrypoint="asset.usd", allow_nested_entrypoint=False,
+                    trusted_reference=False):
     """Scan the entire package before composition.
 
-    Reference closures can opt into a nested entrypoint while retaining the same
-    package-root dependency boundary. Candidate entrypoints remain top-level.
+    Trusted reference closures can opt into their separately bounded byte budget
+    and nested entrypoint. Candidate defaults and dependency confinement remain
+    unchanged; feedback/final candidate callers never grant the reference flag.
     """
     root = Path(root).absolute()
+    if type(trusted_reference) is not bool:
+        raise ValueError("Explicit trusted-reference boolean required")
+    byte_limit = REFERENCE_LIMIT_BYTES if trusted_reference else LIMIT_BYTES
     report = {
         "version": VERSION,
         "package_ok": True,
@@ -90,7 +96,7 @@ def inspect_package(root, *, entrypoint="asset.usd", allow_nested_entrypoint=Fal
                 continue
             files.append(p)
             total += s.st_size
-            if len(files) > LIMIT_FILES or total > LIMIT_BYTES:
+            if len(files) > LIMIT_FILES or total > byte_limit:
                 fail("package_limit_exceeded")
                 return report
         report["metrics"].update(package_bytes=total, package_files=len(files))
@@ -150,7 +156,7 @@ def inspect_package(root, *, entrypoint="asset.usd", allow_nested_entrypoint=Fal
                             expanded_total += item.file_size
                             if (
                                 expanded_count > LIMIT_FILES
-                                or expanded_total > LIMIT_BYTES
+                                or expanded_total > byte_limit
                             ):
                                 fail("expanded_package_limit_exceeded")
                                 break

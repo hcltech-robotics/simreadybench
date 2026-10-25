@@ -76,6 +76,12 @@ not fetched into the verifier. The canonical HF source archive can retain all
 original files. `public_instruction(dimensions)` emits the same public text
 without another render.
 
+Trusted reference preparation and final reference preflight allow a separately
+bounded 2 GiB dependency closure. This permits inspecting original source
+packages; it does not widen the candidate's 256 MiB limit or establish reference
+eligibility. A selected reference still needs a faithful candidate representation
+within the declared submission limit and successful evaluation with headroom.
+
 ## Scores and support
 
 Formal, visual and kinematic fidelity are independent percentages. Formal uses
@@ -86,6 +92,8 @@ Visual is `sqrt(G * mean(R1,R2,R3,R4))`, where G is full 3D surface corresponden
 and each R is foreground-only RGB SSIM at a frozen camera. Authored material
 correspondence remains diagnostic with property-level measurement coverage.
 Opacity-only introspection cannot certify complete material appearance.
+The separate material-property sampler does not certify PNG16 values through
+Pillow's 8-bit RGB conversion; those properties remain explicitly unmeasured.
 
 Qualified rendering supports effective universal Preview Surface colour,
 roughness, metallic, opacity, emissive colour, positive literal IOR, tangent

@@ -22,7 +22,7 @@ import numpy as np
 from PIL import Image
 
 from . import correspondence, render
-from .package import EXEC_EXTS, LIMIT_BYTES, LIMIT_FILES, USD_EXTS, inspect_package
+from .package import EXEC_EXTS, REFERENCE_LIMIT_BYTES, LIMIT_FILES, USD_EXTS, inspect_package
 from .usd import observe
 
 SCHEMA = "simready-asset-preparation-v1"
@@ -85,7 +85,7 @@ def _scan(root):
                     if mode.st_mode & 0o111 or path.suffix.casefold() in EXEC_EXTS:
                         raise _Reject("executable_file_forbidden", path=str(relative))
                     total += mode.st_size
-                    if total > LIMIT_BYTES:
+                    if total > REFERENCE_LIMIT_BYTES:
                         raise _Reject("package_byte_limit_exceeded")
                     # These exact legacy markers are forbidden even if renamed;
                     # scanning bytes neither imports nor executes package content.
@@ -255,7 +255,8 @@ def prepare(source, package_root, output, task_id, *, cameras=None, timeout=180,
         for name in ("eligibility.json", "observation-mask.png", "observation-render-receipt.json"):
             if root / name in files:
                 raise _Reject("reserved_reference_filename", path=name)
-        package = inspect_package(root, entrypoint=entrypoint, allow_nested_entrypoint=True)
+        package = inspect_package(root, entrypoint=entrypoint, allow_nested_entrypoint=True,
+                                  trusted_reference=True)
         if not package["package_ok"] or package["infrastructure_errors"]:
             raise _Reject("package_closure_unavailable", package_report=package)
         _closure(source, root, files)

@@ -75,3 +75,44 @@ def test_opaque_default_matches_explicit_opaque_diagnostics(tmp_path):
     result=compare(explicit,omitted,cfg)
     assert result['components']['shape']==control['components']['shape']
     assert result['components']['materials']==control['components']['materials']
+
+
+def test_16bit_texture_diagnostics_do_not_report_truncated_values(tmp_path):
+    import struct
+    import zlib
+
+    def chunk(kind, data):
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
+
+    texture = tmp_path / 'precise.png'
+    texture.write_bytes(b'\x89PNG\r\n\x1a\n'
+        + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 16, 2, 0, 0, 0))
+        + chunk(b'IDAT', zlib.compress(b'\x00' + struct.pack('>HHH', 32769, 1001, 65534)))
+        + chunk(b'IEND', b''))
+    path = tmp_path / 'asset.usda'
+    stage = Usd.Stage.CreateNew(str(path))
+    mesh = UsdGeom.Mesh.Define(stage, '/Mesh')
+    mesh.CreatePointsAttr([(0, 0, 0), (1, 0, 0), (0, 1, 0)])
+    mesh.CreateFaceVertexCountsAttr([3])
+    mesh.CreateFaceVertexIndicesAttr([0, 1, 2])
+    mesh.CreateSubdivisionSchemeAttr('none')
+    UsdGeom.PrimvarsAPI(mesh).CreatePrimvar('st', Sdf.ValueTypeNames.TexCoord2fArray,
+        'faceVarying').Set([(0, 0), (1, 0), (0, 1)])
+    material = UsdShade.Material.Define(stage, '/Material')
+    shader = UsdShade.Shader.Define(stage, '/Material/Surface')
+    shader.CreateIdAttr('UsdPreviewSurface')
+    tex = UsdShade.Shader.Define(stage, '/Material/Texture')
+    tex.CreateIdAttr('UsdUVTexture')
+    tex.CreateInput('file', Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath('precise.png'))
+    reader = UsdShade.Shader.Define(stage, '/Material/UV')
+    reader.CreateIdAttr('UsdPrimvarReader_float2')
+    reader.CreateInput('varname', Sdf.ValueTypeNames.Token).Set('st')
+    tex.CreateInput('st', Sdf.ValueTypeNames.Float2).ConnectToSource(reader.ConnectableAPI(), 'result')
+    shader.CreateInput('diffuseColor', Sdf.ValueTypeNames.Color3f).ConnectToSource(tex.ConnectableAPI(), 'rgb')
+    material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), 'surface')
+    UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(material)
+    stage.GetRootLayer().Save()
+    observation = observe(path)
+    value = observation['materials'][0]
+    assert 'visual:diffuseColor' not in value
+    assert value['visual:opacity'] == 1

@@ -221,7 +221,7 @@ def sanitize(value):
 
 def _worker_limits():
     for kind, ceiling in ((resource.RLIMIT_CPU, 120), (resource.RLIMIT_AS, 4 * 1024**3),
-                          (resource.RLIMIT_FSIZE, MAX_RESPONSE), (resource.RLIMIT_NOFILE, 128),
+                          (resource.RLIMIT_FSIZE, MAX_ARCHIVE), (resource.RLIMIT_NOFILE, 128),
                           (resource.RLIMIT_NPROC, 128), (resource.RLIMIT_CORE, 0)):
         hard = resource.getrlimit(kind)[1]
         resource.setrlimit(kind, (min(ceiling, hard) if hard != resource.RLIM_INFINITY else ceiling,) * 2)

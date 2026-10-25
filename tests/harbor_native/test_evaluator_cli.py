@@ -39,7 +39,7 @@ def test_render_worker_can_write_measured_large_scene_without_raising_other_limi
     assert (tmp_path / "rendered").stat().st_size == 351193703
 
 
-def test_only_render_dispatch_gets_larger_scene_file_budget(tmp_path, monkeypatch):
+def test_worker_file_budgets_cover_scene_and_trusted_archive_expansion(tmp_path, monkeypatch):
     limits = []
     def process(command, log, **kwargs):
         limits.append((kwargs["file_limit_bytes"], kwargs["address_space_bytes"]))
@@ -48,8 +48,19 @@ def test_only_render_dispatch_gets_larger_scene_file_budget(tmp_path, monkeypatc
     monkeypatch.setattr(cli, "_run_process", process)
     for mode in ("formal", "reference", "compare", "render"):
         cli._run_worker(mode, {}, tmp_path / mode, time.monotonic() + 10)
-    assert limits == [(128 * 1024**2, 8 * 1024**3)] * 3 + [
+    assert limits == [(cli.MAX_BYTES, 8 * 1024**3)] + [
+        (cli.REFERENCE_FILE_LIMIT_BYTES, 8 * 1024**3)] * 2 + [
         (cli.RENDER_FILE_LIMIT_BYTES, cli.RENDER_ADDRESS_SPACE_BYTES)]
+
+
+def test_trusted_reference_worker_can_expand_a_member_above_128_mib(tmp_path):
+    size = 128 * 1024**2 + 1
+    script = 'import sys; f=open(sys.argv[1], "wb"); f.truncate(int(sys.argv[2])); f.close()'
+    path = tmp_path / 'expanded'
+    result = cli._run_process([sys.executable, '-c', script, str(path), str(size)],
+        tmp_path / 'archive.log', timeout=5, file_limit_bytes=cli.REFERENCE_FILE_LIMIT_BYTES)
+    assert result['status'] == 'complete'
+    assert path.stat().st_size == size
 
 
 def test_renderer_address_space_allows_measured_large_mesh_within_container_envelope(tmp_path):

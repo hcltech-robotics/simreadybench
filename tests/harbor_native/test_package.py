@@ -134,3 +134,15 @@ def test_nested_candidate_entrypoint_stays_forbidden_by_default(tmp_path):
     result = inspect_package(tmp_path, entrypoint="simready_usd/asset.usd")
     assert result["package_ok"] is False and result["proven_invalid"] is True
     assert any(row["code"] == "invalid_entrypoint" for row in result["findings"])
+
+
+def test_trusted_reference_bytes_are_separate_from_declared_candidate_limit(tmp_path):
+    asset(tmp_path)
+    with (tmp_path / 'data.bin').open('wb') as stream:
+        stream.truncate(256 * 1024**2 + 1)
+    candidate = inspect_package(tmp_path)
+    assert not candidate['package_ok']
+    assert any(row['code'] == 'package_limit_exceeded' for row in candidate['findings'])
+    reference = inspect_package(tmp_path, trusted_reference=True)
+    assert reference['package_ok'] and not reference['infrastructure_errors']
+    assert reference['metrics']['package_bytes'] > 256 * 1024**2

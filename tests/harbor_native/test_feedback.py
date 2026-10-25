@@ -27,6 +27,21 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def test_feedback_worker_file_bound_permits_declared_archive_expansion(tmp_path):
+    import subprocess
+    import sys
+    from simready_eval.feedback import MAX_RESPONSE
+
+    path = tmp_path / 'expanded-member'
+    size = MAX_RESPONSE + 1
+    result = subprocess.run([sys.executable, '-c',
+        'from simready_eval.feedback import _worker_limits; import sys; '
+        '_worker_limits(); f=open(sys.argv[1], "wb"); f.truncate(int(sys.argv[2])); f.close()',
+        str(path), str(size)], capture_output=True, timeout=5)
+    assert result.returncode == 0, result.stderr.decode()
+    assert path.stat().st_size == size
+
+
 def test_atomic_five_call_quota_idempotency_and_restart(tmp_path):
     ledger = FeedbackLedger(tmp_path / "state")
     status, body, accepted = ledger.reserve("a", "a" * 64)

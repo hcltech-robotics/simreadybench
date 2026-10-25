@@ -189,6 +189,14 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
 
             if file.stat().st_size > 128 * 1024**2:
                 return None
+            with file.open('rb') as stream:
+                header = stream.read(29)
+            if (header[:8] == b'\x89PNG\r\n\x1a\n' and header[12:16] == b'IHDR'
+                    and len(header) == 29 and header[24] > 8):
+                # Pillow exposes RGB/RGBA PNG16 as 8-bit modes. The diagnostic
+                # sampler does not certify values after that lossy conversion;
+                # the independent native renderer preserves the original PNG16.
+                return None
             with Image.open(file) as image:
                 if image.width * image.height > 16 * 1024**2:
                     return None

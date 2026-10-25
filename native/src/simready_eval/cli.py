@@ -21,6 +21,7 @@ import tempfile
 import time
 
 from . import contract
+from .package import REFERENCE_LIMIT_BYTES
 
 SCHEMA = "simready-evaluator-config-v1"
 ELIGIBILITY_SCHEMA = "simready-reference-eligibility-v1"
@@ -222,6 +223,7 @@ def verify_candidate(root, receipt):
 
 RENDER_FILE_LIMIT_BYTES = 4 * 1024**3
 RENDER_ADDRESS_SPACE_BYTES = 12 * 1024**3
+REFERENCE_FILE_LIMIT_BYTES = REFERENCE_LIMIT_BYTES
 
 
 def _worker_limits(seconds, file_limit_bytes=128 * 1024**2, address_space_bytes=8 * 1024**3):
@@ -261,10 +263,14 @@ def _run_worker(mode, request, scratch, deadline, *, seconds=120):
     scratch.mkdir(parents=True, exist_ok=True)
     request_file, result_file = scratch / "request.json", scratch / "result.json"
     request_file.write_text(json.dumps(request, allow_nan=False))
+    file_limit = (RENDER_FILE_LIMIT_BYTES if mode == "render" else
+                  REFERENCE_FILE_LIMIT_BYTES if mode in ("reference", "compare") else
+                  MAX_BYTES if mode == "formal" else
+                  128 * 1024**2)
     try:
         status = _run_process([sys.executable, "-m", "simready_eval.cli", "_worker", mode,
                                str(request_file), str(result_file)], scratch / "worker.log", timeout=remaining,
-                              file_limit_bytes=RENDER_FILE_LIMIT_BYTES if mode == "render" else 128 * 1024**2,
+                              file_limit_bytes=file_limit,
                               address_space_bytes=RENDER_ADDRESS_SPACE_BYTES if mode == "render" else 8 * 1024**3)
     except OSError as exc:
         return {"status": "unknown", "reason": "worker_launch_failed", "error_type": type(exc).__name__}
@@ -460,7 +466,8 @@ def _worker(mode, request):
         reference = Path(request["reference"])
         reference_root = Path(request["reference_root"])
         preflight = inspect_package(reference_root,
-            entrypoint=reference.relative_to(reference_root).as_posix(), allow_nested_entrypoint=True)
+            entrypoint=reference.relative_to(reference_root).as_posix(), allow_nested_entrypoint=True,
+            trusted_reference=True)
         if not preflight["package_ok"] or preflight["infrastructure_errors"]:
             return {"status": "unknown", "reason": "reference_package_unavailable", "preflight": preflight}
         observation = observe(reference)

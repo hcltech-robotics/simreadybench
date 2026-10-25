@@ -88,6 +88,18 @@ retain a referenced archive, exclude unrelated originals, and canonicalize
 relative UDIM tile paths. They do not copy or publish data. Exported recipes
 also pin the same OMP/OpenBLAS/USD thread limits used by these measurements.
 Nominal XYZ dimensions remain public as required by the existing input contract.
+Reference preparation no longer accidentally applies the candidate's 256 MiB
+package bound: trusted references have a separate 2 GiB acquisition bound, while
+candidate and feedback package limits remain unchanged. Reference/compare file
+limits also permit the bounded USDZ expansion. Final formal and feedback workers
+permit candidate archive members up to the declared 256 MiB package limit;
+feedback JSON is still independently capped at 8 MiB. The targeted package, CLI,
+feedback and material-diagnostic SDK checks passed (82 tests). This is a preparation fix, not evidence that an
+asset exceeding the candidate limit is eligible; a faithful bounded candidate
+representation must still be demonstrated.
+The material-property sampler now leaves PNG16 properties unmeasured instead of
+reporting Pillow's truncated 8-bit values. This diagnostic limit is separate from
+the renderer, which is being corrected to preserve the original encoded PNG16.
 
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses
