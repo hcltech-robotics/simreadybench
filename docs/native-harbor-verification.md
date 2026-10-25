@@ -194,6 +194,42 @@ genuine SDK comparison/dispatch regression reproduced 180 before the change;
 36 contract/CLI tests pass with the corrected allocation. No accepted STC run
 or reference render was repeated for this diagnosis.
 
+The bounded candidate witness copied the full bed geometry unchanged: 853847
+triangles and an identical canonical geometry digest. Only its 22 candidate
+texture copies changed to RGBA8 / at most 2048px LANCZOS; this is explicitly
+lossy authoring, never a source/reference reduction. Candidate preflight passes
+at 107715941 bytes / 41 files. Original reference closure is 452060328 bytes /
+40 files, larger than the 268435456-byte candidate limit. No losslessly optimized
+candidate below that limit has been demonstrated; ordinary archive compression
+does not solve an expanded-byte limit. The 0.70037 visual-point loss is real,
+so this witness does not prove exact-identity/Oracle eligibility.
+
+The diagnostic measured G=100, R=98.6041698722, V=99.2996323620 and K=100,
+all at coverage 1, in 500.272927s. Its interpreter lacked MaterialX, so its
+original formal result remains unknown and its original report/reward are
+preserved. A formal-only check of the actual unchanged frozen candidate in the
+already pinned MaterialX/NVIDIA SDK environment took 15.105728s: formal
+88.8043478261, 43 passes / 3 failures / 0 unknown. Conservative serial phase
+time is 515.378656s, leaving 84.621344s of the existing 600s allowance. This is
+phase-wise feasibility evidence, not a single fully configured invocation or
+an official benchmark result. Peak process-tree RSS was 3760308 KiB (3.59 GiB).
+Library `libfile_35386a031b64819197b603869e9cd85a` version 0 contains the source/
+candidate manifests, geometry digest, integrity checks, both unmodified result
+records, images, candidate-only build recipe and license, but no USD/texture
+binaries. ZIP SHA256:
+`8d305db6cc0605380851642125ac435e8778657f0716ccd5c91e31a27e0c6491`.
+
+Asset-task timeout diagnostics were independently materialized and SHA-verified
+from Library `libfile_3b1ed67bf42c8191b1446d21560cb072` version 0. They show a
+4-CPU quota running two render jobs plus a reference-profile worker: bed and
+toolbox hit the inner Blender 180s limit at total 516.02s / 545.08s. Their scene,
+camera, recipe and binary identities match the successful isolated source probes.
+This establishes distinct contended failures, not a changed material graph or
+new quality score. Isolate these known heavy preparations from other render/
+profile work on a 4-CPU host; let the asset owner's queued isolated retries
+provide that separate host evidence. No retries, limit increases or roster purge
+were performed here for those failures. STC remains the selected Harbor host.
+
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses
 `sqrt(full_3D_geometry * mean(four_foreground_SSIM_percentages))`. Four views have

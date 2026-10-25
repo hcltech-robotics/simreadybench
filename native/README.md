@@ -81,6 +81,8 @@ bounded 2 GiB dependency closure. This permits inspecting original source
 packages; it does not widen the candidate's 256 MiB limit or establish reference
 eligibility. A selected reference still needs a faithful candidate representation
 within the declared submission limit and successful evaluation with headroom.
+Do not treat a texture-reduced candidate as exact-identity or Oracle eligibility:
+its measured visual loss is real, and lossless packing must be assessed separately.
 
 ## Scores and support
 
@@ -161,6 +163,16 @@ These are not full-grader eligibility claims: their original texture closures
 exceed the declared candidate package limit, and complete evaluation must fit
 the unchanged 600-second total. Keep the original
 execution receipts and any final-code equivalence proof separate.
+
+A separate bed feasibility witness retained every triangle but authored candidate
+PNGs as RGBA8 at at most 2048px. That 107715941-byte candidate measured G=100,
+R=98.60417, V=99.29963 and K=100, with formal 88.80435 measured separately in the
+pinned SDK runtime. Conservative serial phase time was 515.38s and peak measured
+process-tree RSS 3.59 GiB. It is explicitly lossy candidate evidence, not an
+exact Oracle or one fully configured invocation. Reference bytes were unchanged.
+The original required bed closure is 452060328 bytes; no optimized lossless
+candidate below 256 MiB has been demonstrated, and compression alone cannot
+evade the expanded-byte limit.
 
 Finite nonzero authored normals retain their original corners and are normalized.
 Zero authored normal vectors are preserved as zero, invoking Blender
