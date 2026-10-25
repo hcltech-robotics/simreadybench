@@ -99,7 +99,16 @@ asset exceeding the candidate limit is eligible; a faithful bounded candidate
 representation must still be demonstrated.
 The material-property sampler now leaves PNG16 properties unmeasured instead of
 reporting Pillow's truncated 8-bit values. This diagnostic limit is separate from
-the renderer, which is being corrected to preserve the original encoded PNG16.
+the corrected renderer, which streams lossless files, shares content descriptors
+and preserves original encoded PNG16 for native Blender decoding. Nine targeted
+tests pass, including actual native low-bit samples and canonical ICC removal.
+The final bridge's canonical files match all 31 active 8-bit inputs from the
+printer and heat gun exactly. Actual five-RGB/five-mask probes match the previous
+baseline byte for byte (40.58s / 451412 KiB child RSS for the printer, 115.74s /
+1254900 KiB for the heat gun). Their scientific scenes, cameras and Blender
+binary also match. These equivalence results preserve the original receipts;
+they do not claim that new code originally produced historical images.
+Bed/toolbox full-precision rendering remains separate resource qualification.
 
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses

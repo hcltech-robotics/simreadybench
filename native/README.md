@@ -117,9 +117,17 @@ Receipts retain `source_material_status=unbound` and material correspondence
 material. A bound unsupported shader never receives this fallback.
 
 The renderer bounds source extraction at four million triangles and 1 GiB of
-surface storage, and decoded textures at 1 GiB total, 16 megapixels per image.
-Exceeding a bound returns an explicit unknown resource receipt. These limits
-do not establish a whole-dataset runtime or memory qualification.
+surface storage. The texture bridge streams one lossless file at a time and
+retains shared content-addressed descriptors instead of decoded texture banks.
+Its 1 GiB pixel-buffer bound applies to peak decoding/export allocation, with
+a separate 16-megapixel and 128 MiB encoded-file bound per image. Eight-bit
+images retain the existing canonical RGBA PNG bytes; 16-bit PNGs retain their
+original encoded bytes and native sample precision for Blender decoding. Raw
+and sRGB interpretations remain separate even when content is shared. Receipts
+report source bit depths, content sharing and bridge pixel-buffer estimates;
+actual Blender allocations are measured separately under its address-space
+bound. Exceeding a resource bound returns typed unknown. These limits do not
+establish a whole-dataset runtime or memory qualification.
 
 The final verifier bounds the render worker at 12 GiB of address space inside
 its 16 GiB container; other workers keep their own bounds and the overall

@@ -568,3 +568,67 @@ def test_worker_decoder_shares_only_bitwise_equal_uvs_within_each_triangle(monke
     assert first['uv']['diffuseColor'] is first['uv']['roughness']
     assert first['uv']['diffuseColor'] is not first['uv']['normal_frame']
     assert first['uv']['diffuseColor'] is not second['uv']['diffuseColor']
+
+
+def write_rgba16_png(path,pixels):
+    import struct,zlib
+    values=np.asarray(pixels,dtype=np.uint16);height,width,_=values.shape
+    def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+    rows=b''.join(b'\x00'+row.astype('>u2').tobytes()for row in values)
+    path.write_bytes(b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,16,6,0,0,0))+chunk(b'IDAT',zlib.compress(rows))+chunk(b'IEND',b''))
+
+
+@pytest.mark.skipif(not Path('/usr/bin/blender').exists(),reason='public Blender unavailable')
+def test_native_16bit_texture_low_samples_are_not_truncated(tmp_path):
+    from pxr import UsdShade,Sdf
+    from simready_eval.render import _extract_scene
+    import subprocess
+    source=tmp_path/'source.usda';stage=textured_quad(source)
+    texture=tmp_path/'precision.png';write_rgba16_png(texture,[[[1,257,32769,65535]]])
+    node=UsdShade.Shader(stage.GetPrimAtPath('/Mat/Tex'));node.GetInput('file').Set(Sdf.AssetPath(str(texture)))
+    node.GetInput('sourceColorSpace').Set('raw');stage.GetRootLayer().Save()
+    output=tmp_path/'scene';output.mkdir();scene,support=_extract_scene(source,output,np.eye(4))
+    assert support['status']=='supported',support
+    exported=Path(scene['materials'][0]['diffuseColor']['file'])
+    assert exported.read_bytes()==texture.read_bytes()
+    assert exported.read_bytes()[24]==16
+    expression="import bpy,json;im=bpy.data.images.load("+repr(str(exported))+");im.colorspace_settings.name='Non-Color';print('NATIVE_PIXEL:'+json.dumps(list(im.pixels[:4])))"
+    process=subprocess.run(['/usr/bin/blender','--background','--factory-startup','--threads','1','--python-exit-code','1','--python-expr',expression],capture_output=True,text=True,timeout=30)
+    assert process.returncode==0,process.stdout+process.stderr
+    pixels=json.loads(next(line.split(':',1)[1]for line in process.stdout.splitlines()if line.startswith('NATIVE_PIXEL:')))
+    assert pixels==pytest.approx([1/65535,257/65535,32769/65535,1],abs=4e-8)
+
+
+def test_texture_streaming_deduplicates_content_without_retaining_rgba(tmp_path,monkeypatch):
+    from simready_eval.render import _TextureBridge,RECIPE
+    source=tmp_path/'asset.usda';source.write_text('#usda 1.0\n')
+    pixels=np.full((4,4,3),(20,40,80),np.uint8)
+    first=tmp_path/'a.png';second=tmp_path/'b.png';third=tmp_path/'c.png'
+    Image.fromarray(pixels).save(first,compress_level=0);Image.fromarray(pixels).save(second,compress_level=9)
+    Image.fromarray(np.full((4,4,3),(80,40,20),np.uint8)).save(third)
+    monkeypatch.setitem(RECIPE,'maximum_decoded_texture_bytes',176)
+    bridge=_TextureBridge(source,texture_dir=tmp_path/'encoded')
+    a=bridge._read_image(first);b=bridge._read_image(second);c=bridge._read_image(third)
+    assert a is b and a is not c
+    assert not any(isinstance(value,np.ndarray)for value in bridge.images.values())
+    assert bridge.texture_statistics()['retained_rgba_bytes']==0
+    assert bridge.texture_statistics()['peak_decoded_rgba_bytes']<=176
+    monkeypatch.setitem(RECIPE,'maximum_decoded_texture_bytes',175)
+    with pytest.raises(MemoryError):_TextureBridge(source,texture_dir=tmp_path/'small')._read_image(first)
+
+
+def test_streamed_8bit_canonical_export_discards_source_icc_metadata(tmp_path):
+    from PIL import ImageCms
+    from simready_eval.render import _TextureBridge
+    source=tmp_path/'asset.usda';source.write_text('#usda 1.0\n')
+    pixels=np.full((2,2,3),(20,40,80),np.uint8)
+    first=tmp_path/'icc.png';plain=tmp_path/'plain.png'
+    profile=ImageCms.ImageCmsProfile(ImageCms.createProfile('sRGB')).tobytes()
+    Image.fromarray(pixels).save(first,icc_profile=profile)
+    Image.fromarray(pixels).save(plain)
+    expected=tmp_path/'legacy.png';Image.fromarray(np.asarray(Image.open(plain).convert('RGBA'))).save(expected)
+    bridge=_TextureBridge(source,texture_dir=tmp_path/'encoded')
+    exported=bridge._read_image(first);same=bridge._read_image(plain)
+    assert exported is same
+    assert exported.file.read_bytes()==expected.read_bytes()
+    assert not Image.open(exported.file).info

@@ -23,12 +23,15 @@ import math
 from pathlib import Path
 import subprocess
 import shutil
+import struct
+import tempfile
 
 import numpy as np
 from PIL import Image
 
 RECIPE = {
     'schema': 'simready-neutral-cycles-v1', 'blender_version':'4.3.2', 'engine': 'CYCLES', 'device': 'CPU',
+    'texture_input_precision':'lossless streamed 8-bit RGBA canonical PNG; original 16-bit PNG samples preserved for native Blender decoding',
     'maximum_triangles':4_000_000,'maximum_surface_bytes':1024**3,'maximum_decoded_texture_bytes':1024**3,
     'samples': 8, 'seed': 1729, 'adaptive_sampling': False, 'denoising': False,
     'view_transform': 'Standard', 'look': 'None', 'exposure': 0.0, 'gamma': 1.0,
@@ -142,18 +145,30 @@ def _alignment_matrix(alignment):
     return matrix
 
 
+class _TextureFile:
+    """Immutable content-addressed texture metadata; never owns decoded RGBA."""
+    __slots__=('file','digest','shape','bit_depth')
+
+    def __init__(self,file,digest,shape,bit_depth):
+        self.file=Path(file);self.digest=digest;self.shape=tuple(shape);self.bit_depth=bit_depth
+
+
 class _TextureBridge:
     """Read the public PreviewSurface texture graph independently of M diagnostics.
 
     UsdTransform2d applies scale, then counterclockwise rotation in degrees,
     then translation, per the OpenUSD PreviewSurface specification.
     """
-    def __init__(self, source,package_root=None):
+    def __init__(self, source,package_root=None,texture_dir=None):
         source=Path(source).resolve()
         self.root=Path(package_root).resolve()if package_root is not None else source.parent
         if not self.root.is_dir()or not source.is_relative_to(self.root):
             raise ValueError('Source must be contained in an existing package root')
-        self.inputs={}; self.images={}; self.primvars={}
+        self._temporary_textures=tempfile.TemporaryDirectory(prefix='simready-textures-')if texture_dir is None else None
+        self.texture_dir=Path(self._temporary_textures.name)if texture_dir is None else Path(texture_dir)
+        self.texture_dir.mkdir(parents=True,exist_ok=True)
+        self.inputs={};self.images={};self.primvars={}
+        self.encoded_images={};self.image_contents={};self.image_metadata={};self.peak_decoded_rgba_bytes=0
         self.current_metadata=None;self.current_prim=None;self.current_raw_uv={};self.current_uv={}
         self.constant_uv=np.zeros((3,2))
 
@@ -190,15 +205,69 @@ class _TextureBridge:
     def _read_image(self,file):
         file=Path(file).resolve()
         if not file.is_relative_to(self.root):raise ValueError('Texture escapes source package')
-        if file not in self.images:
-            if file.stat().st_size>128*1024**2:raise ValueError('Encoded texture exceeds resource bound')
-            with Image.open(file) as image:
-                if image.width*image.height>16*1024**2:raise ValueError('Decoded texture exceeds resource bound')
-                pixels=np.array(image.convert('RGBA'),dtype=np.uint8)
-            if pixels.nbytes+sum(p.nbytes for p in self.images.values())>RECIPE['maximum_decoded_texture_bytes']:
-                raise ValueError('Decoded texture allocation exceeds resource bound')
-            self.images[file]=pixels
-        return self.images[file]
+        if file in self.images:return self.images[file]
+        size=file.stat().st_size
+        if size>128*1024**2:raise MemoryError('Encoded texture exceeds resource bound')
+        encoded_digest=hashlib.sha256()
+        with file.open('rb')as stream:
+            header=stream.read(33);encoded_digest.update(header)
+            while block:=stream.read(1024**2):encoded_digest.update(block)
+        encoded_digest=encoded_digest.hexdigest()
+        png_depth=header[24]if header[:8]==b'\x89PNG\r\n\x1a\n'and header[12:16]==b'IHDR'else None
+        if png_depth is not None:
+            width,height=struct.unpack('>II',header[16:24])
+            if width*height>16*1024**2:raise MemoryError('Decoded texture exceeds pixel resource bound')
+        with Image.open(file)as image:
+            width,height=image.size;mode=image.mode
+            if width*height>16*1024**2:raise MemoryError('Decoded texture exceeds pixel resource bound')
+            native=png_depth==16
+            if not native and(mode in('I','F')or mode.startswith('I;16')):
+                raise ValueError('High-precision texture requires supported native PNG input')
+            bit_depth=16 if native else 8
+            rgba_bytes=width*height*4*(bit_depth//8)
+            peak_pixel_bytes=0 if native else width*height*(len(image.getbands())+8)
+            if max(rgba_bytes,peak_pixel_bytes)>RECIPE['maximum_decoded_texture_bytes']:
+                raise MemoryError('Single decoded texture exceeds peak allocation bound')
+            if encoded_digest in self.encoded_images:
+                result=self.encoded_images[encoded_digest]
+            elif native:
+                # Keep every original 16-bit sample and let the qualified public
+                # Blender decoder consume it. Pillow's RGB/RGBA view is only 8-bit.
+                key='native16:'+encoded_digest
+                result=self.image_contents.get(key)
+                if result is None:
+                    target=self.texture_dir/('native16-'+encoded_digest+'.png')
+                    if not target.exists():shutil.copyfile(file,target)
+                    result=_TextureFile(target,key,(height,width,4),16)
+                    self.image_contents[key]=result
+            else:
+                # Bound original decoder pixels, one RGBA image and its immutable
+                # byte view. No float array or per-material decoded copy is held.
+                rgba=image.convert('RGBA');rgba.info.clear()
+                pixels=rgba.tobytes();shape=(height,width,4)
+                self.peak_decoded_rgba_bytes=max(self.peak_decoded_rgba_bytes,peak_pixel_bytes)
+                digest=hashlib.sha256();digest.update(pixels);digest.update(str(shape).encode())
+                key=digest.hexdigest();result=self.image_contents.get(key)
+                if result is None:
+                    target=self.texture_dir/(key+'.png')
+                    if not target.exists():rgba.save(target)
+                    result=_TextureFile(target,key,shape,8)
+                    self.image_contents[key]=result
+                del pixels,rgba
+        self.encoded_images[encoded_digest]=result
+        self.images[file]=result
+        self.image_metadata[file]={'width':width,'height':height,'bit_depth':bit_depth,'pillow_mode':mode,
+                                  'encoded_sha256':encoded_digest,'source_sample_rgba_bytes':rgba_bytes,
+                                  'native_precision_preserved':native}
+        return result
+
+    def texture_statistics(self):
+        return {'source_paths':len(self.images),'unique_texture_contents':len(self.image_contents),
+                'retained_rgba_bytes':0,'peak_decoded_rgba_bytes':self.peak_decoded_rgba_bytes,
+                'maximum_peak_decoded_rgba_bytes':RECIPE['maximum_decoded_texture_bytes'],
+                'source_sample_rgba_bytes':sum(item['source_sample_rgba_bytes']for item in self.image_metadata.values()),
+                'files':[{'path':str(file.relative_to(self.root)),**metadata}for file,metadata in self.image_metadata.items()],
+                'scope':'bridge streams one lossless texture at a time; Blender native allocations are bounded and measured separately'}
 
     def _compile(self,inp):
         from pxr import UsdShade
@@ -224,7 +293,7 @@ class _TextureBridge:
             layer=specs[0].layer if specs else None
             tiles=UsdShade.UdimUtils.ResolveUdimTilePaths(authored,layer)
             if not tiles:raise ValueError('UDIM template has no resolvable tiles')
-            if len(tiles)>100:raise ValueError('UDIM tile resource bound exceeded')
+            if len(tiles)>100:raise MemoryError('UDIM tile resource bound exceeded')
             descriptor.update(udim=True,textures={str(tile):self._read_image(file)for file,tile in tiles})
         else:
             if not resolved:raise ValueError('Unresolved authored UVTexture file')
@@ -304,7 +373,8 @@ def _extract_scene(source, target, alignment,package_root=None):
     triangles = triangles @ alignment[:3,:3].T + alignment[:3,3]
     materials = observation['materials']
     rows, material_rows, lookup, unsupported = [], [], {}, []
-    diagnostics=[]; issues=set(); bridge=_TextureBridge(source,package_root)
+    texture_dir=target/'textures';texture_dir.mkdir(parents=True,exist_ok=True)
+    diagnostics=[];issues=set();bridge=_TextureBridge(source,package_root,texture_dir=texture_dir)
     triangle_context=[None]*len(triangles)
     material_status={'bound_preview_surface_triangles':0,'unbound_triangles':0}
     xforms=UsdGeom.XformCache(Usd.TimeCode.Default())
@@ -335,10 +405,9 @@ def _extract_scene(source, target, alignment,package_root=None):
             if shader: used_shaders.add(str(shader.GetPath()))
             if material.GetDisplacementOutput() and material.GetDisplacementOutput().HasConnectedSource():
                 unsupported.append({'prim':str(bound.GetPath()),'reason':'Unsupported displacement output'})
-    texture_dir = target/'textures'; texture_dir.mkdir(exist_ok=True)
     # Geometry and material observation is lazy; visit every triangle before
     # assessing support. Each corner's UV survives triangulation in this API.
-    image_files={};udim_files={};material_templates={}
+    udim_files={};material_templates={}
     fields=[('diffuseColor',[.18,.18,.18]),('roughness',.5),('metallic',0.),('opacity',1.),
             ('normal',[0.,0.,1.]),('emissiveColor',[0.,0.,0.]),('ior',1.5)]
     for index in range(len(triangles)):
@@ -388,24 +457,18 @@ def _extract_scene(source, target, alignment,package_root=None):
                     if issue not in issues:
                         diagnostics.append({'prim':issue[0],'reason':issue[2],'input':name});issues.add(issue)
                 elif value.get('udim'):
-                    tile_hashes={tile:hashlib.sha256(pixels.tobytes()+str(pixels.shape).encode()).hexdigest()
-                                 for tile,pixels in value['textures'].items()} if id(value['textures']) not in udim_files else None
                     cache_key=id(value['textures'])
                     if cache_key not in udim_files:
+                        tile_hashes={tile:texture.digest for tile,texture in value['textures'].items()}
                         prefix=_identity(tile_hashes)
                         tile_files={tile:str((texture_dir/(prefix+'.'+tile+'.png')).resolve())for tile in tile_hashes}
                         for tile,file in tile_files.items():
-                            if not Path(file).exists():Image.fromarray(value['textures'][tile]).save(file)
+                            if not Path(file).exists():shutil.copyfile(value['textures'][tile].file,file)
                         udim_files[cache_key]=(str((texture_dir/(prefix+'.<UDIM>.png')).resolve()),tile_files)
                     file,tiles=udim_files[cache_key]
                     record[name].update(udim=True,file=file,tiles=tiles)
                 else:
-                    pixels=np.asarray(value['texture'],np.uint8);image_key=id(value['texture'])
-                    if image_key not in image_files:
-                        texture_hash=hashlib.sha256(pixels.tobytes()+str(pixels.shape).encode()).hexdigest()
-                        image_files[image_key]=texture_dir/(texture_hash+'.png')
-                        if not image_files[image_key].exists():Image.fromarray(pixels).save(image_files[image_key])
-                    record[name]['file']=str(image_files[image_key].resolve())
+                    record[name]['file']=str(value['texture'].file.resolve())
 
             elif cached is None:
                 record[name] = value
@@ -502,7 +565,7 @@ def _extract_scene(source, target, alignment,package_root=None):
            'corner_normals':normals.tolist(),'normal_valid':normal_valid.tolist()}
     return scene, {'status':'supported' if not unsupported else 'unknown',
                    'unsupported':unsupported,'diagnostics':diagnostics,'source_material_status':material_status,'unbound_policy':RECIPE['unbound_material_policy'],'units':'metres/Z-up',
-                   'triangles':len(triangles),'surface_scope':observation['eligibility'],
+                   'triangles':len(triangles),'texture_cache':bridge.texture_statistics(),'surface_scope':observation['eligibility'],
                    'shader_scope':'universal PreviewSurface colour, roughness, metallic, opacity, tangent normal, emission, literal IOR; UsdUVTexture including UDIM and fallback + PrimvarReader + UsdTransform2d; declared unbound display/default policy'}
 
 
