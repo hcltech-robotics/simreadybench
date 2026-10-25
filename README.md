@@ -12,6 +12,7 @@
     <a href="https://hcltech-robotics.github.io/simreadybench/#paper"><img src="https://img.shields.io/badge/Paper-coming_soon-8A6D3B?style=flat-square" alt="Paper coming soon"></a>
     <a href="https://github.com/hcltech-robotics/simreadybench"><img src="https://img.shields.io/badge/Code-GitHub-24292F?style=flat-square" alt="Code on GitHub"></a>
     <a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench"><img src="https://img.shields.io/badge/Dataset-results-567A9A?style=flat-square" alt="Dataset and results on Hugging Face"></a>
+    <a href="https://hub.harborframework.com/datasets/hcltech-robotics/simreadybench"><img src="https://img.shields.io/badge/Harbor-Hub-006B73?style=flat-square" alt="SimReadyBench on Harbor Hub"></a>
     <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/evaluation.md"><img src="https://img.shields.io/badge/Scoring-guide-5B6573?style=flat-square" alt="Scoring guide"></a>
     <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/LICENSE"><img src="https://img.shields.io/badge/Licence-MIT-5B6573?style=flat-square" alt="MIT licence"></a>
   </p>
