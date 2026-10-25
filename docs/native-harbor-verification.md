@@ -324,3 +324,36 @@ references, and provide rollback evidence without deleting source paths.
 Live copy, reader/writer cutover and root benchmark card changes remain pending.
 The optional per-set bucket manifest is only a mirror of a pinned dataset;
 no bucket has been created or copied.
+
+## Accepted STC execution and publication handoff
+
+The corrected 1 GiB fixture completed on STC using official Harbor 0.24.0:
+2026-10-25T20:51:10.997Z to 20:52:47.298Z, trial
+`nv100-neutral-hinge__AEQTHtY`, completed 1 / errors 0, null exception and
+collected rewards. Five feedback calls completed and the sixth was rejected.
+The actor's public 1 GiB contract and the 2 GiB feedback scratch declaration were
+asserted. Frozen images remained byte-identical. This accepted lifecycle evidence
+is Library `libfile_5b6bd07d66ac81919e1516dc1bfde698` version 2, SHA-256
+`2a9e91ea4ac9efa5f066072aa4d6f5c380a283c76a8e573aaf2337549b1a7346`.
+No duplicate smoke is needed for documentation or handoff-tool-only changes.
+
+The original full-texture bed/toolbox renders are preserved in Library
+`libfile_2547d70d2a50819192c96cc56e267bd4` version 0, SHA-256
+`a9d0b972e17cde428e9688996e1b6e66c586406ce9bb42454828ca5a98a78d24`.
+The handoff has ten original RGBs and ten masks, frozen cameras, receipts,
+source metadata, and the bed final-code equivalence proof. These are source
+renders, never the reduced candidate feasibility images. The asset owner has
+reported all 100 assets / 500 frames complete and visually reviewed; the immutable
+HF payload commit and final role manifests remain the publication inputs.
+
+`native/tools/prepare_hub_release.py` prepares only a fresh allowlisted local
+export after the release owner's completed-freeze acknowledgment. It checks the
+exact public ungated HF commit without credentials, uses the accepted runtime,
+validates all 100 task names/schemas, dataset-level and publisher hashes and
+inventory, and finalizes status without claiming published consumption or
+100 task-specific Oracles. Nine focused tests pass, including rejection of
+missing/null/auto/manual gating metadata. Independent review's gating finding
+was corrected. `native/tools/HUB_HANDOFF.md` gives the exact STC commands.
+The helper does not publish or obtain credentials; existing approved Hub login
+stays only on STC. The required order remains full immutable HF freeze, clean Hub
+publication, then consumption of the published content digest on STC.
