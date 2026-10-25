@@ -1,0 +1,403 @@
+{
+  "SDK_dispatch_source_sha256": {
+    "simready.validate.api": "f3185014fa445f28db2630af24ee7e78dd7e35a24423557b22146c40a9800f36",
+    "usd_validation_nvidia._base_rule_checker": "b46e2cacd61b7d6b10d4a49a6392b0927e323d9735df695dc9f820de636c3a23",
+    "usd_validation_nvidia._compliance_checker": "8255df20e50330f9e5edbc4c0a3a5c35f9f8c70d2ae2deaff83d95a718738115",
+    "usd_validation_nvidia._compliance_runners": "9f66e8212fa9a5adadde1ce4f8f28640e62d8495fd3596a2c2cdee18803bce8f",
+    "usd_validation_nvidia._engine": "150c9ae2b37243f8b87b20128cf779e61e0ff99c3b5daacdef709604fc6cee52"
+  },
+  "mandatory_features": [
+    {
+      "id": "FET_000_STANDARD",
+      "version": "0.2.0"
+    },
+    {
+      "id": "FET_001_STANDARD",
+      "version": "1.0.1"
+    },
+    {
+      "id": "FET_003_STANDARD",
+      "version": "0.2.0"
+    },
+    {
+      "id": "FET_006_STANDARD",
+      "version": "0.2.0"
+    },
+    {
+      "id": "FET_011_RTX",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_011_STANDARD",
+      "version": "0.2.0"
+    },
+    {
+      "id": "FET_031_STANDARD",
+      "version": "0.1.0"
+    },
+    {
+      "id": "FET_033_STANDARD",
+      "version": "0.4.0"
+    },
+    {
+      "id": "FET_046_STANDARD",
+      "version": "0.1.0"
+    }
+  ],
+  "mandatory_requirement_count": 46,
+  "mandatory_requirements": [
+    {
+      "code": "com.nvidia.simready.HI.010",
+      "rule": "simready.foundation.tier_core.capabilities.hierarchy.validation.UndefinedPrimsChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NP.002",
+      "rule": "simready.foundation.tier_core.capabilities.core.naming_paths.validation.FileNamingConventionChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NP.003",
+      "rule": "simready.foundation.tier_core.capabilities.core.naming_paths.validation.DirectoryStructureChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NP.004",
+      "rule": "simready.foundation.tier_core.capabilities.core.naming_paths.validation.PathLengthLimitsChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NP.005",
+      "rule": "simready.foundation.tier_core.capabilities.core.naming_paths.validation.AssetFolderStructureChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NP.007",
+      "rule": "simready.foundation.tier_core.capabilities.core.naming_paths.validation.RelativePathsChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.NP.008",
+      "rule": "simready.foundation.tier_core.capabilities.core.naming_paths.validation.PathsExistChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.RigidBodyCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.007",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.RigidBodyMassChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.010",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.InvisibleCollisionMeshHasPurposeGuide",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.COL.001",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.RigidBodyColliderCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.COL.002",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.RigidBodyColliderMeshChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.RB.COL.003",
+      "rule": "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation.RigidBodyColliderNonUniformScaleChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SL.001",
+      "rule": "simready.foundation.tier_core.capabilities.semantic_labels.validation.SemanticLabelsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SL.002",
+      "rule": "simready.foundation.tier_core.capabilities.semantic_labels.validation.SemanticLabelsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SL.003",
+      "rule": "simready.foundation.tier_core.capabilities.semantic_labels.validation.SemanticLabelsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SL.MAT.001",
+      "rule": "simready.foundation.tier_core.capabilities.semantic_labels.validation.SemanticLabelsMaterialChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SL.QCODE.001",
+      "rule": "simready.foundation.tier_core.capabilities.semantic_labels.validation.SemanticLabelsWikidataChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SL.TIME.001",
+      "rule": "simready.foundation.tier_core.capabilities.semantic_labels.validation.SemanticLabelsMaterialChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SR.002",
+      "rule": "simready.foundation.tier_core.capabilities.core.sim_ready.validation.ThumbnailExists",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.SR.004",
+      "rule": "simready.foundation.tier_core.capabilities.core.sim_ready.validation.MetadataUnion",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.UN.006",
+      "rule": "simready.foundation.tier_core.capabilities.core.units.validation.UpAxisZChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.UN.007",
+      "rule": "simready.foundation.tier_core.capabilities.core.units.validation.MetersPerUnit1Checker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VG.008",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.geometry.validation.CoincidentMeshChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VG.025",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.geometry.validation.AssetOriginPositioningChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VG.MESH.001",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.geometry.validation.GeomShallBeMeshChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.MAT.001",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.PS.002",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.TEX.001",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.simready.VM.TEX.003",
+      "rule": "simready.foundation.tier_core.capabilities.visualization.materials.validation.VisualMaterialsCapabilityChecker",
+      "version": "0.1.0"
+    },
+    {
+      "code": "com.nvidia.usd.AA.001",
+      "rule": "usd_validation_nvidia.rules._atomic_asset.AnchoredAssetPathsChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.AA.002",
+      "rule": "usd_validation_nvidia.rules._atomic_asset.SupportedFileTypesChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.HI.001",
+      "rule": "usd_validation_nvidia.rules._hierarchy.HierarchyHasRootChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.HI.003",
+      "rule": "usd_validation_nvidia.rules._hierarchy.RootPrimXformableChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.HI.004",
+      "rule": "usd_validation_nvidia.rules._layout.DefaultPrimChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.RB.003",
+      "rule": "usd_validation_nvidia.rules._physics.RigidBodyChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.RB.005",
+      "rule": "usd_validation_nvidia.rules._physics.RigidBodyChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.RB.009",
+      "rule": "usd_validation_nvidia.rules._physics.RigidBodyChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.RB.COL.004",
+      "rule": "usd_validation_nvidia.rules._physics.ColliderChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VG.002",
+      "rule": "usd_validation_nvidia.rules._basic.ExtentsChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VG.014",
+      "rule": "usd_validation_nvidia.rules._geometry.ValidateTopologyChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VG.027",
+      "rule": "usd_validation_nvidia.rules._geometry.NormalsExistChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VG.028",
+      "rule": "usd_validation_nvidia.rules._geometry.NormalsValidChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VG.029",
+      "rule": "usd_validation_nvidia.rules._geometry.NormalsWindingsChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VM.BIND.001",
+      "rule": "usd_validation_nvidia.rules._materials.MaterialOutOfScopeChecker",
+      "version": "1.0.0"
+    },
+    {
+      "code": "com.nvidia.usd.VM.PS.001",
+      "rule": "usd_validation_nvidia.rules._materials.MaterialUsdPreviewSurfaceChecker",
+      "version": "1.0.0"
+    }
+  ],
+  "profile_id": "Robotics-Prop",
+  "profile_manifest_sha256": "55436c902cd238daab9be26caaa9f197509825d866f8b6fcfbb74de61b93fcd9",
+  "profile_version": "4.0.0",
+  "rule_module_sha256": {
+    "simready.foundation.tier_core.capabilities.core.naming_paths.validation": "6dab64137fab32ee81171851837bdf3ff76485f69b62364d610778b559b7d6b1",
+    "simready.foundation.tier_core.capabilities.core.sim_ready.validation": "a93166f500a194f7aaa1632c9a54a8f7dfa00150c064626e2837981ea13176c0",
+    "simready.foundation.tier_core.capabilities.core.units.validation": "68408cc54a4937c567cee92817502d699b7b449710d3bbfc3186ca6691833ff8",
+    "simready.foundation.tier_core.capabilities.hierarchy.validation": "ec88fe4e94246c8194145cbd01177d6c7619c5af0cc69c907b68a8f29e493114",
+    "simready.foundation.tier_core.capabilities.physics_bodies.physics_rigid_bodies.validation": "6b26a67ec400b31c5ad851777468d24b5f160c0bc2068502e3c322ca431b5828",
+    "simready.foundation.tier_core.capabilities.semantic_labels.validation": "c0b82c6e222f64966e3444f36fd1005015571658a65233f5bb2f3a0fbfa2624c",
+    "simready.foundation.tier_core.capabilities.visualization.geometry.validation": "a49a5fb79b2804f02321dfac75f5cfe8271ce717422285cddce6e801868e200c",
+    "simready.foundation.tier_core.capabilities.visualization.materials.validation": "9715c4e0d70b09110d1c5efe788065befc8ecce4eb3802f4cbd854fd7762c25b",
+    "usd_validation_nvidia.rules._atomic_asset": "03e990beb9ebced42b91f15eaead85c4b3afa9ee982287a715d692c8bfab6fb9",
+    "usd_validation_nvidia.rules._basic": "70016f8467dc2d2a2ab566f8e259eb0080c58f009aab5d6d95d2aaabe65ed988",
+    "usd_validation_nvidia.rules._geometry": "50c0ad5afa724488c77f692c258931a005d97b8927c46798874bcf3cf5a3e0b9",
+    "usd_validation_nvidia.rules._hierarchy": "2aefdff685d077d3bb2211a80935ee2da32a58811be24b864e011609507ba0b8",
+    "usd_validation_nvidia.rules._layout": "7c6dc30848900f27a222052696a90acedf75a01c5edd500ff56b95db4763ae26",
+    "usd_validation_nvidia.rules._materials": "5282c326d392685addc53324bdbc2a50130f0e7790d667f82b573114b9eff629",
+    "usd_validation_nvidia.rules._physics": "204349b532ddf5837933b007c56f7e34c8482e32cb1be3e1053d8d5c7440fc93"
+  },
+  "schema": "simready-pinned-NVIDIA-profile-v1",
+  "tier_manifest_hashes": {
+    "capabilities/dataset_taxonomies/taxonomies/ade20k.json": "30fb4827775c3f746ca43c39a15aed66aef2da8c3797939b5165ca6221240025",
+    "capabilities/dataset_taxonomies/taxonomies/cityscapes.json": "6697b9e12cfd709bba3911d8831a43961e4a12a33f3674d5760c110ef7f2fa4c",
+    "capabilities/dataset_taxonomies/taxonomies/coco.json": "14d579b64f260bbda4e7a85fdc41773927c2b86a9fb07861e65c098c4ba978a3",
+    "capabilities/dataset_taxonomies/taxonomies/imagenet_1k.json": "0a1445e675389001a8d9b810d65ba90bffadf27a2a844e80635fc978acd173e9",
+    "capabilities/dataset_taxonomies/taxonomies/pascal_voc.json": "59513be23668d6f3f55add261612d981ec222347ea6f422afc72061333d64fd8",
+    "capabilities/dataset_taxonomies/taxonomies/sunrgbd.json": "662600d34b5ebbf8f65af54f5611ee02783e6f0ea25e2c73bbe5c09cba1b5175",
+    "features/FET_000_ISAAC-0.1.0.json": "bb249fac3753df44e8dd3039c717a88a9372e30fd3fd5cb215017286889225e1",
+    "features/FET_000_MUJOCO-0.1.0.json": "39159f72574e5a24fe82dde38aae28ac5be34f92072a9b6fdef9aaa0c336e0d3",
+    "features/FET_000_NEWTON-0.1.0.json": "0d1f7249eb4abb507f2bb25d371f73d741fa1000c9b7bdec064f22ad9d9303f0",
+    "features/FET_000_PHYSX-0.1.0.json": "ae4fe2dccf21523472308f1b21b093dff4822a062bd9be5950964ec441e6dcc8",
+    "features/FET_000_STANDARD-0.1.0.json": "88228c20683d990553a493d4c6e8c817871b26269277d86576b73c7dc5851e9d",
+    "features/FET_000_STANDARD-0.2.0.json": "1b345d4c734bd56b885fc2310598949513b354716d0e1e5a2e3ee14b53504239",
+    "features/FET_001_STANDARD-0.1.0.json": "a941f289b195c9dfa97dd81280239fd69a430a0379bcc05339190b0dd9491f17",
+    "features/FET_001_STANDARD-1.0.0.json": "2168a020f4043dfb5f0e08881ec3db760dea75618b1772479246859dec27b97c",
+    "features/FET_001_STANDARD-1.0.1.json": "3e4328736d6c4bcde3030a21aed53db23c262f4f81e3fb355373d617db4ffe99",
+    "features/FET_002_STANDARD-0.1.0.json": "be45a97c379260a3ac06acb9d9b8034f19b0fb17daa5b1ab84fd8f1308623dbe",
+    "features/FET_003_MUJOCO-0.1.0.json": "ccfebf6bc565b4a8806a6cf53c4da88e89a5b533efd0a7a32736b9925da6f12e",
+    "features/FET_003_NEWTON-0.1.0.json": "a0f34d90a2dd7804b641f2dffbd57e489999af5a6af21e1bf359a03a9b1a9afc",
+    "features/FET_003_PHYSX-0.1.0.json": "0d4f32ff33247cccf17f9325939a0cf0c2d5f81e8521f4a6d2139e6211965f48",
+    "features/FET_003_PHYSX-0.2.0.json": "519ad347c2feac191d2c7e9b8166f846af9b1b55ddceddad9f061f722f93f368",
+    "features/FET_003_PHYSX-0.3.0.json": "fb8d06d5871d765a21d23c0d62e7f0d83923b71eb3705a70bb65120191ce1e6d",
+    "features/FET_003_PHYSX-0.4.0.json": "67b4b2ecb8d345952d1cc459aba4e25a5b525686108204ec93c79b7eeb7e0ebe",
+    "features/FET_003_STANDARD-0.1.0.json": "4fa71144358cf54d34c6412350e92dc521ca6403f4a215704cbad903d26cdbac",
+    "features/FET_003_STANDARD-0.2.0.json": "2fd85167453e5ab9f69b729905c5c9cc9ec77bc82b3abe348cfd0c571a91f7b9",
+    "features/FET_004_MUJOCO-0.1.0.json": "9462398658aa972156aef1f0d65115b55159462b2a81cfcc55175e1f3c55906f",
+    "features/FET_004_NEWTON-0.1.0.json": "4a3c9053670a5ba08a2964cfbd4f9cb56c8f85c0822c41659b73e0487293f75b",
+    "features/FET_004_PHYSX-0.1.0.json": "f5020306ff1460fc1858d06378418034ec153c794b3df58862badd496f793e27",
+    "features/FET_004_PHYSX-0.2.0.json": "6904d07e5e25b3d8b3f09ba855fcf4240947852e9feecc113023be67878b7e99",
+    "features/FET_004_PHYSX-0.3.0.json": "1bebc4b87554b257018b718e5346caddd231ca4fd60a19d02dacf3c31baf67be",
+    "features/FET_004_PHYSX-0.4.0.json": "bb88c152e4ca2df82f3cb1eb78177c72ad6bb31436125342c898d4e05d7a71f8",
+    "features/FET_004_ROBOT_MUJOCO-0.1.0.json": "92c810a15fe3d7403bf634a543a4fc3fe678dfeb4a251ecfefc8e20067d7f92f",
+    "features/FET_004_ROBOT_NEWTON-0.1.0.json": "d7f0743e2c51e024a58387cd70caa52080583a98fd218a3b0350c1a1d299c262",
+    "features/FET_004_ROBOT_PHYSX-0.1.0.json": "6eb958bc4b647dcf90b6e605b9dc30a053a80c552759978f58feca233aa06e75",
+    "features/FET_004_ROBOT_PHYSX-0.2.0.json": "f27cc3825ca5a7df2a1271455853b6203ccc3edd57f6d49603a7d4381357a250",
+    "features/FET_004_ROBOT_PHYSX-0.3.0.json": "d0f05a35e2f26435a0e0b2d0fdc448fd15eb583733013ba6a40b921ea18d31f1",
+    "features/FET_004_ROBOT_PHYSX-0.4.0.json": "7c92efc320d28c54405ae19131084cef425e1a9532f53bff91b918fa0eea5630",
+    "features/FET_004_STANDARD-0.1.0.json": "cacbf5ab0f41cc5ab5f774c9504809790506a52f8878847283e5e0d94dc43b80",
+    "features/FET_004_STANDARD-0.2.0.json": "f0a52cda4a06ea7de556c56c5cacb634445610f0b0ee7d5a451a9456b9ff26e9",
+    "features/FET_005_STANDARD-0.1.0.json": "67b0166aadc44c67255e7857bf933fa07892e132b65e952d23d8443067d2614e",
+    "features/FET_006_MDL-0.1.0.json": "8b52bec8f6d988ec31813108071acce39da2eae0631487cbbbd3e47b57b02c24",
+    "features/FET_006_MDL-0.2.0.json": "ba382d162c426e96a490e5db03510db05a2d80a466d5ae90530a1a8d74741ef9",
+    "features/FET_006_OPENPBR-0.1.0.json": "29dbd2478ac65df0e9697ee61a973974f13a489936baa6fd0a53133f602c9840",
+    "features/FET_006_STANDARD-0.1.0.json": "eb0c7805e8b4e9b42c80fe5ceefaa8c263dbfc0b2f6a373df783ff65da22284e",
+    "features/FET_006_STANDARD-0.2.0.json": "ea681151eb4ca62e8ccff86900089c22fa4ef583907a83d62846c0fb16bd6f4e",
+    "features/FET_007_STANDARD-0.2.0.json": "b03204db768ff59c42f581b2819f16a5308a2afb009666283974b307c5a0cad6",
+    "features/FET_010_STANDARD-0.1.0.json": "7bfc400215a3d43602f33905d532a01985c450780df3934feaa31d3a6def11ab",
+    "features/FET_011_RTX-0.1.0.json": "fbdb2ceb6fc43694f239e72438916d508fa8bff671c5e2ff17fa19997b35b297",
+    "features/FET_011_STANDARD-0.2.0.json": "633a4104f7b8f127410cd4a2c77c18d63d7c983be42456c011ebcb95d1170911",
+    "features/FET_021_ISAAC-0.1.0.json": "6f7dbc51004de5456632dc4745199f6b9ee9beb3b1fc29ebb8af97b27a8f0e56",
+    "features/FET_021_ISAAC-0.2.0.json": "e686158adc006029fb9fb0a6d683e3073f83a376add10f6c8e39bcd727003933",
+    "features/FET_021_ISAAC-0.3.0.json": "0c3860383d99cfd3b21f6ee7ee05beb8b450ee11eb46889e1b828f4111260cc2",
+    "features/FET_022_ISAAC-0.1.0.json": "85c6ae342eec8c9b4ae9737ad851b33eea8dfeae32da62dc2d6e954ae026ebf9",
+    "features/FET_022_ISAAC-0.2.0.json": "8ce946b8b90353869da3bba645ee11062616ec788aefd4d3f91e1658ba4b32b3",
+    "features/FET_022_MUJOCO-0.1.0.json": "868912008a5adab5f16e67b556e04d07d9a8c4f2225a737af66616dabf503f9a",
+    "features/FET_022_NEWTON-0.1.0.json": "6c9acd716bbd9c52f7e298495959b6396a66167a994888f01a4b00ffdd1a9142",
+    "features/FET_022_PHYSX-0.1.0.json": "aa767fbf86680326b67b63b1c91ff68192bd6aabd919be38f254cce4153d2782",
+    "features/FET_022_PHYSX-0.2.0.json": "e5e8043d16288b4e2e8ac9c5e554ed4c9939dd0f5667c36e39d126a6b022e65a",
+    "features/FET_022_STANDARD-0.1.0.json": "46021a6c1eeb07ce1eb9773d09b6df4a5d1f3e683f39f70de0b3411b9f61d9cb",
+    "features/FET_022_STANDARD-0.2.0.json": "60b1c49567424c1ea44499cb3d3b5b707135745656951ef635889d21b7f7d6eb",
+    "features/FET_023_ISAAC-0.1.0.json": "6721800fa4171949a26f26a0ebcff854d19ace0bbdd977dbd65ecd6a752ffdb8",
+    "features/FET_024_MUJOCO-0.1.0.json": "4faf4b17f24e21b12adeaa27fa5ca4ee5a91830a5ff29f8f592dc53ce763b713",
+    "features/FET_024_NEWTON-0.1.0.json": "af6213ab8e00bbcc8c6f9671dc39c89407edf6e3e6d6a15c99ef5ab80568eeb5",
+    "features/FET_024_PHYSX-0.1.0.json": "f0526a65dd3b1fcade899c68f23c79534ed0096755a50aee900fd0d4c2b20269",
+    "features/FET_024_STANDARD-0.1.0.json": "2972aa177ec05abb07c0d4874fcb602f64fb7874e87a870e99585efea6be1e34",
+    "features/FET_025_ROS-0.1.0.json": "29a6f361d57e97f5900ab2bb984f16d906f5f07d8d7653abe0bed43ba47d8ad9",
+    "features/FET_028_ISAAC-0.1.0.json": "4a7fa40ca87b1743db31827801a079f6e6b6cf75fc0324d528749f39a8a86cc7",
+    "features/FET_028_MUJOCO-0.1.0.json": "36a63ad57eda88ff6ed6cbd19b4f4cb5ec361acda9def30ed2b09d640ed4d716",
+    "features/FET_028_STANDARD-0.1.0.json": "bcdaf7aed5fc01fd27ec55b6f12eb10d27c931ef1f4a1f99afc4c18a99c25c22",
+    "features/FET_030_STANDARD-0.1.0.json": "b2c40f50b1e56bde0a87c8b7c41b67da2e2e5068a93d9c5b0da3ba2123e9ce57",
+    "features/FET_031_STANDARD-0.1.0.json": "7dc2bb5259ed5f712522941ea99c7b68a7d1b6f5a71ba08674c033c884dcc56f",
+    "features/FET_032_STANDARD-0.1.0.json": "14238274b70ce0069e11568b0d29e3cdc78f0758aaeaf99bf74ff8f5fea885ae",
+    "features/FET_033_STANDARD-0.1.0.json": "040ffd524bb12d37a2638807c4bf312c9909096755b98bbbaa9008d11d814f32",
+    "features/FET_033_STANDARD-0.2.0.json": "23bef2b00f9a1509c0735075125ab5aacc9c0e1325f28291bf242327eb85babe",
+    "features/FET_033_STANDARD-0.3.0.json": "403836d3d51b23d3654abfdf5e314524741ac82f420c9407443d41b4d232523f",
+    "features/FET_033_STANDARD-0.4.0.json": "40f1fb3084c768393493dd777a135eb971dbb8da9e688d6abf79420c90f004b6",
+    "features/FET_040_STANDARD-0.1.0.json": "92719dec8ac0da2e6c5a2296c28c318b03f8a0d69e161f27c4a5e0e71589839d",
+    "features/FET_041_STANDARD-0.1.0.json": "b5e683aadb7c639faa406e9f50579c3ac8ced333d58a8c41a6400987fb909512",
+    "features/FET_042_STANDARD-0.1.0.json": "5bbe657eb19a8cfef6394b677c4c106985af586979ac907b4f2e53f45f1eeb88",
+    "features/FET_043_STANDARD-0.1.0.json": "eeeec7fd67ddcc068dc26fc79b6bc55e51ae197e2afa1f4f52b2391742491607",
+    "features/FET_044_STANDARD-0.1.0.json": "7d387567fd7ec0596996bc405b853fe0f2fbf0b142ef5ae5fa1f98d1563e66a3",
+    "features/FET_045_STANDARD-0.1.0.json": "e88b5593a6343c1b97222cae3978def0d3758edabb04be1c059b789a20259d75",
+    "features/FET_046_STANDARD-0.1.0.json": "8dd0004e5bfd672ffd0a291a75f44c00caecd39972ebf34b365d1f09780a459c",
+    "features/FET_100_ISAAC-0.1.0.json": "7123dd5c40374ebaa868c15ed7d6accf4c1edcf8340a2f87de98535b6185f856",
+    "features/FET_100_ISAAC-0.2.0.json": "91631da8aa277a27ed3957971400d06bb58e9ba74ccb9cf3aa5589b0e3fca2b9",
+    "features/FET_100_ISAAC-0.3.0.json": "63d5519daf8590a3b6d21d48b7d295086227d860337399481489ffaa607369ec",
+    "features/FET_100_ISAAC-0.4.0.json": "ab2a0e1ecd5aaa1796b887c059950ea875f35309e49f51d68142b79231fdd215",
+    "features/FET_101_ISAAC-0.1.0.json": "076cb75e4694dfc9b59f8acdc1939b0f3fc845a5520e98d100ef256582c5c451",
+    "features/known_edits/fet-006-mdl-0-1-0.toml": "e6d50a451dee543445e77bb509317d36b8769bb4621bedefbabb3dcb551a67dc",
+    "features/known_edits/fet-006-standard-0-1-0.toml": "9f5cea886a36e125b01cc7bf78ea83a65daf4853bbf3972f397abb298b641e31",
+    "profiles/open_taxonomy_profiles.toml": "8675927dc6d4edbd4c3c60c8d8ac860c2142cdf3e95da3e710cb22f21c403841",
+    "profiles/package_profiles.toml": "27f31c333c8ca98d0ec1d46029e3269bc8b6f683a31724bad43ea0609dc4bfcd",
+    "profiles/robot_body.toml": "6a92df1f7e4e7be4e9ffbe7ed0cb47d9ee88ed7925054b970a7c347e8cb8975e",
+    "profiles/robot_gripper.toml": "f28c6ca232c681c99ca6e3185b70fc6ea7e88690b2acf000fb50d6932e2f851d",
+    "profiles/robotics_prop.toml": "55436c902cd238daab9be26caaa9f197509825d866f8b6fcfbb74de61b93fcd9"
+  },
+  "versions": {
+    "simready-foundation-tier-core": "2026.8.0",
+    "simready-validate": "2026.8.0",
+    "usd-profiles-nvidia": "1.22.0",
+    "usd-validation-nvidia": "1.22.0"
+  }
+}

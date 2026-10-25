@@ -1,0 +1,331 @@
+"""Native Harbor exports contain only generated files and pinned setup inputs."""
+from __future__ import annotations
+
+import copy
+import hashlib
+import importlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tomllib
+import zipfile
+
+import pytest
+
+
+REPO = "hcltech-robotics/simreadybench"
+REVISION = "1" * 40
+VIEWS = ["isometric", "front", "side", "top"]
+BASE = "python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704"
+
+
+def exporter():
+    assert importlib.util.find_spec("simready_eval.export") is not None, "native exporter is missing"
+    return importlib.import_module("simready_eval.export")
+
+
+def role_manifest(task_id, role, destinations):
+    prefix = f"benchmark/nv100/v1/tasks/{task_id}/"
+    return {"schema": "simready-role-assets-v1", "repo_id": REPO, "revision": REVISION,
+            "task_id": task_id, "role": role, "files": [
+                {"path": prefix + ("public/" + name if role == "actor" else name),
+                 "destination": name, "size_bytes": 1, "sha256": hashlib.sha256(b"x").hexdigest()}
+                for name in destinations]}
+
+
+def release_input(count=1):
+    tasks = []
+    for index in range(count):
+        task_id = f"fixture-{index:03}"
+        tasks.append({"id": task_id, "actor": role_manifest(task_id, "actor", ["observation.png", "instruction.md"]),
+                      "verifier": role_manifest(task_id, "verifier", ["reference/asset.usd", "reference/eligibility.json", "comparison/cameras.json",
+                          *[f"comparison/{view}{suffix}.png" for view in VIEWS for suffix in ("", "-mask")]]),
+                      "reference": "reference/asset.usd", "entrypoint": "asset.usd", "views": list(VIEWS),
+                      "budgets": {"agent_seconds": 231000, "final_seconds": 600}})
+    return {"schema": "simready-harbor-release-v1", "repo_id": REPO, "revision": REVISION,
+            "source_commit": "2" * 40, "source_collection": {"repo_id": "nvidia/simready-assets", "revision": "f4860aa0c75607adb50a78bf96e77510bffc040f"}, "tasks": tasks}
+
+
+@pytest.fixture
+def wheel(tmp_path):
+    path = tmp_path / "simreadybench_eval-1.0.0-py3-none-any.whl"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("simready_eval/__init__.py", '__version__ = "1.0.0"\n')
+        archive.writestr("simready_eval/cli.py", "def main(): pass\n")
+        archive.writestr("simready_eval/metric.py", Path("native/src/simready_eval/metric.py").read_bytes())
+        archive.writestr("simreadybench_eval-1.0.0.dist-info/METADATA", "Metadata-Version: 2.4\nName: simreadybench-eval\nVersion: 1.0.0\n")
+        archive.writestr("simreadybench_eval-1.0.0.dist-info/WHEEL", "Wheel-Version: 1.0\nGenerator: local-test\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+        archive.writestr("simreadybench_eval-1.0.0.dist-info/RECORD", "")
+    return path
+
+
+def test_fixture_export_parses_with_standard_harbor_and_hashes_all_generated_files(tmp_path, wheel):
+    from harbor.models.task.task import Task
+    from harbor.models.dataset.manifest import DatasetManifest
+    from harbor.publisher.packager import Packager
+    output = tmp_path / "export"
+    inventory = exporter().export_release(release_input(), output, wheel, fixture=True)
+    task = Task(output / "nv100-fixture-000")
+    config = task.config
+    assert config.schema_version == "1.4"
+    assert config.task.name == "hcltech-robotics/nv100-fixture-000"
+    assert config.agent.timeout_sec == 231000
+    assert config.verifier.timeout_sec == 600
+    assert config.verifier.environment_mode.value == "separate"
+    assert config.environment.network_mode.value == "public"
+    assert config.agent.network_mode.value == "allowlist"
+    assert config.agent.allowed_hosts == []
+    assert config.environment.docker_image is None
+    assert config.verifier.environment.network_mode.value == "no-network"
+    assert config.verifier.network_mode.value == "no-network"
+    assert [(item.source, item.destination) for item in config.artifacts] == [("/output/submission", "candidate")]
+    dataset = DatasetManifest.from_toml_file(output / "dataset.toml")
+    assert dataset.schema_version == "1.0"
+    expected_digest, _ = Packager.compute_content_hash(task.task_dir)
+    assert dataset.tasks[0].digest == "sha256:" + expected_digest
+    assert dataset.tasks[0].name == config.task.name
+    assert json.loads((output / "release.json").read_text())["export"]["fixture"] is True
+    assert json.loads((output / "release.json").read_text())["export"]["publish_ready"] is False
+    assert json.loads((output / "inventory.json").read_text()) == inventory
+    actual = {path.relative_to(output).as_posix() for path in output.rglob("*") if path.is_file()}
+    assert actual == {entry["path"] for entry in inventory} | {"inventory.json"}
+    for entry in inventory:
+        data = (output / entry["path"]).read_bytes()
+        assert entry["size_bytes"] == len(data)
+        assert entry["sha256"] == hashlib.sha256(data).hexdigest()
+    assert all(not path.is_symlink() for path in output.rglob("*"))
+
+
+def test_build_contexts_have_role_scoped_fetch_and_no_target_data_in_feedback(tmp_path, wheel):
+    root = tmp_path / "export"
+    exporter().export_release(release_input(), root, wheel, fixture=True)
+    task = root / "nv100-fixture-000"
+    environment, tests = task / "environment", task / "tests"
+    actor = json.loads((environment / "actor-assets.json").read_text())
+    verifier = json.loads((tests / "verifier-assets.json").read_text())
+    assert actor["role"] == "actor"
+    assert verifier["role"] == "verifier"
+    assert not (environment / "verifier-assets.json").exists()
+    for directory in (environment, tests):
+        assert (directory / wheel.name).read_bytes() == wheel.read_bytes()
+    actor_docker = (environment / "Dockerfile").read_text()
+    verifier_docker = (tests / "Dockerfile").read_text()
+    feedback_docker = (environment / "Dockerfile.feedback").read_text()
+    assert actor_docker.startswith("FROM " + BASE + "\n")
+    assert verifier_docker.startswith("FROM " + BASE + "\n")
+    assert "simready_eval.fetch" in actor_docker and "--destination /task" in actor_docker
+    assert "simready_eval.fetch" in verifier_docker and "--destination /fixtures" in verifier_docker
+    assert "COPY test.sh /tests/test.sh" in verifier_docker
+    assert "USER 1000" in actor_docker
+    assert "USER 0" in feedback_docker
+    assert "simready_eval.fetch" not in feedback_docker
+    assert "actor-assets" not in feedback_docker and "verifier-assets" not in feedback_docker
+    assert "COPY ." not in "\n".join([actor_docker, verifier_docker, feedback_docker])
+    assert "simready_eval.cli evaluate" in (tests / "test.sh").read_text()
+    assert "--submission /output/submission --fixtures /fixtures --config /tests/evaluator.json --output /logs/verifier" in (tests / "test.sh").read_text()
+    evaluator = json.loads((tests / "evaluator.json").read_text())
+    assert evaluator == {"schema": "simready-evaluator-config-v1", "task_id": "fixture-000", "entrypoint": "asset.usd", "reference": "reference/asset.usd", "cameras": "comparison/cameras.json", "eligibility": "reference/eligibility.json", "fidelity_settings": {"enabled": True}, "final_seconds": 600}
+    compose = json.loads((environment / "docker-compose.yaml").read_text())
+    assert "networks" not in compose
+    assert set(compose["services"]) == {"main", "feedback"}
+    assert all("networks" not in value and "network_mode" not in value for value in compose["services"].values())
+    feedback = compose["services"]["feedback"]
+    assert feedback["cap_drop"] == ["ALL"]
+    assert set(feedback["cap_add"]) == {"SETUID", "SETGID", "CHOWN"}
+    assert feedback["user"] == "0"
+    assert "ports" not in feedback
+    assert feedback["volumes"] == ["feedback-ledger:/state"]
+    assert compose["volumes"] == {"feedback-ledger": {}}
+    assert compose["services"]["main"]["depends_on"]["feedback"]["condition"] == "service_healthy"
+    assert "/health" in " ".join(feedback["healthcheck"]["test"])
+    assert "127.0.0.1:8080" in (task / "instruction.md").read_text()
+    assert not any(path.suffix in (".png", ".usd", ".usda", ".usdc", ".parquet") for path in root.rglob("*"))
+
+
+def test_export_is_deterministic_for_identical_inputs(tmp_path, wheel):
+    first = exporter().export_release(release_input(2), tmp_path / "first", wheel, fixture=True)
+    second = exporter().export_release(release_input(2), tmp_path / "second", wheel, fixture=True)
+    assert first == second
+
+
+def test_release_requires_exact_100_tasks(tmp_path, wheel):
+    with pytest.raises(ValueError, match="100"):
+        exporter().export_release(release_input(), tmp_path / "export", wheel)
+    assert not (tmp_path / "export").exists()
+
+
+def test_release_100_tasks_uses_the_supplied_roster_only(tmp_path, wheel):
+    output = tmp_path / "export"
+    exporter().export_release(release_input(100), output, wheel)
+    dataset = tomllib.loads((output / "dataset.toml").read_text())
+    assert len(dataset["tasks"]) == 100
+    assert {item["name"] for item in dataset["tasks"]} == {f"hcltech-robotics/nv100-fixture-{index:03}" for index in range(100)}
+
+
+@pytest.mark.parametrize("mutation", ["other_repo", "mutable_revision", "task_mismatch", "role_mismatch", "missing_mask", "missing_camera", "missing_eligibility", "missing_reference", "unsafe_reference", "unsafe_entrypoint", "duplicate_view", "unsafe_view", "wrong_source", "wrong_source_revision", "duplicate_task", "bad_budget", "unknown_task_field"])
+def test_invalid_release_fails_before_creating_output(tmp_path, wheel, mutation):
+    release = release_input()
+    task = release["tasks"][0]
+    if mutation == "other_repo": release["repo_id"] = "wrong/repo"
+    elif mutation == "mutable_revision": release["revision"] = "main"
+    elif mutation == "task_mismatch": task["actor"]["task_id"] = "other"
+    elif mutation == "role_mismatch": task["actor"]["role"] = "verifier"
+    elif mutation.startswith("missing_"):
+        suffix = {"missing_mask": "isometric-mask.png", "missing_camera": "cameras.json", "missing_eligibility": "eligibility.json", "missing_reference": "asset.usd"}[mutation]
+        task["verifier"]["files"] = [item for item in task["verifier"]["files"] if not item["destination"].endswith(suffix)]
+    elif mutation == "unsafe_reference": task["reference"] = "../secret.usd"
+    elif mutation == "unsafe_entrypoint": task["entrypoint"] = "../asset.usd"
+    elif mutation == "duplicate_view": task["views"][1] = task["views"][0]
+    elif mutation == "unsafe_view": task["views"][0] = "../front"
+    elif mutation == "wrong_source": release["source_collection"]["repo_id"] = "another/collection"
+    elif mutation == "wrong_source_revision": release["source_collection"]["revision"] = "3" * 40
+    elif mutation == "duplicate_task": release["tasks"].append(copy.deepcopy(task))
+    elif mutation == "bad_budget": task["budgets"]["agent_seconds"] = -1
+    else: task["private_prompt"] = "must never export"
+    with pytest.raises(ValueError):
+        exporter().export_release(release, tmp_path / "export", wheel, fixture=True)
+    assert not (tmp_path / "export").exists()
+
+
+@pytest.mark.parametrize("member,content", [("simready_bench/private.py", ""), ("results/rows.parquet", "data"), ("simready_eval/legacy.py", "import simready_bench.engine\n"), ("simready_eval/adapter.py", "from harbor.models import Task\n"), ("simready_eval/private/source.py", ""), ("../escape", ""), ("simready_eval/unsafe.py", "__import__('simready_bench.engine')\n")])
+def test_wheel_rejects_legacy_private_and_traversal_payload(tmp_path, wheel, member, content):
+    with zipfile.ZipFile(wheel, "a") as archive:
+        archive.writestr(member, content)
+    with pytest.raises(ValueError):
+        exporter().export_release(release_input(), tmp_path / "export", wheel, fixture=True)
+    assert not (tmp_path / "export").exists()
+
+
+def test_output_must_be_fresh_and_outside_any_git_checkout(tmp_path, wheel):
+    existing = tmp_path / "existing"
+    existing.mkdir()
+    with pytest.raises(ValueError):
+        exporter().export_release(release_input(), existing, wheel, fixture=True)
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    (checkout / ".git").write_text("gitdir: /arbitrary/worktree\n")
+    with pytest.raises(ValueError):
+        exporter().export_release(release_input(), checkout / "export", wheel, fixture=True)
+    assert not (checkout / "export").exists()
+
+
+def test_export_cli_produces_reviewable_fixture_inventory(tmp_path, wheel):
+    manifest = tmp_path / "release-input.json"
+    manifest.write_text(json.dumps(release_input()))
+    process = subprocess.run([sys.executable, "-m", "simready_eval.export", "--release", str(manifest), "--output", str(tmp_path / "export"), "--wheel", str(wheel), "--fixture"], text=True, capture_output=True)
+    assert process.returncode == 0, process.stderr
+    assert isinstance(json.loads(process.stdout), list)
+    assert (tmp_path / "export/inventory.json").is_file()
+
+
+def test_aliased_dynamic_private_import_cannot_enter_public_wheel(tmp_path, wheel):
+    with zipfile.ZipFile(wheel, "a") as archive:
+        archive.writestr("simready_eval/unsafe_alias.py", "from importlib import import_module as load\nload('simready_bench.engine')\n")
+    with pytest.raises(ValueError):
+        exporter().export_release(release_input(), tmp_path / "export", wheel, fixture=True)
+
+
+def test_view_rgb_and_mask_paths_cannot_collide(tmp_path, wheel):
+    release = release_input()
+    task = release["tasks"][0]
+    task["views"] = ["front", "front-mask", "side", "top"]
+    destinations = ["reference/asset.usd", "reference/eligibility.json", "comparison/cameras.json",
+                    *sorted({f"comparison/{view}{suffix}.png" for view in task["views"] for suffix in ("", "-mask")})]
+    task["verifier"] = role_manifest(task["id"], "verifier", destinations)
+    with pytest.raises(ValueError):
+        exporter().export_release(release, tmp_path / "export", wheel, fixture=True)
+
+
+def test_blender_is_verifier_only_and_explicitly_forbidden_for_authoring(tmp_path, wheel):
+    output = tmp_path / "export"
+    exporter().export_release(release_input(), output, wheel, fixture=True)
+    task = output / "nv100-fixture-000"
+    actor = (task / "environment/Dockerfile").read_text()
+    feedback = (task / "environment/Dockerfile.feedback").read_text()
+    verifier = (task / "tests/Dockerfile").read_text()
+    assert "blender" not in actor.lower()
+    assert "blender" not in feedback.lower()
+    assert "apt-get install -y --no-install-recommends blender=$BLENDER_PACKAGE_VERSION" in verifier
+    assert "Do not use Blender for authoring; Blender is used only by the verifier renderer." in (task / "instruction.md").read_text()
+
+
+@pytest.mark.parametrize("role,relative", [("actor", "observation.png"), ("verifier", "reference/asset.usd")])
+def test_setup_handoff_makes_fetched_tree_world_readable_and_immutable(tmp_path, wheel, role, relative):
+    import shlex
+    import stat
+    from simready_eval.fetch import fetch_assets
+
+    release = release_input()
+    output = tmp_path / "export"
+    exporter().export_release(release, output, wheel, fixture=True)
+    source = tmp_path / "source"
+    source.write_bytes(b"x")
+    staged = tmp_path / "staged"
+    fetch_assets(release["tasks"][0][role], staged, cache_dir=tmp_path / "cache", downloader=lambda **_: source)
+    assert stat.S_IMODE(staged.stat().st_mode) == 0o700
+    assert stat.S_IMODE((staged / relative).stat().st_mode) == 0o600
+    directory = "environment" if role == "actor" else "tests"
+    dockerfile = (output / "nv100-fixture-000" / directory / "Dockerfile").read_text()
+    fetch_line = next(line for line in dockerfile.splitlines() if line.startswith("RUN python -m simready_eval.fetch"))
+    # Execute the generated handoff commands against real fetched files. Cache
+    # permissions remain private; only the final immutable tree becomes public.
+    target = "/task" if role == "actor" else "/fixtures"
+    commands = [command.replace(target, shlex.quote(str(staged))) for command in fetch_line.split(" && ")
+                if command.startswith("chmod ") and target in command]
+    if role == "verifier":
+        commands = [command.replace(" /tests", "") for command in commands]
+    subprocess.run(["sh", "-c", " && ".join(commands)], check=True)
+    assert stat.S_IMODE(staged.stat().st_mode) == 0o555
+    assert stat.S_IMODE((staged / relative).stat().st_mode) == 0o444
+    assert all(not path.stat().st_mode & 0o222 for path in staged.rglob("*"))
+    cached = next((tmp_path / "cache").rglob(Path(relative).name))
+    assert stat.S_IMODE(cached.stat().st_mode) == 0o600
+
+
+@pytest.mark.parametrize("entrypoint", ["model.usda", "nested/asset.usd"])
+def test_export_requires_canonical_candidate_asset_entrypoint(tmp_path, wheel, entrypoint):
+    release = release_input()
+    release["tasks"][0]["entrypoint"] = entrypoint
+    with pytest.raises(ValueError, match="asset.usd"):
+        exporter().export_release(release, tmp_path / "export", wheel, fixture=True)
+
+
+def test_reference_entrypoint_can_remain_nested(tmp_path, wheel):
+    release = release_input()
+    task = release["tasks"][0]
+    task["reference"] = "reference/nested/source.usda"
+    file = next(file for file in task["verifier"]["files"] if file["destination"] == "reference/asset.usd")
+    file["path"] = file["path"].removesuffix("asset.usd") + "nested/source.usda"
+    file["destination"] = task["reference"]
+    exporter().export_release(release, tmp_path / "export", wheel, fixture=True)
+    config = json.loads((tmp_path / "export/nv100-fixture-000/tests/evaluator.json").read_text())
+    assert config["reference"] == "reference/nested/source.usda"
+    assert config["entrypoint"] == "asset.usd"
+
+
+def test_exported_role_locks_bound_transitive_runtime_resolution(tmp_path, wheel):
+    import re
+    output = tmp_path / "export"
+    exporter().export_release(release_input(), output, wheel, fixture=True)
+    task = output / "nv100-fixture-000"
+    closures = {}
+    for role, directory, docker_name in [("actor", "environment", "Dockerfile"), ("feedback", "environment", "Dockerfile.feedback"), ("verifier", "tests", "Dockerfile")]:
+        lock = task / directory / (role + ".requirements.txt")
+        assert lock.is_file(), f"{role} transitive dependency lock is missing"
+        lines = [line for line in lock.read_text().splitlines() if line and not line.startswith("#")]
+        assert lines and all(re.fullmatch(r"[A-Za-z0-9_.-]+==[^\s]+ --hash=sha256:[a-f0-9]{64}", line) for line in lines)
+        closures[role] = {line.split("==", 1)[0].lower().replace("_", "-") for line in lines}
+        docker = (task / directory / docker_name).read_text()
+        install = next(line for line in docker.splitlines() if line.startswith("RUN python -m pip install"))
+        assert "--require-hashes --no-deps" in install
+        assert f"-r /opt/locks/{role}.requirements.txt" in install
+        assert "&& python -m pip install --no-cache-dir --no-deps" in install
+        assert "simreadybench-eval" not in closures[role]
+    assert len(closures["actor"]) == 18
+    assert len(closures["feedback"]) == 13
+    assert closures["verifier"] == closures["actor"] | closures["feedback"]
+    assert "huggingface-hub" in closures["actor"]
+    assert "simready-validate" not in closures["actor"]
+    assert "simready-validate" in closures["feedback"]
+    assert "huggingface-hub" not in closures["feedback"]
