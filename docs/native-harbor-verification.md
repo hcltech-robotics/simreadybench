@@ -149,10 +149,36 @@ before atomic replacement. A restrictive-umask regression reproduced 0600 before
 the fix; 35 contract/CLI tests pass after it. A real network-none, read-only,
 cap-drop Docker process wrote the patched outputs as a different mapped UID;
 the ordinary host collector could read both 0644 files. No score, renderer,
-network, UID or capability policy changed. The corrected full Harbor trial still
-requires a fresh STC run. The original failed trial is preserved in Library
+network, UID or capability policy changed. The original failed trial is preserved in Library
 `libfile_5b6bd07d66ac81919e1516dc1bfde698` version 0, ZIP SHA256
 `1e1abcd26a45a61760c59e133b7a574258d0b6a847e05dd67c7d8b4e1a0211f1`.
+
+The corrected full standard Harbor trial passed on STC from
+2026-10-25T19:24:38.549424Z to 19:26:17.894890Z, trial
+`nv100-neutral-hinge__XTToxvF`, with `exception_info=null` and collected
+`verifier_result.rewards`: `evaluation_complete=1`, formal credit
+0.826086956521739, visual and kinematic credit 1. Five feedback calls completed
+and the sixth was rejected. The live read-only publication monitor observed
+root-owned reward mode 0644 readable by host UID1000 at 19:26:04.765Z before
+cleanup, followed by normal cleanup ownership change. There was no manual
+chmod/chown or isolation change. The passing clean bundle is Oracle Library
+`libfile_6f035bcc9dbc81919c715d9ccf15fc14` version 1, ZIP SHA256
+`f19cdfa92fac557e6738ab3eeb85c640e664123dd6155b3456c2333fe085d433`,
+implementation commit `e52d48b7bdb64949a4e00e418b06b15d49659fb3`.
+The matching evaluator bundle is Library `libfile_10c62858c51c8191b0d253a305d03ebf`
+version 3, ZIP SHA256
+`1b62fbb732a77126910446e26ce00c346bbb6f90c46994328bc7912ce81d2b22`,
+native wheel SHA256
+`54661461b5231f433b6b677ae340c8bf790b7871172bf210ed91f44f74ce6a45`.
+This is a native lifecycle pass for the original neutral fixture, not published
+NV100 asset-fetch acceptance or whole-cohort eligibility.
+The consolidated STC evidence is Library
+`libfile_5b6bd07d66ac81919e1516dc1bfde698` version 1, 719334 bytes / 77 files,
+SHA256 `40fbb8a86194772be447cbf405b1c9c1b8e2d4933f5b2a5637dfbbbad4d36649`.
+It preserves both original failed and corrected runs, the verified corrected
+bundle, live output-publication trace and host pre/postflight. The reported
+corrected job has one completed trial, zero errors and no exception. The same
+20 service containers and existing Python process remained untouched.
 
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses
