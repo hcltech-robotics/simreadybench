@@ -502,10 +502,20 @@ def test_sequential_execution_keeps_repetitions_budget_identities_and_exported_c
         (output / "assets/imported").iterdir()
     )
     portable = json.loads((output / "results.json").read_text())
-    assert len(portable["results"]) == 8 and not portable["partial"]
+    assert len(portable["results"]) == 8
+    # The mocked worker finishes authoring and captures, but runs no evaluator.
+    assert portable["authored_conditions"] == 8
+    assert portable["evaluated_conditions"] == 0
+    assert portable["partial"] is True and portable["benchmark_complete"] is False
+    assert all(not row["fidelity"] for row in portable["results"])
     assert all(
         (output / "evidence" / row["images"][0]["path"]).is_file()
         for row in portable["results"]
+    )
+    assert all(
+        hashlib.sha256((output / "evidence" / image["path"]).read_bytes()).hexdigest()
+        == image["sha256"]
+        for row in portable["results"] for image in row["images"]
     )
     assert all((output / row["report_path"]).is_file() for row in portable["results"])
     assert not (tmp_path / "work/a0").exists() and not (tmp_path / "work/a1").exists()
