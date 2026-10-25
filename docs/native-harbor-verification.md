@@ -135,6 +135,25 @@ The bundle and Oracle fixture use exact implementation commit
 No working checkout, source binaries or historical results entered those code
 handoffs. The render evidence contains derived images, attribution and receipts.
 
+The first exact portable Oracle trial executed on STC under official Harbor
+0.24.0 from 19:12:40Z to 19:15:45Z. All five feedback calls completed, sixth-call
+rejection and actor isolation assertions passed, candidate artifacts transferred,
+and the separate offline verifier produced complete scores (formal 82.6087;
+G/R/V/K 100). The trial still errored when Harbor read `reward.json`: atomic
+temporary outputs retained mode 0600. Later cleanup copied readable host-owned
+files, so their final ownership does not describe access at the failure point.
+CLI exit zero is not proof of a successful Harbor trial.
+
+The output writer now chmods completed temporary report/reward files to 0644
+before atomic replacement. A restrictive-umask regression reproduced 0600 before
+the fix; 35 contract/CLI tests pass after it. A real network-none, read-only,
+cap-drop Docker process wrote the patched outputs as a different mapped UID;
+the ordinary host collector could read both 0644 files. No score, renderer,
+network, UID or capability policy changed. The corrected full Harbor trial still
+requires a fresh STC run. The original failed trial is preserved in Library
+`libfile_5b6bd07d66ac81919e1516dc1bfde698` version 0, ZIP SHA256
+`1e1abcd26a45a61760c59e133b7a574258d0b6a847e05dd67c7d8b4e1a0211f1`.
+
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses
 `sqrt(full_3D_geometry * mean(four_foreground_SSIM_percentages))`. Four views have

@@ -94,6 +94,10 @@ def write_outputs(report, output):
         with tempfile.NamedTemporaryFile(mode="w", dir=output, prefix=".output-", delete=False) as stream:
             stream.write(encoded)
             stream.flush()
+            # NamedTemporaryFile starts at 0600. The separate verifier may run
+            # as container root while Harbor collects these public outputs as
+            # the host user; publish completed artifacts with readable mode.
+            os.fchmod(stream.fileno(), 0o644)
             os.fsync(stream.fileno())
             temporary = stream.name
         os.replace(temporary, output / name)

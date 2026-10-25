@@ -10,6 +10,24 @@ def known(value):
     return {"status": "measured", "score_percent": value, "coverage_fraction": 1}
 
 
+def test_atomic_verifier_outputs_are_readable_by_the_host_collector(tmp_path):
+    import os
+    import stat
+    from simready_eval.contract import write_outputs
+
+    report = {'scores': {name: known(100) for name in ('formal', 'visual', 'kinematic')}}
+    (tmp_path / 'reward.txt').write_text('stale scalar')
+    previous = os.umask(0o077)
+    try:
+        reward = write_outputs(report, tmp_path)
+    finally:
+        os.umask(previous)
+    for name in ('report.json', 'reward.json'):
+        assert stat.S_IMODE((tmp_path / name).stat().st_mode) == 0o644
+    assert json.loads((tmp_path / 'reward.json').read_text()) == reward
+    assert not (tmp_path / 'reward.txt').exists()
+
+
 def test_visual_requires_real_geometry_and_four_view_appearance():
     from simready_eval.contract import visual_score
 
