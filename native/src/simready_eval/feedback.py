@@ -25,13 +25,16 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.request
 import uuid
 
-MAX_ARCHIVE = 256 * 1024 * 1024
-MAX_FILES = 10000
+from simready_eval.limits import CANDIDATE_BYTES, TAR_BYTES, MAX_ENTRIES
+
+MAX_ARCHIVE = TAR_BYTES
+MAX_FILES = MAX_ENTRIES
 MAX_RESPONSE = 8 * 1024 * 1024
 MAX_CALLS = 5
 WORKER_UID = WORKER_GID = 65534
@@ -155,7 +158,7 @@ def safe_extract(data, destination):
                 if len(entries) > MAX_FILES:
                     raise ValueError("expanded_package_file_limit_exceeded")
                 total += item.size
-                if total > MAX_ARCHIVE:
+                if total > CANDIDATE_BYTES:
                     raise ValueError("expanded_package_limit_exceeded")
                 target = root.joinpath(*path.parts)
                 if item.isdir():
@@ -221,7 +224,7 @@ def sanitize(value):
 
 def _worker_limits():
     for kind, ceiling in ((resource.RLIMIT_CPU, 120), (resource.RLIMIT_AS, 4 * 1024**3),
-                          (resource.RLIMIT_FSIZE, MAX_ARCHIVE), (resource.RLIMIT_NOFILE, 128),
+                          (resource.RLIMIT_FSIZE, CANDIDATE_BYTES), (resource.RLIMIT_NOFILE, 128),
                           (resource.RLIMIT_NPROC, 128), (resource.RLIMIT_CORE, 0)):
         hard = resource.getrlimit(kind)[1]
         resource.setrlimit(kind, (min(ceiling, hard) if hard != resource.RLIM_INFINITY else ceiling,) * 2)
@@ -253,6 +256,7 @@ class FeedbackService:
         if not 0 < deadline <= 120:
             raise ValueError("Worker deadline must be at most 120 seconds")
         self.evaluator, self.deadline = evaluator, deadline
+        self._inflight = threading.BoundedSemaphore(1)
         state = Path(state).absolute()
         if state.is_symlink():
             raise ValueError("State must be a real directory")
@@ -319,6 +323,16 @@ class FeedbackService:
         return _read_worker_result(result_path)
 
     def validate(self, data, request_id, content_hash):
+        """The direct-call seam shares the HTTP service's single validation slot."""
+        if not self._inflight.acquire(blocking=False):
+            return 503, {"error": "feedback_busy", "retry_after_seconds": 1}
+        try:
+            return self._validate(data, request_id, content_hash)
+        finally:
+            self._inflight.release()
+
+    def _validate(self, data, request_id, content_hash):
+        """Validate while the caller owns the upload/evaluation slot."""
         if len(data) > MAX_ARCHIVE:
             return 413, {"error": "archive_limit_exceeded"}
         if not isinstance(content_hash, str) or not SHA256.fullmatch(content_hash) or hashlib.sha256(data).hexdigest() != content_hash:
@@ -358,12 +372,16 @@ class FeedbackService:
                 super().setup()
                 self.connection.settimeout(15)
 
-            def reply(self, status, body):
+            def reply(self, status, body, *, busy=False):
                 data = _json(body)
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
                 self.send_header("Cache-Control", "no-store")
+                if busy:
+                    self.close_connection = True
+                    self.send_header("Retry-After", "1")
+                    self.send_header("Connection", "close")
                 self.end_headers()
                 self.wfile.write(data)
 
@@ -383,14 +401,21 @@ class FeedbackService:
                 hashes = self.headers.get_all("X-Content-SHA256", [])
                 if len(request_ids) != 1 or len(hashes) != 1 or not REQUEST_ID.fullmatch(request_ids[0]) or not SHA256.fullmatch(hashes[0]):
                     return self.reply(400, {"error": "invalid_request_identity"})
+                # Admit at most one body before allocating its bounded buffer.
+                # Busy requests neither read their body nor reserve a quota call.
+                if not service._inflight.acquire(blocking=False):
+                    return self.reply(503, {"error": "feedback_busy", "retry_after_seconds": 1}, busy=True)
                 try:
-                    data = self.rfile.read(size)
-                except (OSError, TimeoutError):
-                    return self.reply(408, {"error": "upload_timeout"})
-                if len(data) != size:
-                    return self.reply(400, {"error": "truncated_upload"})
-                status, result = service.validate(data, request_ids[0], hashes[0])
-                self.reply(status, result)
+                    try:
+                        data = self.rfile.read(size)
+                    except (OSError, TimeoutError):
+                        return self.reply(408, {"error": "upload_timeout"})
+                    if len(data) != size:
+                        return self.reply(400, {"error": "truncated_upload"})
+                    status, result = service._validate(data, request_ids[0], hashes[0])
+                    self.reply(status, result)
+                finally:
+                    service._inflight.release()
         return ThreadingHTTPServer((host, port), Handler)
 
 
@@ -409,7 +434,7 @@ def candidate_archive(package):
             if path.is_dir():
                 continue
             total += info.st_size
-            if total > MAX_ARCHIVE:
+            if total > CANDIDATE_BYTES:
                 raise ValueError("Package exceeds upload limit")
             archive.add(path, arcname=path.relative_to(root).as_posix(), recursive=False)
             if data.tell() > MAX_ARCHIVE:

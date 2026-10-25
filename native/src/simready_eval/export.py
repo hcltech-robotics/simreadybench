@@ -15,6 +15,7 @@ import zipfile
 
 from .fetch import REPO_ID, validate_manifest
 from .dependencies import runtime_lock
+from .limits import FEEDBACK_SCRATCH_BYTES
 
 BASE_IMAGE = "python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704"
 SOURCE_COLLECTION = {"repo_id": "nvidia/simready-assets", "revision": "f4860aa0c75607adb50a78bf96e77510bffc040f"}
@@ -276,7 +277,7 @@ def _compose():
         "feedback": {"build": {"context": "${CONTEXT_DIR}", "dockerfile": "Dockerfile.feedback"},
                      "user": "0", "cap_drop": ["ALL"], "cap_add": ["SETUID", "SETGID", "CHOWN"],
                      "security_opt": ["no-new-privileges:true"], "read_only": True,
-                     "volumes": ["feedback-ledger:/state"], "tmpfs": ["/tmp:size=512m,mode=1777"],
+                     "volumes": ["feedback-ledger:/state"], "tmpfs": [f"/tmp:size={FEEDBACK_SCRATCH_BYTES},mode=1777"],
                      "cpus": 2, "mem_limit": "8g",
                      "healthcheck": {"test": ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=2).read()"],
                                      "interval": "2s", "timeout": "3s", "retries": 30}}},
@@ -321,6 +322,9 @@ Up to five formal feedback calls are available. Use a fresh request ID for each
 changed candidate; retry the same request ID after a transport interruption:
 
     python -m simready_eval.feedback validate_candidate --package /output/submission --request-id attempt-1 --url http://127.0.0.1:8080
+
+HTTP 503 feedback_busy is retryable after Retry-After with the same request ID;
+the busy request has not been admitted and does not consume a feedback call.
 
 Final evaluation independently measures formal, visual, and kinematic fidelity.
 '''

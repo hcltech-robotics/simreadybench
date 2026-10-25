@@ -23,6 +23,7 @@ from PIL import Image
 
 from . import correspondence, render
 from .package import EXEC_EXTS, REFERENCE_LIMIT_BYTES, LIMIT_FILES, USD_EXTS, inspect_package
+from .limits import CANDIDATE_LABEL
 from .usd import observe
 
 SCHEMA = "simready-asset-preparation-v1"
@@ -183,7 +184,7 @@ def public_instruction(dimensions):
         "Nominal dimensions in canonical metres XYZ: " + json.dumps(dimensions) + "\n\n"
         "Preserve the visible geometry, materials, rigid bodies, joints and articulation. "
         "Write a top-level asset.usd and include all relative dependencies in your submission.\n\n"
-        "Submit only USD and its data dependencies: at most 256 MiB and 10000 files/directories combined. "
+        f"Submit only USD and its data dependencies: at most {CANDIDATE_LABEL} and {LIMIT_FILES} files/directories combined. "
         "Keep authoring programs outside the submission; links, executable files and external dependencies are not accepted.\n\n"
         "Do not use Blender for authoring; Blender is used only by the verifier renderer.\n")
 

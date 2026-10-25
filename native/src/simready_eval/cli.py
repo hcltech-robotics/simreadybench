@@ -22,11 +22,12 @@ import time
 
 from . import contract
 from .package import REFERENCE_LIMIT_BYTES
+from .limits import CANDIDATE_BYTES, MAX_ENTRIES
 
 SCHEMA = "simready-evaluator-config-v1"
 ELIGIBILITY_SCHEMA = "simready-reference-eligibility-v1"
-MAX_FILES = 10_000
-MAX_BYTES = 256 * 1024**2
+MAX_FILES = MAX_ENTRIES
+MAX_BYTES = CANDIDATE_BYTES
 MAX_JSON_BYTES = 16 * 1024**2
 
 

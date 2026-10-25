@@ -60,7 +60,7 @@ def test_referenced_archive_is_retained_and_missing_dependency_is_rejected(tmp_p
 def test_public_instruction_retains_nominal_dimensions_without_renderer(tmp_path):
     text = prepare.public_instruction([.25, .4, .15])
     assert 'Nominal dimensions in canonical metres XYZ: [0.25, 0.4, 0.15]' in text
-    assert '256 MiB' in text and '10000 files/directories' in text
+    assert '1 GiB' in text and '10000 files/directories' in text
     assert 'Do not use Blender for authoring' in text
 
 

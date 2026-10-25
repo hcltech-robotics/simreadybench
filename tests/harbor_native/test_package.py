@@ -139,10 +139,47 @@ def test_nested_candidate_entrypoint_stays_forbidden_by_default(tmp_path):
 def test_trusted_reference_bytes_are_separate_from_declared_candidate_limit(tmp_path):
     asset(tmp_path)
     with (tmp_path / 'data.bin').open('wb') as stream:
-        stream.truncate(256 * 1024**2 + 1)
+        stream.truncate(1024**3 + 1)
     candidate = inspect_package(tmp_path)
     assert not candidate['package_ok']
     assert any(row['code'] == 'package_limit_exceeded' for row in candidate['findings'])
     reference = inspect_package(tmp_path, trusted_reference=True)
     assert reference['package_ok'] and not reference['infrastructure_errors']
-    assert reference['metrics']['package_bytes'] > 256 * 1024**2
+    assert reference['metrics']['package_bytes'] > 1024**3
+
+
+def test_one_gib_candidate_boundary_is_inclusive_without_composing_sparse_data(tmp_path):
+    entry = asset(tmp_path)
+    data = tmp_path / 'payload.bin'
+    with data.open('wb') as stream:
+        stream.truncate(1024**3 - entry.stat().st_size)
+    result = inspect_package(tmp_path)
+    assert result['package_ok'] and result['metrics']['package_bytes'] == 1024**3
+    with data.open('r+b') as stream:
+        stream.truncate(data.stat().st_size + 1)
+    result = inspect_package(tmp_path)
+    assert result['proven_invalid']
+    assert any(row['code'] == 'package_limit_exceeded' for row in result['findings'])
+
+
+@pytest.mark.parametrize('required_bytes', [503323398, 452060328, 411827612, 364169524, 289041323])
+def test_retained_reference_closure_byte_sizes_fit_candidate_allowance(tmp_path, required_bytes):
+    # Asset-owner inventories are exact byte counts. Sparse fixtures test the
+    # byte admission rule only, not source semantics or runtime qualification.
+    entry = asset(tmp_path)
+    with (tmp_path / 'closure-data.bin').open('wb') as stream:
+        stream.truncate(required_bytes - entry.stat().st_size)
+    result = inspect_package(tmp_path)
+    assert result['package_ok'] and result['metrics']['package_bytes'] == required_bytes
+
+
+def test_usdz_expansion_cannot_spend_tar_header_allowance(tmp_path, monkeypatch):
+    from simready_eval import package
+    monkeypatch.setattr(package, 'LIMIT_BYTES', 4096)
+    with zipfile.ZipFile(tmp_path / 'asset.usdz', 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr('asset.usda', '#usda 1.0\ndef Xform "Asset" {}')
+        archive.writestr('large.bin', b'\x00' * 8192)
+    assert (tmp_path / 'asset.usdz').stat().st_size < 4096
+    result = inspect_package(tmp_path, entrypoint='asset.usdz')
+    assert result['proven_invalid']
+    assert any(row['code'] == 'expanded_package_limit_exceeded' for row in result['findings'])

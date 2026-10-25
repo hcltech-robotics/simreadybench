@@ -153,7 +153,7 @@ def test_pending_duplicate_does_not_dispatch_twice(tmp_path):
     worker = threading.Thread(target=lambda: service.validate(data, "same", digest(data)))
     worker.start()
     assert started.wait(5)
-    assert service.validate(data, "same", digest(data))[0] == 202
+    assert service.validate(data, "same", digest(data))[0] == 503
     release.set()
     worker.join()
     assert service.ledger.health()["used"] == 1
@@ -358,3 +358,111 @@ def test_controller_reclaims_worker_output_after_exit_before_read(tmp_path, monk
     # chdir happens before setuid inside Popen, so its cwd must be root accessible.
     assert captured["cwd"] == output.parent
     service.close()
+
+
+def test_candidate_limit_is_separate_from_tar_overhead(tmp_path, monkeypatch):
+    from simready_eval import feedback
+    monkeypatch.setattr(feedback, "CANDIDATE_BYTES", 8, raising=False)
+    monkeypatch.setattr(feedback, "MAX_ARCHIVE", 20 * 1024)
+    package = tmp_path / "package"
+    package.mkdir()
+    (package / "asset.usd").write_bytes(b"12345678")
+    data = feedback.candidate_archive(package)
+    assert 8 < len(data) <= feedback.MAX_ARCHIVE
+    assert (safe_extract(data, tmp_path / "exact") / "asset.usd").read_bytes() == b"12345678"
+    (package / "extra").write_bytes(b"9")
+    with pytest.raises(ValueError, match="limit"):
+        feedback.candidate_archive(package)
+    with pytest.raises(ValueError, match="limit"):
+        safe_extract(archive({"asset.usd": b"12345678", "extra": b"9"}), tmp_path / "above")
+
+
+def test_busy_http_rejected_before_body_without_quota_and_health_works(tmp_path):
+    import http.client
+    started, release = threading.Event(), threading.Event()
+    calls = []
+    def evaluate(root):
+        calls.append(root)
+        started.set()
+        assert release.wait(5)
+        return {"outcome": "incomplete", "score_percent": 12}
+    service = FeedbackService(tmp_path / "state", evaluator=evaluate)
+    server = service.make_server("127.0.0.1", 0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    data = archive()
+    active = threading.Thread(target=lambda: service.validate(data, "active", digest(data)))
+    active.start()
+    assert started.wait(5)
+    connection = http.client.HTTPConnection(*server.server_address, timeout=1)
+    url = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        connection.putrequest("POST", "/validate")
+        connection.putheader("Content-Length", str(len(data)))
+        connection.putheader("X-Request-ID", "busy")
+        connection.putheader("X-Content-SHA256", digest(data))
+        connection.endheaders()
+        # No body is sent. A busy server must respond without reading it.
+        response = connection.getresponse()
+        assert response.status == 503
+        assert int(response.getheader("Retry-After")) >= 1
+        assert response.getheader("Connection") == "close"
+        assert json.loads(response.read())["error"] == "feedback_busy"
+        with urllib.request.urlopen(url + "/health", timeout=1) as health:
+            assert json.load(health)["used"] == 1
+        assert service.validate(data, "direct-busy", digest(data))[0] == 503
+        assert len(calls) == 1 and service.ledger.health()["used"] == 1
+    finally:
+        connection.close()
+        release.set()
+        active.join(5)
+    try:
+        assert post(url, data, "after-release")[0] == 200
+        assert len(calls) == 2 and service.ledger.health()["used"] == 2
+    finally:
+        server.shutdown()
+        server.server_close()
+        service.close()
+
+
+def test_single_inflight_slot_released_after_upload_and_worker_errors(tmp_path):
+    calls = []
+    def evaluate(root):
+        calls.append(root)
+        if len(calls) == 1:
+            raise RuntimeError("test worker infrastructure failure")
+        return {"outcome": "incomplete", "score_percent": 12}
+    service = FeedbackService(tmp_path / "state", evaluator=evaluate)
+    server = service.make_server("127.0.0.1", 0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://127.0.0.1:{server.server_address[1]}"
+    data = archive()
+    try:
+        assert post(url, data, "bad-hash", hash_value="0" * 64)[0] == 400
+        assert service.ledger.health()["used"] == 0
+        first = post(url, data, "worker-error")
+        assert first[0] == 200 and first[1]["result"]["score_percent"] is None
+        second = post(url, data, "after-error")
+        assert second[0] == 200 and second[1]["result"]["score_percent"] == 12
+        assert service.ledger.health()["used"] == 2
+    finally:
+        server.shutdown()
+        server.server_close()
+        service.close()
+
+
+def test_worker_file_limit_is_candidate_allowance_not_response_limit(monkeypatch):
+    import ctypes
+    import resource
+    from simready_eval import feedback
+    observed = {}
+    monkeypatch.setattr(resource, "getrlimit", lambda kind: (resource.RLIM_INFINITY,) * 2)
+    monkeypatch.setattr(resource, "setrlimit", lambda kind, limits: observed.__setitem__(kind, limits))
+    class Lib:
+        def prctl(self, *args):
+            return 0
+    monkeypatch.setattr(ctypes, "CDLL", lambda *args, **kwargs: Lib())
+    feedback._worker_limits()
+    assert observed[resource.RLIMIT_FSIZE] == (1024 ** 3,) * 2
+    assert feedback.MAX_RESPONSE == 8 * 1024 ** 2

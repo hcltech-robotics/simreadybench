@@ -243,6 +243,40 @@ The accepted STC Oracle artifact remains version 1 at its earlier exact commit;
 it was not rerun merely to refresh package metadata. Whole published NV100
 validation will use STC after the final asset freeze and clean publication.
 
+The inherited defensive 256 MiB candidate limit was explicitly authorized for
+correction to 1 GiB after the completed asset-owner inventory showed exactly
+five required runtime closures above 256 MiB, maximum 503323398 bytes. One
+shared `limits.py` now feeds package inspection, final freezing, formal worker
+file bounds, feedback extraction and public instructions. Reference acquisition
+stays at 2 GiB. The plain-TAR envelope is separately bounded at 1.25 GiB, including
+conservative PAX/header overhead; it does not enlarge candidate or USDZ-expanded
+bytes. Feedback scratch is 2 GiB and a single admission slot is acquired before
+HTTP body reading through evaluation completion. Busy requests get 503,
+Retry-After and connection closure without a quota reservation; health remains
+available. Five-call/replay/restart behavior and private ledger permissions stay
+unchanged, as do score formulas, time, memory, geometry and image guards.
+
+Checks: 139 integration cases passed in the SDK interpreter; two Harbor-schema
+cases were run in the separate Harbor-equipped host interpreter (both pass),
+plus one USDZ/TAR allowance regression and four public-instruction/closure tests.
+The two initially missing-Harbor imports were test-environment issues, not
+evaluator dependencies; the neutral wheel still does not require Harbor.
+The 26 feedback cases include an actual zero-body busy upload rejected before
+allocation, concurrent health, errors releasing the slot, true SDK requests,
+five-call exhaustion and restart/replay. Independent review found no substantive
+defect. No full render, scoring cycle or accepted STC trial was repeated.
+
+A real unchanged-texture bed candidate passed the corrected candidate package
+and dependency gate at 452069304 bytes / 41 files in 3.28s. All 40 original source
+dependencies and all 22 original PNGs remain byte-identical; only the proven
+top-level entrypoint relocation is added. Reapplying the old 256 MiB budget to
+the same package rejects it. Source/reference hashes remain unchanged. This is
+real admission evidence, not full runtime/score/Oracle qualification. The five
+exact retained closure byte counts also pass targeted sparse-size admission
+tests; 1 GiB passes, 1 GiB plus one byte rejects, and compressed USDZ expansion
+cannot spend the TAR-header allowance. Public instructions/role-file hashes must
+be regenerated before the HF freeze; images need no regeneration.
+
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses
 `sqrt(full_3D_geometry * mean(four_foreground_SSIM_percentages))`. Four views have

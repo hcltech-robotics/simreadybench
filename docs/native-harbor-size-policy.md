@@ -1,7 +1,10 @@
 # NV100 candidate package size recommendation
 
-Recommendation only: the implemented candidate limit remains 256 MiB. No live
-dataset, account, task allowance or reference content was changed for this note.
+Implemented after explicit authorization: native candidate files and expanded
+package bytes are now bounded at 1 GiB. This corrects the inherited defensive
+default to accommodate the retained reference closures; it does not rewrite a
+user-selected numeric protocol. No live dataset, account or reference content
+was changed. The memory, geometry and total-time safeguards remain unchanged.
 
 The limit is inherited from the original repository, not newly introduced by the
 native port. Commit `1148527c2b3cc40c7b366856acf21c20721b8ace` (20 October 2026,
@@ -33,26 +36,33 @@ runtime closures exceed the proposed limit. Keep reference acquisition separatel
 bounded at 2 GiB; do not force candidates to reduce texture quality to satisfy
 an inherited byte default.
 
-This is a small coordinated implementation change, not a config-only flip:
+The coordinated implementation changes are:
 
-- Share one candidate-byte limit across `package.py`, final freezing in `cli.py`,
+- One shared candidate-byte limit across `package.py`, final freezing in `cli.py`,
   formal worker file-size bounds, feedback extraction and public instructions.
-- Separate the plain-TAR transport allowance from expanded candidate bytes.
-  Bound header/PAX overhead from the entry and UTF-8 path limits; it must not
-  increase the expanded-byte limit or silently reduce usable candidate bytes.
-- Increase feedback scratch from 512 MiB to 2 GiB and bound admission before
+- A separate 1.25 GiB plain-TAR transport envelope: up to 256 MiB of bounded
+  metadata/header overhead conservatively covers existing entry/Unicode path
+  limits without increasing the 1 GiB expanded-candidate allowance.
+- Feedback scratch increased from 512 MiB to 2 GiB and admission bounded before
   reading large request bodies: at most one upload/evaluation in flight, with
   explicit retryable busy responses before quota reservation. Preserve the
   five-call ledger, same-ID/digest replay and sixth-call rejection. This avoids
   multiplying GiB request buffers and validator processes under the 8 GiB
   sidecar limit.
-- Retain all existing path/link/archive checks, 10,000 entries, per-image and
+- All existing path/link/archive checks retained, 10,000 entries, per-image and
   geometry/decoded-allocation guards, worker address-space bounds, container
   memory/CPU limits, final 600s deadline and Blender 180s child limit. No score
   formula or unknown/failure classification changes.
-- Regenerate the public instruction bytes and their manifests before the HF
+- Regenerate public instruction bytes and their manifests before the HF
   freeze. No image rerender is caused by a package-limit change. Run focused
   boundary, TAR-overhead, admission/quota and container checks when implemented.
+
+A real full-texture bed candidate now passes package/dependency inspection at
+452,069,304 bytes / 41 files. All 40 original dependencies and all 22 original
+PNGs remain byte-identical; only the previously proven top-level entrypoint
+relocation is added. Reapplying the old 256 MiB gate rejects exactly the same
+package. This check involved no rendering, texture conversion or score run and
+does not establish full-runtime/Oracle eligibility.
 
 Package capacity is only one eligibility condition. Increasing it does not
 prove that an exact full-resolution reference clone fits the 600s runtime.

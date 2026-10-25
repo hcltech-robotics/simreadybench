@@ -12,11 +12,12 @@ import stat
 import tempfile
 import zipfile
 import xml.etree.ElementTree as ET
+from .limits import CANDIDATE_BYTES, REFERENCE_BYTES, MAX_ENTRIES
 
 VERSION = "package-checks-2"
-LIMIT_BYTES = 256 * 1024 * 1024
-REFERENCE_LIMIT_BYTES = 2 * 1024**3
-LIMIT_FILES = 10000
+LIMIT_BYTES = CANDIDATE_BYTES
+REFERENCE_LIMIT_BYTES = REFERENCE_BYTES
+LIMIT_FILES = MAX_ENTRIES
 USD_EXTS = {".usd", ".usda", ".usdc"}
 EXEC_EXTS = {
     ".py",

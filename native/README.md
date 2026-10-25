@@ -58,7 +58,7 @@ comparison RGBs/masks, cameras, renderer identity and frozen eligibility.
 It retains the existing public nominal dimensions in canonical metres XYZ,
 using `metadata.nominal_dimensions_m` when supplied and otherwise the full
 visible source bounds. The one-image rule governs image access; it does not
-remove this existing text input. Submission limits are 256 MiB and 10000
+remove this existing text input. Submission limits are 1 GiB and 10000
 files/directories combined, with only USD and its confined data dependencies.
 Final scoring verifies the recipe, cameras, bridge code and Blender binary
 against that eligibility before touching the candidate. Changing the renderer
@@ -78,11 +78,19 @@ without another render.
 
 Trusted reference preparation and final reference preflight allow a separately
 bounded 2 GiB dependency closure. This permits inspecting original source
-packages; it does not widen the candidate's 256 MiB limit or establish reference
-eligibility. A selected reference still needs a faithful candidate representation
+packages; it does not establish reference eligibility. Candidate files and
+expanded archives are bounded at 1 GiB. A selected reference still needs a faithful candidate representation
 within the declared submission limit and successful evaluation with headroom.
 Do not treat a texture-reduced candidate as exact-identity or Oracle eligibility:
-its measured visual loss is real, and lossless packing must be assessed separately.
+its measured visual loss is real. The corrected byte limit now accommodates the
+unmodified selected runtime closures; full runtime qualification stays separate.
+
+Feedback accepts a bounded plain TAR envelope with separate metadata overhead;
+the extracted package stays within 1 GiB. Its 2 GiB scratch and one in-flight
+upload/evaluation bound memory use before body reading. Busy requests receive
+retryable HTTP 503 with `Retry-After` and consume no feedback slot. Retry the
+same request ID and candidate digest. The five-call quota and replay semantics,
+8 MiB response bound and private ledger permissions are unchanged.
 
 ## Scores and support
 
@@ -151,7 +159,7 @@ then faithful full evaluation in 179.40s with F=88.80, V=100, K=100 and 1.24 GiB
 maximum individual process/child RSS. All original source hashes remained equal.
 Recommended admission targets are full faithful self-evaluation within 300 of
 the existing 600 seconds, process-tree RSS within 6 GiB of the 16 GiB envelope,
-and preferably runtime package bytes within 128 MiB of the 256 MiB submission
+and preferably runtime package bytes within 512 MiB of the 1 GiB submission
 limit. These are pre-release headroom targets, not score changes or a blanket
 triangle cutoff; replace only measured outliers and qualify replacements.
 
@@ -159,8 +167,7 @@ The corrected streaming bridge also completed full-resolution, full-geometry
 render-only probes for the 853847-triangle hospital bed (390.16s, 3.36 GiB child
 RSS) and 742798-triangle foldout toolbox (297.42s, 2.97 GiB). Each produced five
 RGBs and five masks with original PNG16 samples and unchanged source hashes.
-These are not full-grader eligibility claims: their original texture closures
-exceed the declared candidate package limit, and complete evaluation must fit
+These are not full-grader eligibility claims: complete evaluation must fit
 the unchanged 600-second total. Keep the original
 execution receipts and any final-code equivalence proof separate.
 
@@ -170,9 +177,9 @@ R=98.60417, V=99.29963 and K=100, with formal 88.80435 measured separately in th
 pinned SDK runtime. Conservative serial phase time was 515.38s and peak measured
 process-tree RSS 3.59 GiB. It is explicitly lossy candidate evidence, not an
 exact Oracle or one fully configured invocation. Reference bytes were unchanged.
-The original required bed closure is 452060328 bytes; no optimized lossless
-candidate below 256 MiB has been demonstrated, and compression alone cannot
-evade the expanded-byte limit.
+The original required bed closure is 452060328 bytes, now below the corrected
+1 GiB candidate limit without texture reduction. Earlier evidence under the
+inherited 256 MiB cap remains historical; it does not redefine the current cap.
 
 Finite nonzero authored normals retain their original corners and are normalized.
 Zero authored normal vectors are preserved as zero, invoking Blender
