@@ -249,8 +249,13 @@ COPY {wheel} /opt/wheels/{wheel}
 COPY actor.requirements.txt /opt/locks/actor.requirements.txt
 RUN python -m pip install --no-cache-dir --require-hashes --no-deps -r /opt/locks/actor.requirements.txt && python -m pip install --no-cache-dir --no-deps '/opt/wheels/{wheel}'
 COPY actor-assets.json /opt/setup/actor-assets.json
+COPY actor-runtime.json /opt/setup/actor-runtime.json
+RUN mkdir -p /opt/setup/frozen-public && chmod 700 /opt/setup/frozen-public
+COPY observation.png /opt/setup/frozen-public/observation.png
+COPY source-public-instruction.txt /opt/setup/frozen-public/instruction.md
+RUN python -m simready_eval.fetch --manifest /opt/setup/actor-assets.json --destination /opt/setup/frozen-public --verify-only && rm -rf /opt/setup/frozen-public
 COPY observation.png instruction.md /task/
-RUN python -m simready_eval.fetch --manifest /opt/setup/actor-assets.json --destination /task --verify-only && chmod -R a+rX /task && chmod -R a-w /task
+RUN python -m simready_eval.fetch --manifest /opt/setup/actor-runtime.json --destination /task --verify-only && chmod -R a+rX /task && chmod -R a-w /task
 RUN useradd --create-home --uid 1000 agent && mkdir -p /output/submission && chown -R 1000:1000 /output /home/agent
 ENV HOME=/home/agent
 WORKDIR /output
@@ -357,6 +362,8 @@ the busy request has not been admitted and does not consume a feedback call.
 Final evaluation independently measures formal, visual, and kinematic fidelity.
 '''
     return {"instruction.md": instruction, "task.toml": _task_toml(task, fixture),
+            "environment/instruction.md": instruction.replace("(environment/observation.png)", "(observation.png)")
+                                                     .replace(" · [Public instructions](environment/instruction.md)", ""),
             "environment/Dockerfile": _actor_docker(wheel_name),
             "environment/Dockerfile.feedback": _feedback_docker(wheel_name),
             "environment/docker-compose.yaml": _json(_compose()),
@@ -477,7 +484,9 @@ def _fresh_output(output):
 def export_release(release, output, wheel, *, fixture=False, public_assets=None):
     """Export only supplied release tasks; return sorted file hashes and sizes.
 
-    Only the two declared actor inputs are materialized, with size/hash checking.
+    The two declared actor inputs are acquired with their frozen size/hash checks.
+    The raw frozen instruction is retained as source-public-instruction.txt;
+    named public/runtime wrappers have a separate local verification identity.
     By default they are fetched anonymously at the immutable HF revision. An
     optional local ``public_assets`` root mirrors the manifest's HF paths and
     avoids network access; only the exact actor file paths are read. No reference
@@ -503,7 +512,19 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
             task_files = {path: payload.encode() if isinstance(payload, str) else payload
                           for path, payload in _task_files(task, wheel_name, wheel_payload, fixture).items()}
             for file in task["actor"]["files"]:
-                task_files["environment/" + file["destination"]] = (public / file["destination"]).read_bytes()
+                destination = "source-public-instruction.txt" if file["destination"] == "instruction.md" else file["destination"]
+                task_files["environment/" + destination] = (public / file["destination"]).read_bytes()
+            original_brief = task_files["environment/source-public-instruction.txt"]
+            for path in ("instruction.md", "environment/instruction.md"):
+                task_files[path] += b"\n## Frozen public instructions\n\n" + original_brief
+            runtime = {
+                "schema": "simready-actor-runtime-v1", "task_id": task["id"], "instruction_origin": "derived-public-wrapper",
+                "frozen_actor_manifest_sha256": _hash(json.dumps(task["actor"], sort_keys=True, separators=(",", ":")).encode()),
+                "files": [{"destination": name, "size_bytes": len(task_files["environment/" + name]),
+                           "sha256": _hash(task_files["environment/" + name])}
+                          for name in ("observation.png", "instruction.md")],
+            }
+            task_files["environment/actor-runtime.json"] = _json(runtime).encode()
             name = _task_name(task["id"])
             files.update({name + "/" + path: payload for path, payload in task_files.items()})
             task_refs.append({"name": "hcltech-robotics/" + name, "digest": _publisher_digest(task_files)})

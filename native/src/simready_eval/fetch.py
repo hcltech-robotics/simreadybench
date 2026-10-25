@@ -93,6 +93,37 @@ def validate_manifest(manifest):
     return {**manifest, "files": validated}
 
 
+def _validate_actor_runtime_manifest(manifest):
+    """Validate local derived actor bytes; this schema cannot authorize HF I/O."""
+    if not isinstance(manifest, dict) or set(manifest) != {
+        "schema", "task_id", "instruction_origin", "frozen_actor_manifest_sha256", "files"
+    } or manifest["schema"] != "simready-actor-runtime-v1":
+        raise ValueError("unsupported actor runtime verification manifest")
+    if (not isinstance(manifest["task_id"], str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", manifest["task_id"])):
+        raise ValueError("runtime task_id must be a safe component")
+    if manifest["instruction_origin"] != "derived-public-wrapper":
+        raise ValueError("runtime instruction_origin must identify the derived public wrapper")
+    digest = manifest["frozen_actor_manifest_sha256"]
+    if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+        raise ValueError("frozen_actor_manifest_sha256 must identify the original role manifest")
+    files = manifest["files"]
+    if not isinstance(files, list) or len(files) != 2:
+        raise ValueError("actor runtime requires exactly observation.png and instruction.md")
+    destinations = set()
+    for file in files:
+        if not isinstance(file, dict) or set(file) != {"destination", "size_bytes", "sha256"}:
+            raise ValueError("runtime entries require exactly destination, size_bytes and sha256")
+        if file["destination"] not in ("observation.png", "instruction.md") or file["destination"] in destinations:
+            raise ValueError("actor runtime requires exactly observation.png and instruction.md")
+        if type(file["size_bytes"]) is not int or file["size_bytes"] < 0:
+            raise ValueError("runtime size_bytes must be a nonnegative integer")
+        if not isinstance(file["sha256"], str) or not re.fullmatch(r"[a-f0-9]{64}", file["sha256"]):
+            raise ValueError("runtime sha256 must be a lowercase SHA-256 digest")
+        destinations.add(file["destination"])
+    return manifest
+
+
 def _checked_path(path):
     """Reject existing symlink components before writing any setup path."""
     path = Path(os.path.abspath(os.fspath(path)))
@@ -357,10 +388,17 @@ def main(argv=None):
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
         if args.verify_only:
-            manifest = validate_manifest(manifest)
-            _verify_tree(_checked_path(args.destination), manifest["files"])
-            receipt = {"schema": "simready-asset-verification-v1", "role": manifest["role"],
-                       "task_id": manifest["task_id"], "revision": manifest["revision"], "verified": True}
+            if isinstance(manifest, dict) and manifest.get("schema") == "simready-actor-runtime-v1":
+                manifest = _validate_actor_runtime_manifest(manifest)
+                _verify_tree(_checked_path(args.destination), manifest["files"])
+                receipt = {"schema": "simready-actor-runtime-verification-v1", "task_id": manifest["task_id"],
+                           "instruction_origin": manifest["instruction_origin"],
+                           "frozen_actor_manifest_sha256": manifest["frozen_actor_manifest_sha256"], "verified": True}
+            else:
+                manifest = validate_manifest(manifest)
+                _verify_tree(_checked_path(args.destination), manifest["files"])
+                receipt = {"schema": "simready-asset-verification-v1", "role": manifest["role"],
+                           "task_id": manifest["task_id"], "revision": manifest["revision"], "verified": True}
         else:
             receipt = fetch_assets(manifest, args.destination, cache_dir=args.cache, attempts=args.attempts,
                                    timeout_seconds=args.timeout_seconds)

@@ -195,13 +195,18 @@ Missing PhysX native bindings can make specific validator checks unknown.
 `python -m simready_eval.export --release release.json --wheel evaluator.whl
 --output /fresh/export` creates only an allowlisted standalone task distribution.
 It requires exactly 100 tasks unless `--fixture` is explicit, and never uploads.
-The exporter embeds exactly the actor observation PNG and public instructions,
-verified against their frozen manifest. The actor build COPYs these two files and
-checks their hashes without HF access. Canonical tasks require an owner-reviewed `object_name` and public
+The exporter acquires the actor observation and raw public brief against the
+frozen HF manifest. It preserves the raw brief as `source-public-instruction.txt`
+and creates named root/linked/runtime instructions containing the full original
+body. The actor build first verifies the original frozen pair, removes that
+staging tree, then installs exactly the observation and named instruction in
+`/task`, verifying the derived wrapper against its separate `actor-runtime.json`
+identity without HF access. Canonical tasks require an owner-reviewed `object_name` and public
 `nominal_dimensions_m` (XYZ metres), separate from stable `id`. The root task
 instruction opens "Reconstruct this <name> ..." and shows these dimensions;
-task descriptions and the dataset index use the same label. The packaged public
-instruction bytes and original HF hash remain unchanged. Root instructions link to the packaged
+task descriptions and the dataset index use the same label. The raw public
+instruction bytes and original HF manifest/hash remain unchanged; the named
+wrapper has its own explicit derived-content hash. Root instructions link to the packaged
 image and the pinned public HF preview/download. An optional `--public-assets`
 root mirrors the manifest HF paths for offline export; unrelated local files are
 never included. Verifier `benchmark/` assets are fetched role-selectively at a full commit plus file

@@ -426,3 +426,43 @@ def test_exact_tree_size_failure_reports_actual_and_expected_without_relaxation(
     assert "observation.png" in message
     assert f"expected_size={len(original)}" in message
     assert f"observed_size={len(original) + 1}" in message
+
+
+def runtime_manifest_for(manifest):
+    return {"schema": "simready-actor-runtime-v1", "task_id": manifest["task_id"],
+            "instruction_origin": "derived-public-wrapper",
+            "frozen_actor_manifest_sha256": hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "files": [{key: value for key, value in file.items() if key != "path"} for file in manifest["files"]]}
+
+
+def test_runtime_wrapper_has_separate_offline_identity_and_is_never_hf_downloaded(tmp_path):
+    frozen = manifest_for()
+    wrapper = b"Reconstruct this articulated workshop clamp. Dimensions XYZ: [0.2, 0.1, 0.3] m.\n"
+    runtime = runtime_manifest_for(frozen)
+    instruction = next(file for file in runtime["files"] if file["destination"] == "instruction.md")
+    instruction.update(size_bytes=len(wrapper), sha256=hashlib.sha256(wrapper).hexdigest())
+    root = tmp_path / "task"
+    root.mkdir()
+    (root / "instruction.md").write_bytes(wrapper)
+    (root / "observation.png").write_bytes(PUBLIC["public/observation.png"])
+    path = tmp_path / "runtime.json"
+    path.write_text(json.dumps(runtime))
+    command = [sys.executable, "-m", "simready_eval.fetch", "--manifest", str(path), "--destination", str(root)]
+    verified = subprocess.run([*command, "--verify-only"], text=True, capture_output=True)
+    assert verified.returncode == 0, verified.stderr
+    receipt = json.loads(verified.stdout)
+    assert receipt["schema"] == "simready-actor-runtime-verification-v1"
+    assert receipt["instruction_origin"] == "derived-public-wrapper"
+    assert "revision" not in receipt  # The derived hash is never a frozen HF revision.
+    assert receipt["verified"] is True
+    with pytest.raises(ValueError):
+        fetch_module().fetch_assets(runtime, tmp_path / "must-not-fetch", downloader=lambda **_: pytest.fail("runtime wrapper requested HF"))
+    original_hash = next(file["sha256"] for file in frozen["files"] if file["destination"] == "instruction.md")
+    assert instruction["sha256"] != original_hash
+    changed = bytes([wrapper[0] ^ 1]) + wrapper[1:]
+    (root / "instruction.md").write_bytes(changed)
+    rejected = subprocess.run([*command, "--verify-only"], text=True, capture_output=True)
+    assert rejected.returncode != 0
+    assert "instruction.md" in rejected.stderr
+    assert instruction["sha256"] in rejected.stderr
+    assert hashlib.sha256(changed).hexdigest() in rejected.stderr

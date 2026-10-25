@@ -25,6 +25,7 @@ DATASET_FILES = ROOT_FILES - {"dataset.toml", "inventory.json"}
 TASK_FILES = {"instruction.md", "task.toml", "environment/Dockerfile", "environment/Dockerfile.feedback",
               "environment/docker-compose.yaml", "environment/actor-assets.json", "environment/actor.requirements.txt",
               "environment/observation.png", "environment/instruction.md",
+              "environment/source-public-instruction.txt", "environment/actor-runtime.json",
               "environment/feedback.requirements.txt", "tests/Dockerfile", "tests/verifier-assets.json",
               "tests/verifier.requirements.txt", "tests/evaluator.json", "tests/test.sh"}
 STATUS = {"fixture": False, "release_owner_asset_freeze_verified": True, "ready_for_publication": True,

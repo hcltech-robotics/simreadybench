@@ -5,12 +5,18 @@ do not copy a key, credentials file, home directory, or working checkout into th
 handoff, a task, HF, or a container. This handoff prepares local files and makes
 public HF metadata and actor-file reads (or use the verified local mirror). It never logs in or publishes automatically.
 
-The accepted scoring/rendering runtime is unchanged. Packaging version 1.0.2
-fixes the public-input omission and adds reviewed readable object names: every task includes `environment/observation.png`
-and `environment/instruction.md`, acquired and hash-verified during export.
-The actor Dockerfile COPYs exactly that pair and verifies it without a build-time
-HF fetch. Comparison views and reference USD remain verifier-only. Names/dimensions populate the root instruction; the frozen public instruction
-keeps its original HF hash. See the bundled `HANDOFF.json` for the exact source commit and wheel SHA-256.
+The accepted scoring/rendering runtime is unchanged. Every primary instruction
+surface now begins with the reviewed object name and includes dimensions plus
+the complete original public body (1 GiB, 10000 files/directories, entrypoint,
+dependencies and Blender prohibition), together with feedback instructions.
+`environment/source-public-instruction.txt` preserves the raw HF bytes. The
+actor build verifies the frozen image/raw-brief pair first, removes its staging
+tree, then installs exactly `observation.png` and the named `instruction.md` in
+`/task`. `actor-runtime.json` gives the derived wrapper its own size/SHA and
+frozen-manifest provenance; it does not mislabel the wrapper as the HF source.
+Comparison views and reference USD remain verifier-only. See `HANDOFF.json` for
+the exact source commit and wheel SHA-256. Version remains 1.0.2; force-reinstall
+this exact wheel with the existing `uv` command below.
 The source NVIDIA collection remains
 `nvidia/simready-assets@f4860aa0c75607adb50a78bf96e77510bffc040f`.
 
@@ -18,9 +24,9 @@ The source NVIDIA collection remains
 
 Finish all 100 assets / 500 RGBs, masks, cameras, descriptions, licenses and
 checksums first. Preserve historical data under `results/` in the existing HF
-repository. Regenerate all public instruction bytes with the v6 runtime's
-`public_instruction(dimensions)`, so they advertise 1 GiB; update role-file hashes.
-Publish/freeze the complete canonical HF dataset and obtain its full commit SHA.
+repository. For the existing frozen release, retain its public instruction bytes and role
+hashes unchanged. The named wrapper is a derived task-package artifact; it does
+not require any asset edit or HF upload. Use the complete immutable HF revision.
 Do not use a tag, branch, placeholder revision or draft role list.
 
 Supply canonical **input** `release-input.json` for `simready_eval.export`, with
@@ -35,8 +41,9 @@ exactly these top-level fields: `schema`, `repo_id`, `revision`, `source_commit`
   `entrypoint`, `views`, `budgets`. Keep frozen `nv100_<hash>` IDs unchanged.
   `object_name` is the owner-reviewed concise human label, separate from the ID;
   `nominal_dimensions_m` is the public XYZ extent in canonical metres. These
-  populate only root task instructions/description/index metadata; the exported
-  frozen `environment/instruction.md` retains its original HF bytes and hash.
+  populate root/linked/runtime instructions and description/index metadata.
+  `environment/source-public-instruction.txt` retains original HF bytes/hash;
+  `environment/instruction.md` is the named wrapper with its own runtime hash.
 - `actor`/`verifier`: `simready-role-assets-v1` objects with `repo_id`, `revision`,
   `task_id`, `role`, `files`. Each file has actual HF `path`, local `destination`,
   `size_bytes`, `sha256`. Actor gets exactly `observation.png` and `instruction.md`.

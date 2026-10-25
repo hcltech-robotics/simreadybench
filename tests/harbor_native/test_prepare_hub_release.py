@@ -83,7 +83,8 @@ def test_verified_freeze_finalizes_100_task_handoff_with_consistent_root_hashes(
         assert task.config.schema_version == "1.4"
         supplied = next(row for row in release["tasks"] if "hcltech-robotics/" + row["id"] == ref.name)
         assert (task_path / "instruction.md").read_text().startswith("Reconstruct this " + supplied["object_name"] + " ")
-        assert (task_path / "environment/instruction.md").read_bytes() == b"x"
+        assert (task_path / "environment/source-public-instruction.txt").read_bytes() == b"x"
+        assert (task_path / "environment/instruction.md").read_text().startswith("Reconstruct this " + supplied["object_name"] + " ")
         assert task.name == ref.name
         assert ref.digest == "sha256:" + Packager.compute_content_hash(task_path)[0]
     for file in dataset.files:

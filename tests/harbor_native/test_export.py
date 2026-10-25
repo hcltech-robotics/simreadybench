@@ -72,13 +72,40 @@ def synthetic_public_download(tmp_path, monkeypatch):
     return calls
 
 
+def _run_actor_public_build(environment, root):
+    import shlex
+    import shutil
+    frozen, actual = root / "frozen-public", root / "task"
+    for line in (environment / "Dockerfile").read_text().splitlines():
+        if line.startswith("COPY "):
+            words = shlex.split(line)[1:]
+            sources, target = words[:-1], words[-1]
+            if target.startswith("/opt/setup/frozen-public/"):
+                destination = frozen / Path(target).name
+                destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                shutil.copyfile(environment / sources[0], destination)
+            elif target == "/task/":
+                actual.mkdir(mode=0o700)
+                for source in sources:
+                    shutil.copyfile(environment / source, actual / source)
+        elif line.startswith("RUN python -m simready_eval.fetch"):
+            command = line.removeprefix("RUN ")
+            for source, target in (("/opt/setup/actor-assets.json", environment / "actor-assets.json"),
+                                   ("/opt/setup/actor-runtime.json", environment / "actor-runtime.json"),
+                                   ("/opt/setup/frozen-public", frozen), ("/task", actual)):
+                command = command.replace(source, shlex.quote(str(target)))
+            subprocess.run(["sh", "-c", command], check=True, text=True, capture_output=True)
+    return actual
+
+
 def test_export_bundles_only_frozen_actor_inputs_and_exposes_preview(tmp_path, wheel, synthetic_public_download):
     release = release_input()
     root = tmp_path / "release"
     inventory = exporter().export_release(release, root, wheel, fixture=True)
     task = root / "nv100-fixture-000"
     for file in release["tasks"][0]["actor"]["files"]:
-        path = task / "environment" / file["destination"]
+        name = "source-public-instruction.txt" if file["destination"] == "instruction.md" else file["destination"]
+        path = task / "environment" / name
         assert path.is_file(), "published task folder must include its public input bytes"
         assert path.read_bytes() == b"x"
         assert hashlib.sha256(path.read_bytes()).hexdigest() == file["sha256"]
@@ -111,7 +138,7 @@ def test_readable_name_dimensions_and_stable_identity_leave_frozen_instruction_u
     assert config["task"]["description"] == "Reconstruct this articulated workshop clamp from one frozen observation"
     assert config["task"]["name"] == "hcltech-robotics/nv100-fixture-000"
     assert "articulated workshop clamp" in (root / "README.md").read_text()
-    frozen = task / "environment/instruction.md"
+    frozen = task / "environment/source-public-instruction.txt"
     assert frozen.read_bytes() == b"x"
     public = next(f for f in release["tasks"][0]["actor"]["files"] if f["destination"] == "instruction.md")
     assert hashlib.sha256(frozen.read_bytes()).hexdigest() == public["sha256"]
@@ -161,26 +188,23 @@ def test_export_uses_verified_local_hf_mirror_and_build_rechecks_inputs(tmp_path
     assert "COPY observation.png instruction.md /task/" in docker
     assert "--verify-only" in docker
     assert "--cache /tmp/actor-cache" not in docker
-    # Run the actual generated read-only manifest check, then prove tampering fails.
-    command = next(line.removeprefix("RUN ").split(" && ")[0] for line in docker.splitlines()
-                   if line.startswith("RUN python -m simready_eval.fetch"))
-    command = command.replace("/opt/setup/actor-assets.json", str(environment / "actor-assets.json"))
-    command = command.replace("/task", str(environment))
-    # Build /task contains exactly the copied pair; mirror that actual Docker COPY.
-    actual = tmp_path / "task"
-    actual.mkdir()
-    import shutil
-    for name in ("observation.png", "instruction.md"):
-        shutil.copyfile(environment / name, actual / name)
-    command = command.replace(str(environment) + " --verify-only", str(actual) + " --verify-only")
-    passed = subprocess.run(command, shell=True, capture_output=True, text=True)
-    assert passed.returncode == 0, passed.stderr
+    # Execute the generated COPY/verification steps without a container or HF.
+    actual = _run_actor_public_build(environment, tmp_path / "build")
+    assert {path.name for path in actual.iterdir()} == {"observation.png", "instruction.md"}
     assert (actual / "observation.png").read_bytes() == png
-    (actual / "observation.png").write_bytes(bytes([png[0] ^ 1]) + png[1:])
-    failed = subprocess.run(command, shell=True, capture_output=True, text=True)
-    assert failed.returncode != 0
-    assert "sha256 mismatch" in failed.stderr
+    assert (actual / "instruction.md").read_text().startswith("Reconstruct this articulated workshop clamp ")
+    assert payloads["instruction.md"] in (actual / "instruction.md").read_bytes()
+    assert not (tmp_path / "build/frozen-public").exists()
     assert not (root / "private.usd").exists()
+    original = (environment / "source-public-instruction.txt").read_bytes()
+    changed = bytes([original[0] ^ 1]) + original[1:]
+    (environment / "source-public-instruction.txt").write_bytes(changed)
+    with pytest.raises(subprocess.CalledProcessError) as failed:
+        _run_actor_public_build(environment, tmp_path / "bad-build")
+    assert "instruction.md" in failed.value.stderr
+    assert hashlib.sha256(original).hexdigest() in failed.value.stderr
+    assert hashlib.sha256(changed).hexdigest() in failed.value.stderr
+    assert not (tmp_path / "bad-build/task").exists(), "the frozen brief must be checked before runtime installation"
 
 
 def test_fixture_export_parses_with_standard_harbor_and_hashes_all_generated_files(tmp_path, wheel):
@@ -434,7 +458,8 @@ def test_setup_handoff_makes_fetched_tree_world_readable_and_immutable(tmp_path,
     assert stat.S_IMODE((staged / relative).stat().st_mode) == 0o600
     directory = "environment" if role == "actor" else "tests"
     dockerfile = (output / "nv100-fixture-000" / directory / "Dockerfile").read_text()
-    fetch_line = next(line for line in dockerfile.splitlines() if line.startswith("RUN python -m simready_eval.fetch"))
+    target = "/task" if role == "actor" else "/fixtures"
+    fetch_line = next(line for line in dockerfile.splitlines() if line.startswith("RUN python -m simready_eval.fetch") and "--destination " + target + " " in line)
     # Execute the generated handoff commands against real fetched files. Cache
     # permissions remain private; only the final immutable tree becomes public.
     target = "/task" if role == "actor" else "/fixtures"
@@ -496,3 +521,59 @@ def test_exported_role_locks_bound_transitive_runtime_resolution(tmp_path, wheel
     assert "simready-validate" not in closures["actor"]
     assert "simready-validate" in closures["feedback"]
     assert "huggingface-hub" not in closures["feedback"]
+
+
+def test_named_public_and_runtime_instructions_keep_raw_frozen_brief_distinct(tmp_path, wheel):
+    release = release_input()
+    source_actor = copy.deepcopy(release["tasks"][0]["actor"])
+    output = tmp_path / "export"
+    exporter().export_release(release, output, wheel, fixture=True)
+    task = output / "nv100-fixture-000"
+    environment = task / "environment"
+    for path in (task / "instruction.md", environment / "instruction.md"):
+        text = path.read_text()
+        assert text.startswith("Reconstruct this articulated workshop clamp ")
+        assert "[0.2, 0.1, 0.3]" in text
+        assert text.count("![") == 1
+    assert (environment / "source-public-instruction.txt").read_bytes() == b"x"
+    assert json.loads((environment / "actor-assets.json").read_text()) == source_actor
+    runtime = json.loads((environment / "actor-runtime.json").read_text())
+    assert runtime["schema"] == "simready-actor-runtime-v1"
+    assert runtime["instruction_origin"] == "derived-public-wrapper"
+    assert runtime["frozen_actor_manifest_sha256"] == hashlib.sha256(json.dumps(source_actor, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    assert {file["destination"] for file in runtime["files"]} == {"observation.png", "instruction.md"}
+    for file in runtime["files"]:
+        data = (environment / file["destination"]).read_bytes()
+        assert file["size_bytes"] == len(data)
+        assert file["sha256"] == hashlib.sha256(data).hexdigest()
+    assert [path.name for path in environment.glob("*.png")] == ["observation.png"]
+    docker = (environment / "Dockerfile").read_text()
+    assert "COPY source-public-instruction.txt /opt/setup/frozen-public/instruction.md" in docker
+    frozen_check = "--manifest /opt/setup/actor-assets.json --destination /opt/setup/frozen-public --verify-only"
+    runtime_install = "COPY observation.png instruction.md /task/"
+    runtime_check = "--manifest /opt/setup/actor-runtime.json --destination /task --verify-only"
+    assert docker.index(frozen_check) < docker.index(runtime_install) < docker.index(runtime_check)
+
+
+def test_named_wrappers_retain_original_public_constraints_verbatim(tmp_path, wheel):
+    release = release_input()
+    original = (b"Frozen public protocol.\r\nSubmit asset.usd and all dependencies.\r\n"
+                b"Maximum 1 GiB and 10000 files/directories.\r\n"
+                b"Do not use Blender for authoring.\r\nUse at most five feedback calls.\r\n")
+    mirror = tmp_path / "public"
+    for file in release["tasks"][0]["actor"]["files"]:
+        data = original if file["destination"] == "instruction.md" else b"x"
+        file["size_bytes"], file["sha256"] = len(data), hashlib.sha256(data).hexdigest()
+        source = mirror / file["path"]
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_bytes(data)
+    root = tmp_path / "release"
+    exporter().export_release(release, root, wheel, fixture=True, public_assets=mirror)
+    task = root / "nv100-fixture-000"
+    for path in (task / "instruction.md", task / "environment/instruction.md"):
+        wrapper = path.read_bytes()
+        assert wrapper.startswith(b"Reconstruct this articulated workshop clamp ")
+        assert b"[0.2, 0.1, 0.3]" in wrapper
+        assert original in wrapper, "the named brief must preserve the original public constraints byte-for-byte"
+        assert wrapper.count(original) == 1
+    assert (task / "environment/source-public-instruction.txt").read_bytes() == original

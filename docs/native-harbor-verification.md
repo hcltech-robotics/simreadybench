@@ -507,3 +507,24 @@ Scoring, renderer and feedback modules are byte-identical to the accepted wheel;
 only export/fetch and package version changed. No new inference, runner changes,
 publication, remote writes or duplicate verification were performed by this
 worker while recording these externally supplied final receipts.
+
+## Named linked and runtime public instructions
+
+All primary instruction surfaces now use the reviewed name and nominal
+canonical dimensions, with the complete unchanged frozen public body appended.
+This retains 1 GiB/10000 limits, entrypoint/dependency rules, Blender prohibition
+and feedback instructions. Raw HF instruction bytes are preserved under
+`environment/source-public-instruction.txt`; the original actor role manifest
+stays unchanged. Build verifies that frozen pair first and deletes the temporary
+pair, then installs precisely the one observation and named instruction in
+`/task`. A separate `simready-actor-runtime-v1` local identity records the derived
+wrapper's own size/SHA and original frozen-manifest hash, and is accepted only
+by read-only verification, never by HF acquisition.
+
+The updated allowlist adds exactly the raw brief and local runtime identity.
+130 focused export/acquisition/helper tests pass, including real generated
+COPY/verification command execution, final exact two-file tree, preservation of
+raw CRLF/body bytes, names and all original constraints, and tampered raw input
+rejected before runtime installation. No scoring, renderer, feedback, assets,
+resources, versions or isolation changed. Source artifact delivery is separate
+from the CI fixture-only branch and from sole STC publication ownership.
