@@ -197,7 +197,11 @@ Missing PhysX native bindings can make specific validator checks unknown.
 It requires exactly 100 tasks unless `--fixture` is explicit, and never uploads.
 The exporter embeds exactly the actor observation PNG and public instructions,
 verified against their frozen manifest. The actor build COPYs these two files and
-checks their hashes without HF access. Root task instructions link to the packaged
+checks their hashes without HF access. Canonical tasks require an owner-reviewed `object_name` and public
+`nominal_dimensions_m` (XYZ metres), separate from stable `id`. The root task
+instruction opens "Reconstruct this <name> ..." and shows these dimensions;
+task descriptions and the dataset index use the same label. The packaged public
+instruction bytes and original HF hash remain unchanged. Root instructions link to the packaged
 image and the pinned public HF preview/download. An optional `--public-assets`
 root mirrors the manifest HF paths for offline export; unrelated local files are
 never included. Verifier `benchmark/` assets are fetched role-selectively at a full commit plus file

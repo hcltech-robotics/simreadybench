@@ -397,3 +397,30 @@ The wheel differs from accepted 1.0.0 only in `__init__.py`, `export.py`, and
 formal/visual/kinematic scores, budgets and isolation settings are byte-identical.
 No image rerender is required. The sole STC publisher owns republishing and all
 100 pulled-folder checks plus the fresh published-package runtime trial.
+
+## Readable object names (1.0.2)
+
+The authoritative 125-label mapping was consumer-locally materialized from Library
+`libfile_ab643e1eee2c8191989819d46cc11079` version 0 (`object-names.json`, 6723
+bytes, SHA-256 `378b16ae08c5eb5528066e068bd1bbdef183d1eef99cb6fd6e4c10a5e20c4018`).
+The sole STC publisher owns its join to source asset identities and the final
+canonical 100-task input. The exporter now requires explicit readable
+`object_name` and positive finite public `nominal_dimensions_m` (XYZ metres).
+Root Harbor instructions open "Reconstruct this <name> ..." with dimensions,
+stable task ID and exactly one observation. Task description/metadata and the
+dataset index use the same label. Stable IDs alone still drive task paths,
+manifest identities and Hub package names. The actor's frozen instruction file
+remains a byte-identical verified copy and never inherits the transformed root
+instruction's bytes under its old hash. NV25 reference naming remains the HF
+owner's metadata work, with no additional Harbor tasks.
+
+The added name/dimension regression first failed on the old strict task schema.
+The combined packaging/handoff/selective-fetch suite passes 124 tests, including
+all 100 named root instructions and original public instruction preservation.
+Independent review found no substantive issue. The prior real Docker COPY/hash/
+read-only proof remains applicable: only exporter presentation/metadata changed
+since that check. No scoring, renderer, source data, role limits or isolation
+change is required; no rerender or duplicate scoring cycle was run. Final task,
+dataset and wheel versions are 1.0.2, matching the sole publisher's final named
+release. Fresh all-100 published-folder checks and STC runtime evidence are owned
+by the sole publisher, which has already reported the image-only version passing.

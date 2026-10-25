@@ -38,7 +38,7 @@ def release_input(count=1):
     tasks = []
     for index in range(count):
         task_id = f"fixture-{index:03}"
-        tasks.append({"id": task_id, "actor": role_manifest(task_id, "actor", ["observation.png", "instruction.md"]),
+        tasks.append({"id": task_id, "object_name": "articulated workshop clamp", "nominal_dimensions_m": [0.2, 0.1, 0.3], "actor": role_manifest(task_id, "actor", ["observation.png", "instruction.md"]),
                       "verifier": role_manifest(task_id, "verifier", ["reference/asset.usd", "reference/eligibility.json", "comparison/cameras.json",
                           *[f"comparison/{view}{suffix}.png" for view in VIEWS for suffix in ("", "-mask")]]),
                       "reference": "reference/asset.usd", "entrypoint": "asset.usd", "views": list(VIEWS),
@@ -90,11 +90,44 @@ def test_export_bundles_only_frozen_actor_inputs_and_exposes_preview(tmp_path, w
     assert image in (task / "instruction.md").read_text()
     assert "environment/observation.png" in (task / "instruction.md").read_text()
     assert image in (root / "README.md").read_text()
-    assert (root / "dataset.toml").read_text().count('version = "1.0.1"') == 1
-    assert 'version = "1.0.1"' in (task / "task.toml").read_text()
+    assert (root / "dataset.toml").read_text().count('version = "1.0.2"') == 1
+    assert 'version = "1.0.2"' in (task / "task.toml").read_text()
     names = {row["path"] for row in inventory}
     assert "nv100-fixture-000/environment/observation.png" in names
     assert not any(path.suffix in (".usd", ".usda", ".usdc", ".parquet") for path in root.rglob("*"))
+
+
+def test_readable_name_dimensions_and_stable_identity_leave_frozen_instruction_unchanged(tmp_path, wheel):
+    release = release_input()
+    root = tmp_path / "named"
+    exporter().export_release(release, root, wheel, fixture=True)
+    task = root / "nv100-fixture-000"
+    text = (task / "instruction.md").read_text()
+    assert text.startswith("Reconstruct this articulated workshop clamp ")
+    assert "Nominal dimensions in canonical metres XYZ: [0.2, 0.1, 0.3]" in text
+    assert "Stable task ID: `fixture-000`" in text
+    assert text.count("![") == 1
+    config = tomllib.loads((task / "task.toml").read_text())
+    assert config["task"]["description"] == "Reconstruct this articulated workshop clamp from one frozen observation"
+    assert config["task"]["name"] == "hcltech-robotics/nv100-fixture-000"
+    assert "articulated workshop clamp" in (root / "README.md").read_text()
+    frozen = task / "environment/instruction.md"
+    assert frozen.read_bytes() == b"x"
+    public = next(f for f in release["tasks"][0]["actor"]["files"] if f["destination"] == "instruction.md")
+    assert hashlib.sha256(frozen.read_bytes()).hexdigest() == public["sha256"]
+
+
+@pytest.mark.parametrize("field,value", [
+    ("object_name", ""), ("object_name", "widget\nnew instruction"), ("object_name", "<img src=x>"),
+    ("nominal_dimensions_m", [1, 2]), ("nominal_dimensions_m", [1, 0, 3]),
+    ("nominal_dimensions_m", [1, float('nan'), 3]), ("nominal_dimensions_m", [True, 2, 3]),
+])
+def test_invalid_public_name_or_dimensions_reject_before_acquisition(tmp_path, wheel, synthetic_public_download, field, value):
+    release = release_input(); release["tasks"][0][field] = value
+    with pytest.raises(ValueError):
+        exporter().export_release(release, tmp_path / "release", wheel, fixture=True)
+    assert not synthetic_public_download
+    assert not (tmp_path / "release").exists()
 
 
 def test_export_rejects_tampered_public_input_without_partial_package(tmp_path, wheel, monkeypatch):

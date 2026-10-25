@@ -23,6 +23,7 @@ def canonical_input():
     release = release_input(100)
     for index, task in enumerate(release["tasks"]):
         original = task["id"]
+        task["object_name"] = f"workshop clamp {index}"
         task["id"] = f"nv100_stc_source_{index:03}"
         for role in ("actor", "verifier"):
             task[role]["task_id"] = task["id"]
@@ -78,6 +79,9 @@ def test_verified_freeze_finalizes_100_task_handoff_with_consistent_root_hashes(
         task_path = output / ref.name.split("/", 1)[1]
         task = Task(task_path)
         assert task.config.schema_version == "1.4"
+        supplied = next(row for row in release["tasks"] if "hcltech-robotics/" + row["id"] == ref.name)
+        assert (task_path / "instruction.md").read_text().startswith("Reconstruct this " + supplied["object_name"] + " ")
+        assert (task_path / "environment/instruction.md").read_bytes() == b"x"
         assert task.name == ref.name
         assert ref.digest == "sha256:" + Packager.compute_content_hash(task_path)[0]
     for file in dataset.files:

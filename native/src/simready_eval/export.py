@@ -6,6 +6,7 @@ import ast
 import hashlib
 import io
 import json
+import math
 from pathlib import Path, PurePosixPath
 import re
 import stat
@@ -58,12 +59,22 @@ def _validate_release(release, fixture):
         raise ValueError("NV100 releases require exactly 100 tasks; fixtures permit 1 to 100")
     seen, names = set(), set()
     for task in tasks:
-        if not isinstance(task, dict) or set(task) != {"id", "actor", "verifier", "reference", "entrypoint", "views", "budgets"}:
+        if not isinstance(task, dict) or set(task) != {"id", "object_name", "nominal_dimensions_m", "actor", "verifier", "reference", "entrypoint", "views", "budgets"}:
             raise ValueError("task must contain exactly the supported task fields")
         task_id = task["id"]
         if not isinstance(task_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", task_id) or task_id in seen:
             raise ValueError("task ids must be unique safe components")
         seen.add(task_id)
+        object_name = task["object_name"]
+        if (not isinstance(object_name, str) or not 1 <= len(object_name) <= 160
+                or object_name != object_name.strip() or not any(char.isalpha() for char in object_name)
+                or any(ord(char) < 32 or ord(char) == 127 or char in "<>[]`\\" for char in object_name)):
+            raise ValueError("object_name must be a concise readable single-line label without markup")
+        dimensions = task["nominal_dimensions_m"]
+        if (not isinstance(dimensions, list) or len(dimensions) != 3
+                or any(type(value) not in (int, float) or not math.isfinite(value)
+                       or not 1e-9 <= value <= 1e6 for value in dimensions)):
+            raise ValueError("nominal_dimensions_m requires three positive finite canonical metre XYZ values")
         name = _task_name(task_id)
         if name in names:
             raise ValueError("task ids must produce unique Hub names")
@@ -192,11 +203,14 @@ artifacts = [{{source = "/output/submission", destination = "candidate"}}]
 
 [task]
 name = "hcltech-robotics/{_task_name(task['id'])}"
-version = "1.0.1"
-description = "SimReadyBench single-observation USD reconstruction"
+version = "1.0.2"
+description = {json.dumps("Reconstruct this " + task["object_name"] + " from one frozen observation")}
 
 [metadata]
 fixture = {str(fixture).lower()}
+task_id = {json.dumps(task['id'])}
+object_name = {json.dumps(task['object_name'])}
+nominal_dimensions_m = {json.dumps(task['nominal_dimensions_m'])}
 
 [environment]
 network_mode = "public"
@@ -316,11 +330,16 @@ def _task_files(task, wheel_name, wheel_payload, fixture):
                  "fidelity_settings": {"enabled": True}, "final_seconds": task["budgets"]["final_seconds"]}
     image = next(file for file in task["actor"]["files"] if file["destination"] == "observation.png")
     image_url = f"https://huggingface.co/datasets/{task['actor']['repo_id']}/resolve/{task['actor']['revision']}/{image['path']}"
-    instruction = f'''![Frozen task observation]({image_url})
+    instruction = f'''Reconstruct this {task['object_name']} from the single frozen observation as a self-contained USD package.
+
+Nominal dimensions in canonical metres XYZ: {json.dumps(task['nominal_dimensions_m'])}
+Stable task ID: `{task['id']}`
+
+![Frozen task observation]({image_url})
 
 [Download the frozen observation]({image_url}) · [Packaged image](environment/observation.png) · [Public instructions](environment/instruction.md)
 
-Reconstruct the asset shown in /task/observation.png as a self-contained USD package.
+The packaged observation is /task/observation.png.
 Read /task/instruction.md for the task-specific public instructions.
 Save the package under /output/submission, with its entrypoint at {task['entrypoint']}.
 Do not use Blender for authoring; Blender is used only by the verifier renderer.
@@ -420,12 +439,12 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
                     "Runtime dependencies retain their own licenses, including Blender (GPL-3.0-or-later), OpenUSD (Apache-2.0), Pillow (HPND), NumPy (BSD-3-Clause), and HF Hub/Xet (Apache-2.0). "
                     "Review the frozen release's per-asset source/license provenance before distributing its assets.\n").encode()})
     previews = "\n## Frozen task observations\n\n" + "\n".join(
-        f"- [{_task_name(task['id'])}]({_task_name(task['id'])}/instruction.md): "
+        f"- [{task['object_name']}]({_task_name(task['id'])}/instruction.md) (`{task['id']}`): "
         f"[preview/download](https://huggingface.co/datasets/{release['repo_id']}/resolve/{release['revision']}/"
         + next(file["path"] for file in task["actor"]["files"] if file["destination"] == "observation.png") + ")"
         for task in sorted(release["tasks"], key=lambda task: task["id"])) + "\n"
     files["README.md"] += previews.encode()
-    dataset = 'schema_version = "1.0"\n\n[dataset]\nname = "hcltech-robotics/nv100"\nversion = "1.0.1"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
+    dataset = 'schema_version = "1.0"\n\n[dataset]\nname = "hcltech-robotics/nv100"\nversion = "1.0.2"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
     for task in task_refs:
         dataset += '\n[[tasks]]\nname = ' + json.dumps(task["name"]) + '\ndigest = ' + json.dumps(task["digest"]) + '\n'
     for name in ("metric.py", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "release.json"):

@@ -5,12 +5,12 @@ do not copy a key, credentials file, home directory, or working checkout into th
 handoff, a task, HF, or a container. This handoff prepares local files and makes
 public HF metadata and actor-file reads (or use the verified local mirror). It never logs in or publishes automatically.
 
-The accepted scoring/rendering runtime is unchanged. Packaging version 1.0.1
-fixes the public-input omission: every task includes `environment/observation.png`
+The accepted scoring/rendering runtime is unchanged. Packaging version 1.0.2
+fixes the public-input omission and adds reviewed readable object names: every task includes `environment/observation.png`
 and `environment/instruction.md`, acquired and hash-verified during export.
 The actor Dockerfile COPYs exactly that pair and verifies it without a build-time
-HF fetch. Comparison views and reference USD remain verifier-only. See the
-bundled `HANDOFF.json` for the exact source commit and wheel SHA-256.
+HF fetch. Comparison views and reference USD remain verifier-only. Names/dimensions populate the root instruction; the frozen public instruction
+keeps its original HF hash. See the bundled `HANDOFF.json` for the exact source commit and wheel SHA-256.
 The source NVIDIA collection remains
 `nvidia/simready-assets@f4860aa0c75607adb50a78bf96e77510bffc040f`.
 
@@ -31,8 +31,12 @@ exactly these top-level fields: `schema`, `repo_id`, `revision`, `source_commit`
   `hcltech-robotics/simreadybench`; `revision`: immutable 40-hex HF commit.
 - `source_commit`: the exact source commit in `HANDOFF.json`; `source_collection`:
   the exact NVIDIA repository/revision above.
-- `tasks`: exactly 100 objects, each with `id`, `actor`, `verifier`, `reference`,
+- `tasks`: exactly 100 objects, each with `id`, `object_name`, `nominal_dimensions_m`, `actor`, `verifier`, `reference`,
   `entrypoint`, `views`, `budgets`. Keep frozen `nv100_<hash>` IDs unchanged.
+  `object_name` is the owner-reviewed concise human label, separate from the ID;
+  `nominal_dimensions_m` is the public XYZ extent in canonical metres. These
+  populate only root task instructions/description/index metadata; the exported
+  frozen `environment/instruction.md` retains its original HF bytes and hash.
 - `actor`/`verifier`: `simready-role-assets-v1` objects with `repo_id`, `revision`,
   `task_id`, `role`, `files`. Each file has actual HF `path`, local `destination`,
   `size_bytes`, `sha256`. Actor gets exactly `observation.png` and `instruction.md`.
@@ -41,6 +45,12 @@ exactly these top-level fields: `schema`, `repo_id`, `revision`, `source_commit`
 - `reference`: actual nested source path under `reference/`; `entrypoint`:
   `asset.usd`; `views`: the four frozen comparison IDs. Budgets remain
   `agent_seconds: 231000`, `final_seconds: 600`.
+
+Use the owner-reviewed `object-names.json` map (125 NV100/NV25 source IDs) to
+populate the selected 100 tasks' `object_name` values in canonical input. Do not
+infer labels from hashed task IDs or silently guess technical filename tokens.
+The map is handoff tooling metadata outside the clean export, not another task
+or another actor input. NV25 does not acquire Harbor task links through this.
 
 The helper validates this schema. Its freeze flag is the release owner's
 acknowledgment of completed source/frame/license/checksum work, not a substitute
@@ -60,12 +70,12 @@ Verify `SHA256SUMS` before using the extracted handoff. Use the existing dedicat
 Harbor 0.24.0 Python environment; install only the bundled neutral wheel there:
 
 ```sh
-python -m pip install --no-deps ./simreadybench_eval-1.0.1-py3-none-any.whl
+python -m pip install --force-reinstall --no-deps ./simreadybench_eval-1.0.2-py3-none-any.whl
 harbor --version
 harbor auth status
 harbor auth org list --search hcltech-robotics --columns name,role
 python prepare_hub_release.py --release /path/to/release-input.json \
-  --wheel ./simreadybench_eval-1.0.1-py3-none-any.whl \
+  --wheel ./simreadybench_eval-1.0.2-py3-none-any.whl \
   --output /tmp/nv100-clean-hub-release --asset-freeze-verified \
   > /tmp/nv100-clean-hub-release-receipt.json
 # Optional offline actor acquisition: add --public-assets /path/to/hf-path-mirror
@@ -86,7 +96,7 @@ Inspect the receipt, `release.json`, `inventory.json`, and dataset namespace.
 The following is the publication action; the helper does not execute it:
 
 ```sh
-harbor publish /tmp/nv100-clean-hub-release --public --tag nv100-v1.0.1 --concurrency 4
+harbor publish /tmp/nv100-clean-hub-release --public --tag nv100-v1.0.2 --concurrency 4
 ```
 
 Names in task.toml and dataset.toml select `hcltech-robotics`, not the personal

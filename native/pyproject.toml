@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simreadybench-eval"
-version = "1.0.1"
+version = "1.0.2"
 description = "Independent offline SimReadyBench evaluator and native Harbor task tools"
 readme = "README.md"
 license = "MIT"
