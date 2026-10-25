@@ -370,6 +370,88 @@ Final evaluation independently measures formal, visual, and kinematic fidelity.
             "tests/test.sh": "#!/bin/sh\nset -eu\nexec python -m simready_eval.cli evaluate --submission /output/submission --fixtures /fixtures --config /tests/evaluator.json --output /logs/verifier\n"}
 
 
+
+def release_readme(release, *, fixture=False):
+    """Return public benchmark usage, score definitions, provenance and index."""
+    count = len(release["tasks"])
+    title = "SimReadyBench NV100" + (" (synthetic fixture)" if fixture else "")
+    text = f'''# {title}
+
+SimReadyBench measures reconstruction of articulated USD assets from one image
+and nominal dimensions. This set contains {count} tasks: {count} public observation images
+and {4 * count} comparison images. Each agent receives one observation. The four
+comparison views and reference USD are used by the verifier.
+
+## Install and run
+
+Use Linux x86_64 with Docker, Compose and Harbor 0.24.0:
+
+```sh
+python -m pip install 'harbor==0.24.0'
+harbor run --dataset hcltech-robotics/nv100 --agent YOUR_AGENT --model YOUR_MODEL
+```
+
+Use the dataset content digest to reproduce a specific release. Configure the
+chosen provider's endpoints in `agents[].extra_allowed_hosts`. Public inputs
+are included in each task package. Verifier references are fetched from pinned
+HF files during setup; final evaluation runs offline.
+
+## Submission and feedback
+
+Write a self-contained USD package to `/output/submission`, with `asset.usd` as
+its entrypoint. The package limit is 1 GiB of expanded files and 10000 files.
+The task's nominal dimensions use canonical metres in XYZ order. Blender is
+reserved for the verifier renderer and must not be used for agent authoring.
+
+Up to five candidate-only formal feedback calls are available:
+
+```sh
+python -m simready_eval.feedback validate_candidate --package /output/submission --request-id attempt-1 --url http://127.0.0.1:8080
+```
+
+Use a new request ID for each changed candidate; retry a transport interruption
+with the same ID. Final verification independently scores the submitted files.
+
+## Scores
+
+Formal, visual and kinematic fidelity are separate scores on a 0–100 scale;
+Harbor rewards normalize each to 0–1. There is no combined overall score.
+
+- **Formal:** `95 * passed / 46`, plus 5 when all 46 mandatory requirements pass.
+  The 51 optional requirements are diagnostic and do not change this score.
+- **Visual:** `sqrt(G * R)`. `G` measures full 3D surface agreement in both
+  directions after translation/yaw alignment, without scale fitting. `R` is the
+  mean foreground SSIM across the four fixed comparison views, using the union
+  of reference and candidate foreground masks. Cameras and lighting are fixed.
+  Material-property correspondence and its coverage are reported as diagnostics.
+- **Kinematic:** recovery of moving and fixed joint constraints, including motion,
+  limits and endpoints over 17 deterministic forward-kinematic states. Applicable
+  moving/fixed recovery groups combine by geometric mean.
+
+Known scores, coverage and unavailable dimensions are reported separately. The
+dataset metric averages each dimension over its own known results and reports
+coverage and score bounds; infrastructure-unknown dimensions are not model zeros.
+
+## Data and licences
+
+The canonical dataset is [{release['repo_id']}](https://huggingface.co/datasets/{release['repo_id']}/tree/{release['revision']})
+at immutable revision `{release['revision']}`. Task manifests pin each file's
+size and SHA-256. NVIDIA source: `nvidia/simready-assets@{SOURCE_COLLECTION['revision']}`.
+
+Evaluator code is MIT licensed; see [LICENSE](LICENSE). Assets and rendered
+references retain their asset-specific upstream licences and provenance in the
+pinned dataset. Dependency licences are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Frozen task observations
+
+'''
+    rows = [f"- [{task['object_name']}]({_task_name(task['id'])}/instruction.md) (`{task['id']}`): "
+            f"[preview/download](https://huggingface.co/datasets/{release['repo_id']}/resolve/{release['revision']}/"
+            + next(file["path"] for file in task["actor"]["files"] if file["destination"] == "observation.png") + ")"
+            for task in sorted(release["tasks"], key=lambda task: task["id"])]
+    return text + "\n".join(rows) + "\n"
+
+
 def _publisher_digest(files):
     # Harbor 0.24 Packager.compute_content_hash: sorted portable path, NUL,
     # per-file SHA256, newline. No Harbor runtime import is needed by exporter.
@@ -399,9 +481,7 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
     avoids network access; only the exact actor file paths are read. No reference
     or comparison file is acquired or embedded. No publication occurs.
     ``fixture=True`` permits a
-    smaller synthetic roster, visibly marked non-publish-ready. Qualification,
-    actual asset freeze and task-specific oracle evidence remain release-owner
-    responsibilities; a syntactically valid export does not certify them.
+    smaller synthetic roster, identified in its title and machine metadata.
     ``inventory.json`` inventories every other file, avoiding a self-hash cycle.
     """
     if type(fixture) is not bool:
@@ -425,25 +505,13 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
             name = _task_name(task["id"])
             files.update({name + "/" + path: payload for path, payload in task_files.items()})
             task_refs.append({"name": "hcltech-robotics/" + name, "digest": _publisher_digest(task_files)})
-    release["export"] = {"fixture": fixture, "publish_ready": False,
-                         "blockers": ["Release-owner asset qualification, immutable HF freeze and task-specific oracle evidence require independent verification."]}
+    release["export"] = {"fixture": fixture}
     files.update({"metric.py": metric, "release.json": _json(release).encode(), "LICENSE": LICENSE.encode(),
-                  "README.md": ("# SimReadyBench NV100\n\n" + ("Fixture export; not publish ready.\n\n" if fixture else "Local release candidate; not publish ready.\n\n") +
-                    "Run tasks with standard Harbor 0.24.0. The observation PNG and public instructions are bundled in each task environment; build setup fetches only verifier references from pinned HF files. Final scoring is offline. "
-                    "The runner must provide agent provider endpoints through agents[].extra_allowed_hosts. The agent phase starts with an empty allowlist, denying HF/Xet references. "
-                    "Only the two allowed public inputs are embedded; no reference assets, comparison views or historical results are embedded. No task-specific oracle has been supplied. "
-                    "The real qualified 100-asset roster, eligibility closure and release freeze require independent release-owner evidence. "
-                    "The export is a local review artifact and performs no publication.\n").encode(),
+                  "README.md": release_readme(release, fixture=fixture).encode(),
                   "THIRD_PARTY_NOTICES.md": ("# Third-party notices\n\nEvaluator code is MIT licensed. Downloaded NVIDIA assets retain their upstream license and provenance; only the frozen public observation PNGs and instructions are bundled; verifier USD, dependencies and comparison images remain external. "
                     "The source collection is nvidia/simready-assets at " + SOURCE_COLLECTION["revision"] + ". "
                     "Runtime dependencies retain their own licenses, including Blender (GPL-3.0-or-later), OpenUSD (Apache-2.0), Pillow (HPND), NumPy (BSD-3-Clause), and HF Hub/Xet (Apache-2.0). "
-                    "Review the frozen release's per-asset source/license provenance before distributing its assets.\n").encode()})
-    previews = "\n## Frozen task observations\n\n" + "\n".join(
-        f"- [{task['object_name']}]({_task_name(task['id'])}/instruction.md) (`{task['id']}`): "
-        f"[preview/download](https://huggingface.co/datasets/{release['repo_id']}/resolve/{release['revision']}/"
-        + next(file["path"] for file in task["actor"]["files"] if file["destination"] == "observation.png") + ")"
-        for task in sorted(release["tasks"], key=lambda task: task["id"])) + "\n"
-    files["README.md"] += previews.encode()
+                    "Per-asset source and licence provenance accompany the pinned dataset.\n").encode()})
     dataset = 'schema_version = "1.0"\n\n[dataset]\nname = "hcltech-robotics/nv100"\nversion = "1.0.2"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
     for task in task_refs:
         dataset += '\n[[tasks]]\nname = ' + json.dumps(task["name"]) + '\ndigest = ' + json.dumps(task["digest"]) + '\n'

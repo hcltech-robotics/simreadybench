@@ -85,9 +85,9 @@ The output must be a fresh directory outside every Git checkout. The helper
 requires a matching public HF commit, creates exactly 100 task directories plus
 the seven declared dataset files, and validates task schema 1.4 / dataset 1.0,
 official publisher digests, root file digests and the complete allowlist.
-It finalizes the draft README/status truthfully: owner freeze verified and ready
-for publication; published consumption remains unverified and no task-specific
-oracle is claimed. Only the two declared public files are bundled per task. No reference USD,
+The generated public README describes benchmark purpose, usage, submission,
+scoring and licences. Verification status stays in the separate local receipt;
+public README and release metadata do not contain development/audit narration. Only the two declared public files are bundled per task. No reference USD,
 comparison images, results or working repository are bundled.
 Inspect the receipt, `release.json`, `inventory.json`, and dataset namespace.
 

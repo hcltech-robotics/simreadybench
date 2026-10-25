@@ -209,7 +209,7 @@ def test_fixture_export_parses_with_standard_harbor_and_hashes_all_generated_fil
     assert dataset.tasks[0].digest == "sha256:" + expected_digest
     assert dataset.tasks[0].name == config.task.name
     assert json.loads((output / "release.json").read_text())["export"]["fixture"] is True
-    assert json.loads((output / "release.json").read_text())["export"]["publish_ready"] is False
+    assert json.loads((output / "release.json").read_text())["export"] == {"fixture": True}
     assert json.loads((output / "inventory.json").read_text()) == inventory
     actual = {path.relative_to(output).as_posix() for path in output.rglob("*") if path.is_file()}
     assert actual == {entry["path"] for entry in inventory} | {"inventory.json"}

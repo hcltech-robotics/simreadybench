@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare a clean local STC/NV100 Hub handoff; never publish or upload.
+"""Build the NV100 Harbor distribution from canonical manifests; never publish or upload.
 
 Run in an environment containing the accepted evaluator wheel and Harbor 0.24.0.
 The owner flag acknowledges the completed 100-task/500-frame freeze, licenses,
@@ -48,28 +48,6 @@ def _public_metadata(url):
         raise ValueError("public HF metadata response exceeds the size limit")
     return json.loads(payload)
 
-
-def _readme(release):
-    return f'''# Frozen NV100 release
-
-This frozen 100-task STC/NV100 package is ready for publication following the
-release owner's acknowledgment of the completed asset freeze: 500 observation
-and comparison frames, camera data, licenses, and checksums. Its canonical public
-HF dataset is `{release['repo_id']}` at full revision `{release['revision']}`.
-That revision's public identity was checked while preparing this local handoff.
-
-Run the tasks with standard Harbor 0.24.0. Setup fetches only each role's pinned
-HF verifier assets; final scoring is offline. Each task package includes its frozen
-public observation PNG and instruction bytes, verified against its role manifest. Runner provider endpoints belong in
-`agents[].extra_allowed_hosts`. The agent phase begins with an empty allowlist,
-so HF/Xet reference access stays blocked. Blender is reserved for the verifier
-renderer and is prohibited for agent authoring.
-
-Published consumption and runtime validation of all 100 tasks remain unverified.
-No task-specific oracle has been supplied. The owner's freeze acknowledgment and
-local package/schema/hash checks establish readiness for publication; this
-helper performs no upload, publication, full asset re-audit, or renderer execution.
-'''
 
 
 def _inventory(root):
@@ -146,11 +124,8 @@ def prepare_hub_release(release, wheel, output, *, asset_freeze_verified=False, 
     with tempfile.TemporaryDirectory(prefix=".simready-hub-handoff-", dir=output.parent) as temporary:
         staged = Path(temporary) / "release"
         export_release(release, staged, wheel, fixture=False, public_assets=public_assets)
-        finalized = {**release, "export": dict(STATUS)}
+        finalized = {**release, "export": {"fixture": False}}
         _write_json(staged / "release.json", finalized)
-        previews = (staged / "README.md").read_text().split("## Frozen task observations", 1)[1]
-        (staged / "README.md").write_text(_readme(release) + "\n## Frozen task observations" + previews,
-                                          encoding="utf-8")
         from harbor.models.dataset.manifest import DatasetManifest
         dataset = DatasetManifest.from_toml_file(staged / "dataset.toml")
         for file in dataset.files:

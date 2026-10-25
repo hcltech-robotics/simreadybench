@@ -87,13 +87,15 @@ def test_verified_freeze_finalizes_100_task_handoff_with_consistent_root_hashes(
     for file in dataset.files:
         assert file.digest == "sha256:" + hashlib.sha256((output / file.path).read_bytes()).hexdigest()
     status = json.loads((output / "release.json").read_text())["export"]
-    assert status == {"fixture": False, "release_owner_asset_freeze_verified": True, "ready_for_publication": True,
-                      "published_consumption_verified": False, "task_specific_oracle_not_supplied": True}
+    assert status == {"fixture": False}
     readme = (output / "README.md").read_text()
-    assert "Frozen NV100 release" in readme
-    assert "not publish ready" not in readme
-    assert "task-specific oracle" in readme.lower()
-    assert "unverified" in readme
+    assert readme.startswith("# SimReadyBench NV100\n")
+    for expected in ("100 tasks", "100 public observation images", "400 comparison images",
+                     "harbor run --dataset", "1 GiB", "10000 files", "five", "95 * passed / 46",
+                     "51 optional", "sqrt(G * R)", "Kinematic", "MIT", REVISION):
+        assert expected in readme
+    for unwanted in ("stc/nv100", "frozen nv100 release", "ready for publication", "release owner", "acknowledg", "handoff", "audit", "unverified", "oracle", "not publish ready"):
+        assert unwanted not in readme.lower()
     assert "## Frozen task observations" in readme
     assert readme.count("[preview/download]") == 100
     assert len(list(output.glob("*/environment/observation.png"))) == 100

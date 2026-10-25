@@ -424,3 +424,27 @@ change is required; no rerender or duplicate scoring cycle was run. Final task,
 dataset and wheel versions are 1.0.2, matching the sole publisher's final named
 release. Fresh all-100 published-folder checks and STC runtime evidence are owned
 by the sole publisher, which has already reported the image-only version passing.
+
+## Public documentation cleanup
+
+The exporter now owns one benchmark-facing README generator with purpose,
+observation/comparison counts, Harbor installation/use, submission and feedback,
+separate F/V/K definitions, coverage semantics, licences, pinned data and named
+observation index. The helper retains this generated README instead of replacing
+it with development status. Public release.json contains only the fixture marker
+alongside the canonical release fields; owner/verification status remains in the
+separate local receipt. No ready-for-publication, owner-acknowledgment, handoff,
+audit, unverified-runtime or oracle narrative is emitted in public documentation.
+The regression first failed on the old public status fields; the exporter/helper
+suite now passes 62 checks including all 100 package digests and README inventory
+hashes. Runtime, score definitions, role file bytes and image pixels are unchanged.
+
+The sole publisher reports the manually cleaned named Hub revision 3 at digest
+`a3a6b107d92c6e4e6a07a98871e182a2bc5ce41f60421cf37995db193e1a1d5a`,
+with all 100 fresh task folders/observations/names/hashes verified. Its final new
+no-output trial is still in progress at this checkpoint. HF reference-name/image
+metadata is reported at `9e61d44e2ecc55cb6ce7103d3547318426aeeb6e`; original
+payload bytes remain at the previously verified `631fd67d...` revision. These
+remote operations were performed only by the sole STC publisher. This source fix
+prevents subsequent exports from reintroducing the removed public narration;
+it does not independently publish or claim the pending trial succeeded.
