@@ -141,7 +141,7 @@ claim that every selected asset has passed runtime qualification.
 
 Reference qualification should reserve candidate headroom, rather than reuse
 the four-million-triangle safety guard as an eligibility claim. The largest
-completed current real probe has 305896 triangles: five frames/masks in 115.80s,
+completed full-grader real probe has 305896 triangles: five frames/masks in 115.80s,
 then faithful full evaluation in 179.40s with F=88.80, V=100, K=100 and 1.24 GiB
 maximum individual process/child RSS. All original source hashes remained equal.
 Recommended admission targets are full faithful self-evaluation within 300 of
@@ -149,6 +149,15 @@ the existing 600 seconds, process-tree RSS within 6 GiB of the 16 GiB envelope,
 and preferably runtime package bytes within 128 MiB of the 256 MiB submission
 limit. These are pre-release headroom targets, not score changes or a blanket
 triangle cutoff; replace only measured outliers and qualify replacements.
+
+The corrected streaming bridge also completed full-resolution, full-geometry
+render-only probes for the 853847-triangle hospital bed (390.16s, 3.36 GiB child
+RSS) and 742798-triangle foldout toolbox (297.42s, 2.97 GiB). Each produced five
+RGBs and five masks with original PNG16 samples and unchanged source hashes.
+These are not full-grader eligibility claims: both render workloads exceed the
+current outer 180-second final render-worker allowance, and their original
+texture closures exceed the declared candidate package limit. Keep the original
+execution receipts and any final-code equivalence proof separate.
 
 Finite nonzero authored normals retain their original corners and are normalized.
 Zero authored normal vectors are preserved as zero, invoking Blender

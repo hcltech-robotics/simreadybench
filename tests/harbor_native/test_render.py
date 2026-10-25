@@ -632,3 +632,13 @@ def test_streamed_8bit_canonical_export_discards_source_icc_metadata(tmp_path):
     assert exported is same
     assert exported.file.read_bytes()==expected.read_bytes()
     assert not Image.open(exported.file).info
+
+
+def test_texture_peak_bound_returns_resource_unknown_before_blender(tmp_path,monkeypatch):
+    import simready_eval.render as rendering
+    source=tmp_path/'asset.usda';textured_quad(source)
+    monkeypatch.setitem(rendering.RECIPE,'maximum_decoded_texture_bytes',1)
+    result=rendering.render_asset(source,cameras(),tmp_path/'bounded',blender='must-not-launch')
+    assert result['status']=='unknown'and result['reason']=='render_resource_bound'
+    assert result['error_type']=='MemoryError'and result['error_phase']=='extract'
+    assert result['images']==[]

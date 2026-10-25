@@ -108,7 +108,32 @@ baseline byte for byte (40.58s / 451412 KiB child RSS for the printer, 115.74s /
 1254900 KiB for the heat gun). Their scientific scenes, cameras and Blender
 binary also match. These equivalence results preserve the original receipts;
 they do not claim that new code originally produced historical images.
-Bed/toolbox full-precision rendering remains separate resource qualification.
+Bed/toolbox full-precision render probes now complete: bed 853847 triangles,
+390.16s and 3518760 KiB maximum child RSS; toolbox 742798 triangles, 297.42s and
+3116868 KiB. Each generated five RGBs/five masks at camera hashes matching the
+asset owner's exact frozen rigs. All 47/82 original source hashes stayed equal.
+Bed executed the pre-ICC-clear compiler; a separate 22-file equivalence proof
+records four native PNG16 copies and 18 unchanged canonical PNG8 outputs under
+the final compiler. Toolbox executed the final compiler directly. The bed
+bridge's pixel-buffer estimate peaked at 176 MiB and retained no decoded bank.
+Neither probe establishes candidate/full-grader eligibility: their complete
+render workloads exceed the outer 180s render worker, and original source
+texture bytes exceed the candidate package allowance. No limits were raised.
+One additional targeted test confirms resource-bound MemoryError is a typed
+unknown with no images, rather than unsupported content or model-quality zero.
+
+Portable deliverables are saved through Library: corrected neutral wheel/lock
+bundle `libfile_10c62858c51c8191b0d253a305d03ebf` version 2 (ZIP SHA256
+`94e54828a26e8a36622009b1ada957ac429311c60251e8e08e6dd9f460b75510`),
+clean original Oracle fixture `libfile_6f035bcc9dbc81919c715d9ccf15fc14` version 0
+(SHA256 `49b105454eed52e8b7611283d7f178978cf5d259338a38a707f18b4c848f6b54`),
+and real-render evidence `libfile_cb87d231c4a08191b527fe9928faedda` version 0
+(SHA256 `a72404eb196b8169dbfb6f0cf520171fda53d6d746290bb746b6795e071ae1ec`).
+The bundle and Oracle fixture use exact implementation commit
+`55be78b25a72c59762fc4f38450b9b816dfa46b1`, native wheel SHA256
+`2f2cfcc9948b93d5991ea495d1eab0fc089e4b10638d949ddd1c0ea06dc6322d`.
+No working checkout, source binaries or historical results entered those code
+handoffs. The render evidence contains derived images, attribution and receipts.
 
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses
