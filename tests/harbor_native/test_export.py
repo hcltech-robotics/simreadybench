@@ -97,6 +97,38 @@ def test_fixture_export_parses_with_standard_harbor_and_hashes_all_generated_fil
     assert all(not path.is_symlink() for path in output.rglob("*"))
 
 
+def test_frozen_nv100_task_ids_keep_their_declared_hub_name(tmp_path, wheel):
+    from harbor.models.task.task import Task
+    task_id = 'nv100_e006be66e4cc28f9'
+    release = release_input()
+    task = release['tasks'][0]
+    task['id'] = task_id
+    task['actor'] = role_manifest(task_id, 'actor', ['observation.png', 'instruction.md'])
+    task['verifier'] = role_manifest(task_id, 'verifier', [
+        'reference/asset.usd', 'reference/eligibility.json', 'comparison/cameras.json',
+        *[f'comparison/{view}{suffix}.png' for view in VIEWS for suffix in ('', '-mask')]])
+    root = tmp_path / 'export'
+    exporter().export_release(release, root, wheel, fixture=True)
+    exported = Task(root / task_id)
+    assert exported.config.task.name == 'hcltech-robotics/' + task_id
+    manifest = tomllib.loads((root / 'dataset.toml').read_text())
+    assert manifest['tasks'][0]['name'] == exported.config.task.name
+
+
+def test_normalized_hub_name_collisions_are_rejected_before_writing(tmp_path, wheel):
+    release = release_input(2)
+    second = release['tasks'][1]
+    task_id = 'nv100-fixture-000'
+    second['id'] = task_id
+    for role in ('actor', 'verifier'):
+        second[role] = role_manifest(task_id, role,
+            [row['destination'] for row in second[role]['files']])
+    root = tmp_path / 'export'
+    with pytest.raises(ValueError, match='unique Hub names'):
+        exporter().export_release(release, root, wheel, fixture=True)
+    assert not root.exists()
+
+
 def test_build_contexts_have_role_scoped_fetch_and_no_target_data_in_feedback(tmp_path, wheel):
     root = tmp_path / "export"
     exporter().export_release(release_input(), root, wheel, fixture=True)

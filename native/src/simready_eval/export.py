@@ -38,6 +38,10 @@ def _json(value):
     return json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n"
 
 
+def _task_name(task_id):
+    return task_id if task_id.startswith(("nv100_", "nv100-")) else "nv100-" + task_id
+
+
 def _validate_release(release, fixture):
     if not isinstance(release, dict) or set(release) != {"schema", "repo_id", "revision", "source_commit", "source_collection", "tasks"}:
         raise ValueError("release must contain exactly the release schema fields")
@@ -51,7 +55,7 @@ def _validate_release(release, fixture):
     tasks = release["tasks"]
     if not isinstance(tasks, list) or not tasks or len(tasks) > 100 or (not fixture and len(tasks) != 100):
         raise ValueError("NV100 releases require exactly 100 tasks; fixtures permit 1 to 100")
-    seen = set()
+    seen, names = set(), set()
     for task in tasks:
         if not isinstance(task, dict) or set(task) != {"id", "actor", "verifier", "reference", "entrypoint", "views", "budgets"}:
             raise ValueError("task must contain exactly the supported task fields")
@@ -59,6 +63,10 @@ def _validate_release(release, fixture):
         if not isinstance(task_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", task_id) or task_id in seen:
             raise ValueError("task ids must be unique safe components")
         seen.add(task_id)
+        name = _task_name(task_id)
+        if name in names:
+            raise ValueError("task ids must produce unique Hub names")
+        names.add(name)
         for role in ("actor", "verifier"):
             manifest = validate_manifest(task[role])
             if (manifest["repo_id"] != release["repo_id"] or manifest["revision"] != release["revision"]
@@ -182,7 +190,7 @@ def _task_toml(task, fixture):
 artifacts = [{{source = "/output/submission", destination = "candidate"}}]
 
 [task]
-name = "hcltech-robotics/nv100-{task['id']}"
+name = "hcltech-robotics/{_task_name(task['id'])}"
 version = "1.0.0"
 description = "SimReadyBench single-observation USD reconstruction"
 
@@ -370,7 +378,7 @@ def export_release(release, output, wheel, *, fixture=False):
     for task in sorted(release["tasks"], key=lambda task: task["id"]):
         task_files = {path: payload.encode() if isinstance(payload, str) else payload
                       for path, payload in _task_files(task, wheel_name, wheel_payload, fixture).items()}
-        name = "nv100-" + task["id"]
+        name = _task_name(task["id"])
         files.update({name + "/" + path: payload for path, payload in task_files.items()})
         task_refs.append({"name": "hcltech-robotics/" + name, "digest": _publisher_digest(task_files)})
     release["export"] = {"fixture": fixture, "publish_ready": False,
