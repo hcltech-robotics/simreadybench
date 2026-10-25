@@ -66,6 +66,16 @@ requires a newly qualified binding even when existing pixels remain identical.
 It writes no HF revision into self-hashed content: after the dataset is frozen,
 the release owner binds the output file checksums to that immutable HF commit.
 
+For a complete original package, `runtime_closure(source, package_root)` in
+`simready_eval.prepare` returns an exact path/size/SHA-256 inventory of authored
+dependencies and notices, plus excluded archive/thumbnail paths. It copies
+nothing. Map those paths directly from the verified acquisition store when
+publishing, and selectively materialize one bounded task before normal package
+validation/preparation. A referenced archive is retained; an unrelated one is
+not fetched into the verifier. The canonical HF source archive can retain all
+original files. `public_instruction(dimensions)` emits the same public text
+without another render.
+
 ## Scores and support
 
 Formal, visual and kinematic fidelity are independent percentages. Formal uses
@@ -112,6 +122,17 @@ on a 16 GiB host. This draft is usable for qualified smaller assets. The
 Oversized assets must be filtered during roster qualification, without
 decimation or relaxed scoring. A four-million-triangle extraction cap is not a
 claim that every selected asset has passed runtime qualification.
+
+Reference qualification should reserve candidate headroom, rather than reuse
+the four-million-triangle safety guard as an eligibility claim. The largest
+completed current real probe has 305896 triangles: five frames/masks in 115.80s,
+then faithful full evaluation in 179.40s with F=88.80, V=100, K=100 and 1.24 GiB
+maximum individual process/child RSS. All original source hashes remained equal.
+Recommended admission targets are full faithful self-evaluation within 300 of
+the existing 600 seconds, process-tree RSS within 6 GiB of the 16 GiB envelope,
+and preferably runtime package bytes within 128 MiB of the 256 MiB submission
+limit. These are pre-release headroom targets, not score changes or a blanket
+triangle cutoff; replace only measured outliers and qualify replacements.
 
 Finite nonzero authored normals retain their original corners and are normalized.
 Zero authored normal vectors are preserved as zero, invoking Blender

@@ -101,18 +101,22 @@ def _scan(root):
     return files
 
 
-def _closure(source, root, files):
+def _closure(source, root, files, *, strict=True):
     """Find authored dependencies without composing or modifying source layers."""
     from pxr import Sdf, UsdUtils
     import xml.etree.ElementTree as ET
-    edges = {}
+    available = set(files)
     def dependency(raw, owner):
         raw = raw.split("[", 1)[0]
         if "<UDIM>" in raw:
             path = owner.parent / raw
-            return list(path.parent.glob(path.name.replace("<UDIM>", "[0-9][0-9][0-9][0-9]")))
+            matches = [tile.resolve() for tile in path.parent.glob(
+                path.name.replace("<UDIM>", "[0-9][0-9][0-9][0-9]"))]
+            if not matches:
+                raise _Reject("unrecorded_dependency", path=str(path))
+            return matches
         return [(owner.parent / raw).resolve()] if raw else []
-    for path in files:
+    def dependencies_of(path):
         dependencies = []
         suffix = path.suffix.casefold()
         if suffix in USD_EXTS:
@@ -129,21 +133,59 @@ def _closure(source, root, files):
         elif suffix == ".mdl":
             for value in re.findall(r'(?:texture_\w+|light_profile|bsdf_measurement)\s*\(\s*"([^"\n]+)"', path.read_text()):
                 dependencies.extend(dependency(value, path))
-        edges[path] = dependencies
+        return dependencies
     reachable, pending = set(), [source]
     while pending:
         path = pending.pop()
         if path in reachable:
             continue
-        if path not in files:
+        if path not in available:
             raise _Reject("unrecorded_dependency", path=str(path))
         reachable.add(path)
-        pending.extend(edges.get(path, []))
+        pending.extend(dependencies_of(path))
     def notice(path):
         return path.name.casefold().startswith(("license", "notice", "copying", "copyright", "readme", "provenance"))
     unrelated = [p.relative_to(root).as_posix() for p in files if p not in reachable and not notice(p)]
-    if unrelated:
+    if strict and unrelated:
         raise _Reject("unqualified_package_closure", unreferenced_files=unrelated)
+    return reachable | {path for path in files if notice(path)}
+
+
+def runtime_closure(source, package_root):
+    """Inventory one original package without copying its unrelated archive.
+
+    Preserve authored references (including referenced archives and UDIM tiles)
+    and source notices. The returned paths map directly to original files; after
+    selective materialization, run the normal native package validation before
+    eligibility generation. This function does not render or publish anything.
+    """
+    source, root = Path(source).absolute(), Path(package_root).absolute()
+    if not source.is_relative_to(root) or source.resolve() != source:
+        raise _Reject("qualified_entrypoint_required")
+    files = _scan(root)
+    selected = _closure(source, root, files, strict=False)
+    return {"schema": "simready-runtime-closure-v1",
+            "source_entrypoint": source.relative_to(root).as_posix(),
+            "files": [_row(path, root) for path in sorted(selected)],
+            "excluded_files": sorted(path.relative_to(root).as_posix()
+                                     for path in files if path not in selected),
+            "qualification": "dependency_inventory_only; validate selective materialization before evaluation"}
+
+
+def public_instruction(dimensions):
+    """Retain the approved public dimensions without needing another render."""
+    if (not isinstance(dimensions, list) or len(dimensions) != 3
+            or any(type(value) not in (int, float) or not math.isfinite(value)
+                   or not 1e-9 <= value <= 1e6 for value in dimensions)):
+        raise ValueError("public_nominal_dimensions_required")
+    return (
+        "Reconstruct the asset shown in observation.png as a self-contained USD package.\n\n"
+        "Nominal dimensions in canonical metres XYZ: " + json.dumps(dimensions) + "\n\n"
+        "Preserve the visible geometry, materials, rigid bodies, joints and articulation. "
+        "Write a top-level asset.usd and include all relative dependencies in your submission.\n\n"
+        "Submit only USD and its data dependencies: at most 256 MiB and 10000 files/directories combined. "
+        "Keep authoring programs outside the submission; links, executable files and external dependencies are not accepted.\n\n"
+        "Do not use Blender for authoring; Blender is used only by the verifier renderer.\n")
 
 
 def freeze_cameras(observation, *, resolution=512):
@@ -249,6 +291,7 @@ def prepare(source, package_root, output, task_id, *, cameras=None, timeout=180,
                            or not 1e-9 <= value <= 1e6 for value in dimensions)):
                 raise _Reject("public_nominal_dimensions_required")
             metadata["nominal_dimensions_m"] = dimensions
+            instruction = public_instruction(dimensions)
             frozen = render.validate_cameras(cameras) if cameras is not None else freeze_cameras(observation)
             separate_observation = frozen.get("observation")
             comparison_ids = {view["id"] for view in frozen["views"]}
@@ -297,14 +340,7 @@ def prepare(source, package_root, output, task_id, *, cameras=None, timeout=180,
             observation_receipt = _normalized_render(observed)
             observation_receipt["images"][0].update(file="../public/observation.png", mask_file="observation-mask.png")
             _write(reference / "observation-render-receipt.json", observation_receipt)
-            (public / "instruction.md").write_text(
-                "Reconstruct the asset shown in observation.png as a self-contained USD package.\n\n"
-                "Nominal dimensions in canonical metres XYZ: " + json.dumps(dimensions) + "\n\n"
-                "Preserve the visible geometry, materials, rigid bodies, joints and articulation. "
-                "Write a top-level asset.usd and include all relative dependencies in your submission.\n\n"
-                "Submit only USD and its data dependencies: at most 256 MiB and 10000 files/directories combined. "
-                "Keep authoring programs outside the submission; links, executable files and external dependencies are not accepted.\n\n"
-                "Do not use Blender for authoring; Blender is used only by the verifier renderer.\n")
+            (public / "instruction.md").write_text(instruction)
             cfg = correspondence.settings({"enabled": True})
             profile = correspondence.reference_profile(observation, cfg)
             fixture_files = [_row(path, staging) for directory in (reference, comparison)

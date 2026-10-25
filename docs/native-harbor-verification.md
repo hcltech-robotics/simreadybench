@@ -68,10 +68,26 @@ locker remains unqualified: it exceeded the original address-space bound, then
 decoder duplication, and finally the 180-second Blender diagnostic window.
 Partial images are not admitted. The user selected replacement of the largest
 reference outliers; no additional locker-specific work gates the release.
-The largest previously completed real full-five-camera probe is the
-305,896-triangle heat gun; current-version resource qualification is separate.
+The largest completed real full-five-camera probe is the 305,896-triangle heat
+gun; its current-version evaluation evidence is below.
 Render workers now have a bounded 12 GiB address space within the declared
 16 GiB container. No geometry simplification or score-definition change occurs.
+
+The current heat gun is now qualified through actual five-camera preparation
+and the complete evaluator. Its runtime dependency inventory selects 20 files /
+44,287,839 bytes from 46 originals / 80,853,193 bytes, without changing originals.
+The five-frame render took 115.80s. Full evaluation took 179.40s under the
+unchanged 600s limit: formal 88.8043, geometry/appearance/visual/kinematic 100,
+all measured at coverage 1. Maximum individual process and child RSS was
+1,299,416 KiB; this is not an aggregate process-tree peak. All 46 original file
+hashes were checked again after evaluation. The candidate retained full geometry.
+The source formal result is reported as measured, not inflated to 100.
+
+Runtime inventories now walk only reachable authored dependencies and notices,
+retain a referenced archive, exclude unrelated originals, and canonicalize
+relative UDIM tile paths. They do not copy or publish data. Exported recipes
+also pin the same OMP/OpenBLAS/USD thread limits used by these measurements.
+Nominal XYZ dimensions remain public as required by the existing input contract.
 
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses

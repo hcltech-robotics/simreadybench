@@ -19,6 +19,7 @@ from .dependencies import runtime_lock
 BASE_IMAGE = "python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704"
 SOURCE_COLLECTION = {"repo_id": "nvidia/simready-assets", "revision": "f4860aa0c75607adb50a78bf96e77510bffc040f"}
 BLENDER_PACKAGE_VERSION = "4.3.2+dfsg-2"
+RUNTIME_ENV = "ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PXR_WORK_THREAD_LIMIT=2"
 
 
 def _safe_path(value):
@@ -217,6 +218,7 @@ storage_mb = 8192
 
 def _actor_docker(wheel):
     return f'''FROM {BASE_IMAGE}
+{RUNTIME_ENV}
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git && rm -rf /var/lib/apt/lists/*
 COPY {wheel} /opt/wheels/{wheel}
 COPY actor.requirements.txt /opt/locks/actor.requirements.txt
@@ -233,6 +235,7 @@ CMD ["sh", "-c", "sleep infinity"]
 
 def _verifier_docker(wheel):
     return f'''FROM {BASE_IMAGE}
+{RUNTIME_ENV}
 ARG BLENDER_PACKAGE_VERSION={BLENDER_PACKAGE_VERSION}
 RUN apt-get update && apt-get install -y --no-install-recommends blender=$BLENDER_PACKAGE_VERSION && blender --background --version | head -n 1 | grep -F 'Blender 4.3.2' && rm -rf /var/lib/apt/lists/*
 COPY {wheel} /opt/wheels/{wheel}
@@ -249,6 +252,7 @@ CMD ["sh", "-c", "sleep infinity"]
 
 def _feedback_docker(wheel):
     return f'''FROM {BASE_IMAGE}
+{RUNTIME_ENV}
 COPY {wheel} /opt/wheels/{wheel}
 COPY feedback.requirements.txt /opt/locks/feedback.requirements.txt
 RUN python -m pip install --no-cache-dir --require-hashes --no-deps -r /opt/locks/feedback.requirements.txt && python -m pip install --no-cache-dir --no-deps '/opt/wheels/{wheel}'

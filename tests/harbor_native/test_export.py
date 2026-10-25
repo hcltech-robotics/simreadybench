@@ -102,6 +102,11 @@ def test_build_contexts_have_role_scoped_fetch_and_no_target_data_in_feedback(tm
     exporter().export_release(release_input(), root, wheel, fixture=True)
     task = root / "nv100-fixture-000"
     environment, tests = task / "environment", task / "tests"
+    for recipe in (environment / 'Dockerfile', environment / 'Dockerfile.feedback', tests / 'Dockerfile'):
+        text = recipe.read_text()
+        assert 'OPENBLAS_NUM_THREADS=1' in text
+        assert 'OMP_NUM_THREADS=1' in text
+        assert 'PXR_WORK_THREAD_LIMIT=2' in text
     actor = json.loads((environment / "actor-assets.json").read_text())
     verifier = json.loads((tests / "verifier-assets.json").read_text())
     assert actor["role"] == "actor"
