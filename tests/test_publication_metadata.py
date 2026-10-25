@@ -55,7 +55,7 @@ def rig_hash(rig):
 
 
 def old_publication(hub):
-    path = "runs/metadata/results.json"
+    path = "results/runs/metadata/results.json"
     old = json.loads(hub.files[path])
     for row in old["results"]:
         row.pop("illustrations", None)
@@ -81,14 +81,14 @@ def test_existing_publication_accepts_only_canonical_derived_metadata_enrichment
     callback = save([source])
     original = (report / "results.json").read_bytes()
     publisher(callback)
-    public = json.loads(hub.files["runs/metadata/results.json"])["results"][0]
+    public = json.loads(hub.files["results/runs/metadata/results.json"])["results"][0]
     assert public["simready"]["score_percent"] == 100
     assert public["simready"]["score_lower_bound"] == 100
     assert public["simready"]["score_upper_bound"] == 100
     assert public["illustrations"] == source["illustrations"]
     assert public["fidelity"]["alignment"] == source["fidelity"]["alignment"]
     scores = next(
-        csv.DictReader(StringIO(hub.files["runs/metadata/scores.csv"].decode()))
+        csv.DictReader(StringIO(hub.files["results/runs/metadata/scores.csv"].decode()))
     )
     assert float(scores["mandatory_lower_bound_percent"]) == 100
     assert float(scores["mandatory_upper_bound_percent"]) == 100
@@ -176,9 +176,9 @@ def test_incomplete_prior_comparison_metadata_is_not_treated_as_absent(
     source = with_comparison(row())
     publisher = HuggingFacePublisher("team/results", "metadata", manifest, api=hub)
     publisher(save([source]))
-    previous = json.loads(hub.files["runs/metadata/results.json"])
+    previous = json.loads(hub.files["results/runs/metadata/results.json"])
     previous["results"][0]["illustrations"].pop(missing)
-    hub.files["runs/metadata/results.json"] = json.dumps(previous).encode()
+    hub.files["results/runs/metadata/results.json"] = json.dumps(previous).encode()
     uploads = len(hub.uploads)
     with pytest.raises(PublicationError):
         publisher(save([source]))
@@ -207,7 +207,7 @@ def test_additive_metadata_never_authorises_changed_measurements_or_evidence(
     publisher = HuggingFacePublisher("team/results", "metadata", manifest, api=hub)
     publisher(save([source]))
     old_publication(hub)
-    previous = json.loads(hub.files["runs/metadata/results.json"])
+    previous = json.loads(hub.files["results/runs/metadata/results.json"])
     old = previous["results"][0]
     if damage == "measurement":
         old["fidelity"]["components"]["shape"]["score_percent"] = 5
@@ -226,7 +226,7 @@ def test_additive_metadata_never_authorises_changed_measurements_or_evidence(
         old["nvidia_validator_report_file"]["sha256"] = "a" * 64
     else:
         old["fidelity"]["alignment"]["translation_m"][0] += 1
-    hub.files["runs/metadata/results.json"] = json.dumps(previous).encode()
+    hub.files["results/runs/metadata/results.json"] = json.dumps(previous).encode()
     uploads = len(hub.uploads)
     with pytest.raises(PublicationError):
         publisher(save([source]))

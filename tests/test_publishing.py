@@ -58,6 +58,7 @@ class Hub:
         self.files = {
             "README.md": b"---\nlicense: mit\nauthors: [Research group]\nconfigs:\n- config_name: other\n  default: true\n  data_files: other.csv\n---\n# Benchmark results\n\nShared methodology and reference illustrations.\n",
         }
+        self.files["results/README.md"] = self.files["README.md"]
         self.uploads, self.commits = [], []
         self.revision = 0
         self.fail_upload = False
@@ -273,7 +274,7 @@ def test_partial_publication_keeps_only_scientific_completed_readouts(publicatio
         "team/results", "model-evaluation", manifest, api=hub
     )
     receipt = publisher(save([valid, blocked]))
-    public = json.loads(hub.files["runs/model-evaluation/results.json"])
+    public = json.loads(hub.files["results/runs/model-evaluation/results.json"])
     assert receipt["completed_conditions"] == 1
     assert public["planned_conditions"] == 4 and public["partial"]
     assert public["results"][0]["simready_reward"] == 0
@@ -300,7 +301,7 @@ def test_partial_publication_keeps_only_scientific_completed_readouts(publicatio
         "process.log" in path or "operator" in path or "authority" in path
         for path in hub.files
     )
-    assert json.loads(hub.files["leaderboard.json"])["entries"] == []
+    assert json.loads(hub.files["results/leaderboard.json"])["entries"] == []
     assert (report / "original/asset.usda").is_file()
 
 
@@ -315,7 +316,7 @@ def test_publication_retains_reconstructed_usage_provenance(publication):
         "pricing_derived_cost_complete": True,
     }
     HuggingFacePublisher("team/results", "model-evaluation", manifest, api=hub)(save([value]))
-    actual = json.loads(hub.files["runs/model-evaluation/results.json"])["results"][0]
+    actual = json.loads(hub.files["results/runs/model-evaluation/results.json"])["results"][0]
     assert actual["inference_cost_kind"] == value["inference_cost_kind"]
     assert actual["usage_reconstruction"] == value["usage_reconstruction"]
 
@@ -333,7 +334,7 @@ def test_usage_columns_reach_published_json_csv_and_main_table(publication):
     )
     publisher = HuggingFacePublisher("team/results", "usage", manifest, api=hub)
     publisher(save([valid]))
-    public = json.loads(hub.files["runs/usage/results.json"])["results"][0]
+    public = json.loads(hub.files["results/runs/usage/results.json"])["results"][0]
     assert public["inference_calls_used"] == 4
     assert public["validation_calls_used"] == 2
     assert public["model_request_errors"] == 1
@@ -345,11 +346,11 @@ def test_usage_columns_reach_published_json_csv_and_main_table(publication):
     assert public["inference_cost_usd"] == 3
     assert public["compute_cost_usd"] == 0.5
     assert public["total_cost_usd"] == 3.5
-    flat = next(csv.DictReader(io.StringIO(hub.files["runs/usage/scores.csv"].decode())))
+    flat = next(csv.DictReader(io.StringIO(hub.files["results/runs/usage/scores.csv"].decode())))
     for field in USAGE_FIELDS:
         assert float(flat[field]) == public[field]
-    assert b"Input tokens" in hub.files["runs/usage/report.html"]
-    assert b"Total cost (USD)" in hub.files["runs/usage/report.html"]
+    assert b"Input tokens" in hub.files["results/runs/usage/report.html"]
+    assert b"Total cost (USD)" in hub.files["results/runs/usage/report.html"]
     assert "model_requests" not in public
 
 
@@ -357,7 +358,7 @@ def test_old_readout_can_gain_usage_metadata_without_changing_existing_scores(pu
     manifest, _, hub, row, save = publication
     publisher = HuggingFacePublisher("team/results", "usage", manifest, api=hub)
     publisher(save([row()]))
-    key = "runs/usage/results.json"
+    key = "results/runs/usage/results.json"
     old = json.loads(hub.files[key])
     for field in USAGE_FIELDS:
         old["results"][0].pop(field, None)
@@ -375,10 +376,10 @@ def test_old_readout_can_gain_usage_metadata_without_changing_existing_scores(pu
 
 def test_root_card_retains_methodology_metadata_and_other_viewer_configs(publication):
     manifest, _, hub, row, save = publication
-    original = hub.files["README.md"].decode().split("\n---\n", 1)[1]
+    original = hub.files["results/README.md"].decode().split("\n---\n", 1)[1]
     publisher = HuggingFacePublisher("team/results", "new-model", manifest, api=hub)
     publisher(save([row()]))
-    card = hub.files["README.md"].decode()
+    card = hub.files["results/README.md"].decode()
     metadata, body = card[4:].split("---\n", 1)
     data = yaml.safe_load(metadata)
     assert body.startswith(original + "\n<!-- simreadybench-leaderboard:start -->")
@@ -391,16 +392,16 @@ def test_root_card_retains_methodology_metadata_and_other_viewer_configs(publica
     }
     assert data["configs"][0]["config_name"] == "all" and not data["configs"][0].get("default")
     assert [config["config_name"] for config in data["configs"] if config.get("default")] == ["by_model"]
-    assert data["configs"][0]["data_files"] == [{"split": "test", "path": ["viewer/new-model/scores.parquet"]}]
+    assert data["configs"][0]["data_files"] == [{"split": "test", "path": ["results/viewer/new-model/scores.parquet"]}]
     assert {item["name"]: item["dtype"] for item in data["configs"][0]["features"]}["input_tokens"] == "float64"
     assert data["configs"][1]["data_files"] == [
-        {"split": "another_model", "path": ["viewer/new-model/scores.parquet"]}
+        {"split": "another_model", "path": ["results/viewer/new-model/scores.parquet"]}
     ]
     assert "another-model" not in body and "completed" not in body
     publisher(save([row(), row(repetition=1)]))
     assert (
         len(
-            yaml.safe_load(hub.files["README.md"].decode().split("---\n", 2)[1])[
+            yaml.safe_load(hub.files["results/README.md"].decode().split("---\n", 2)[1])[
                 "configs"
             ]
         )
@@ -436,7 +437,7 @@ def test_incremental_updates_preserve_successes_and_refuse_missing_or_changed_re
     publisher = HuggingFacePublisher("team/results", "evaluation", manifest, api=hub)
     publisher(save([row()]))
     publisher(save([row(), row(repetition=1)]))
-    assert len(json.loads(hub.files["runs/evaluation/results.json"])["results"]) == 2
+    assert len(json.loads(hub.files["results/runs/evaluation/results.json"])["results"]) == 2
     uploads = len(hub.commits)
     with pytest.raises(PublicationError, match="omit completed"):
         publisher(save([row()]))
@@ -489,7 +490,7 @@ def test_invalid_submission_is_published_and_does_not_block_later_reconstruction
     )
     assert publisher(save([failed]))["completed_conditions"] == 1
     assert publisher(save([failed, row(repetition=1)]))["completed_conditions"] == 2
-    public = json.loads(hub.files["runs/failed-submission/results.json"])["results"]
+    public = json.loads(hub.files["results/runs/failed-submission/results.json"])["results"]
     invalid = next(item for item in public if item["repetition"] == 0)
     assert invalid["simready_reward"] == 0
     assert invalid["simready"]["status"] == "invalid_candidate"
@@ -507,7 +508,7 @@ def test_scored_submission_without_available_captures_still_publishes(publicatio
         "team/results", "capture-unavailable", manifest, api=hub
     )
     assert publisher(save([measured]))["completed_conditions"] == 1
-    public = json.loads(hub.files["runs/capture-unavailable/results.json"])["results"][
+    public = json.loads(hub.files["results/runs/capture-unavailable/results.json"])["results"][
         0
     ]
     assert public["simready_reward"] == 100
@@ -569,7 +570,7 @@ def test_optional_score_and_fidelity_partial_numerators_are_preserved(
         "team/results", "partial-measurements", manifest, api=hub
     )
     publisher(save([source]))
-    public = json.loads(hub.files["runs/partial-measurements/results.json"])["results"][
+    public = json.loads(hub.files["results/runs/partial-measurements/results.json"])["results"][
         0
     ]
     assert public["optional_score"] == optional
@@ -598,18 +599,18 @@ def test_canonical_leaderboard_is_added_only_after_all_25_by_four_complete(publi
         for repetition in range(4)
     ]
     publisher(save(rows[:-1]))
-    assert json.loads(hub.files["leaderboard.json"])["entries"] == []
+    assert json.loads(hub.files["results/leaderboard.json"])["entries"] == []
     publisher(save(rows))
-    entry = json.loads(hub.files["leaderboard.json"])["entries"][0]
+    entry = json.loads(hub.files["results/leaderboard.json"])["entries"][0]
     assert entry["completed_attempts"] == 100
     assert entry["model"] == "another-model"
-    card = hub.files["README.md"].decode()
+    card = hub.files["results/README.md"].decode()
     assert "| another-model | high | pi | none |" in card
     assert "authoring-64-native-output-v1" in card
     original = deepcopy(hub.files)
     publisher(save(rows), final=True)
     assert hub.files == original
-    assert len(json.loads(hub.files["leaderboard.json"])["entries"]) == 1
+    assert len(json.loads(hub.files["results/leaderboard.json"])["entries"]) == 1
 
 
 def viewer_fixture():
@@ -666,7 +667,7 @@ def test_mixed_viewer_factors_route_each_row_without_changing_csv_values():
             collected.extend(selected_source)
         assert sorted(collected, key=lambda row: row["condition_id"]) == expected
     for axis in ("by_reference_set", "by_protocol"):
-        assert index["runs"]["matrix"]["groups"][axis][0]["path"] == "viewer/matrix/scores.parquet"
+        assert index["runs"]["matrix"]["groups"][axis][0]["path"] == "results/viewer/matrix/scores.parquet"
 
 
 def test_viewer_distinguishes_identical_conditions_under_different_output_protocols():
@@ -678,8 +679,8 @@ def test_viewer_distinguishes_identical_conditions_under_different_output_protoc
                              "reasoning_effort": row["reasoning_effort"]}
     before = deepcopy((native, capped))
     index, shards = build_viewer_dataset({"native": (native, raw), "capped": (capped, raw)})
-    old = _viewer_rows(shards["viewer/native/scores.parquet"])
-    new = _viewer_rows(shards["viewer/capped/scores.parquet"])
+    old = _viewer_rows(shards["results/viewer/native/scores.parquet"])
+    new = _viewer_rows(shards["results/viewer/capped/scores.parquet"])
     assert old[0]["condition_id"] == new[0]["condition_id"]
     assert old[0]["run_id"] == "native" and new[0]["run_id"] == "capped"
     assert old[0]["output_limit"] == "provider-native" and old[0]["max_output_tokens"] is None
@@ -706,7 +707,7 @@ def test_viewer_protocol_expansion_rebuilds_retained_shards():
         build_viewer_update("current", readout, raw, index=index)
     rebuilt, shards = build_viewer_dataset({"retained": (readout, raw), "current": (readout, raw)}, index=index)
     for run_id in rebuilt["runs"]:
-        rows = _viewer_rows(shards["viewer/" + run_id + "/scores.parquet"])
+        rows = _viewer_rows(shards["results/viewer/" + run_id + "/scores.parquet"])
         assert rows[0]["run_id"] == run_id
         assert rows[0]["authoring_protocol"] == "authoring-64-native-output-v1"
 
@@ -743,11 +744,11 @@ def test_viewer_images_select_a_shared_camera_and_display_missing_captures():
     ]
     before = deepcopy(readout)
     captures = {
-        "runs/paired/evidence/asset-a/reconstruction-1/reference-front.png": _png("red"),
-        "runs/paired/evidence/asset-a/reconstruction-1/candidate-front.png": _png("blue"),
+        "results/runs/paired/evidence/asset-a/reconstruction-1/reference-front.png": _png("red"),
+        "results/runs/paired/evidence/asset-a/reconstruction-1/candidate-front.png": _png("blue"),
     }
     index, shards = build_viewer_dataset({"paired": (readout, raw)}, image_reader=captures.__getitem__)
-    records = _viewer_rows(shards["viewer/paired/scores.parquet"])
+    records = _viewer_rows(shards["results/viewer/paired/scores.parquet"])
     assert records[0]["capture_view"] == "front"
     assert records[0]["reference_image"] == {"bytes": captures[next(iter(captures))], "path": "reference-front.png"}
     assert records[0]["candidate_image"] == {"bytes": captures[list(captures)[1]], "path": "candidate-front.png"}
@@ -813,10 +814,10 @@ def test_publication_migrates_v2_captures_using_the_pinned_revision(publication)
                            "bytes": len(capture), "sha256": hashlib.sha256(capture).hexdigest()}
                           for role in ("reference", "candidate")]
     HuggingFacePublisher("team/results", "retained", manifest, api=hub)(save([measured]))
-    index = json.loads(hub.files["viewer-index.json"])
-    hub.files["viewer-index.json"] = json.dumps(_legacy_viewer_index(index, 2)).encode()
-    hub.files["README.md"] = hub.files["README.md"].replace(b"simreadybench_viewer: 3", b"simreadybench_viewer: 2")
-    original = {path: raw for path, raw in hub.files.items() if path.startswith("runs/retained/")}
+    index = json.loads(hub.files["results/viewer-index.json"])
+    hub.files["results/viewer-index.json"] = json.dumps(_legacy_viewer_index(index, 2)).encode()
+    hub.files["results/README.md"] = hub.files["results/README.md"].replace(b"simreadybench_viewer: 3", b"simreadybench_viewer: 2")
+    original = {path: raw for path, raw in hub.files.items() if path.startswith("results/runs/retained/")}
     requested = []
     download = hub.hf_hub_download
 
@@ -827,15 +828,15 @@ def test_publication_migrates_v2_captures_using_the_pinned_revision(publication)
     hub.hf_hub_download = pinned
     HuggingFacePublisher("team/results", "current", manifest, api=hub)(save([measured]))
     assert all(hub.files[path] == value for path, value in original.items())
-    assert not any(operation.path_in_repo.startswith("runs/retained/") for operation in hub.commits[-1]["operations"])
-    retained_reads = [path for path, revision in requested if path.startswith("runs/retained/evidence/")]
+    assert not any(operation.path_in_repo.startswith("results/runs/retained/") for operation in hub.commits[-1]["operations"])
+    retained_reads = [path for path, revision in requested if path.startswith("results/runs/retained/evidence/")]
     assert len(retained_reads) == 2 and all(revision == "head-1" for _, revision in requested)
-    assert not any(path.startswith("runs/current/evidence/") for path, _ in requested)
+    assert not any(path.startswith("results/runs/current/evidence/") for path, _ in requested)
     for run in ("retained", "current"):
-        embedded = _viewer_rows(hub.files["viewer/" + run + "/scores.parquet"])[0]
+        embedded = _viewer_rows(hub.files["results/viewer/" + run + "/scores.parquet"])[0]
         assert embedded["reference_image"]["bytes"] == embedded["candidate_image"]["bytes"] == capture
         assert embedded["capture_view"] == "isometric"
-    assert json.loads(hub.files["viewer-index.json"])["splits"] == index["splits"]
+    assert json.loads(hub.files["results/viewer-index.json"])["splits"] == index["splits"]
 
 
 def test_reference_and_unknown_reasoning_do_not_guess_scientific_identity():
@@ -849,7 +850,7 @@ def test_reference_and_unknown_reasoning_do_not_guess_scientific_identity():
             del row["reasoning_effort"]
     index, _ = build_viewer_update("partial-nv25", readout, raw)
     assert index["runs"]["partial-nv25"]["groups"]["by_reference_set"] == [
-        {"split": "nv25", "path": "viewer/partial-nv25/scores.parquet"},
+        {"split": "nv25", "path": "results/viewer/partial-nv25/scores.parquet"},
     ]
     assert json.dumps(None) in index["splits"]["by_reasoning"]
     assert json.dumps("none") in index["splits"]["by_reasoning"]
@@ -876,25 +877,25 @@ def test_publication_is_one_atomic_commit_with_grouped_viewer(publication):
     receipt = HuggingFacePublisher("team/results", "atomic", manifest, api=hub)(save([row()]))
     assert hub.uploads == [] and len(hub.commits) == 1
     paths = {operation.path_in_repo for operation in hub.commits[0]["operations"]}
-    assert {"README.md", "eval.yaml", "leaderboard.json", "viewer-index.json", "runs/atomic/results.json", "runs/atomic/scores.csv"} <= paths
+    assert {"results/README.md", "results/eval.yaml", "results/leaderboard.json", "results/viewer-index.json", "results/runs/atomic/results.json", "results/runs/atomic/scores.csv"} <= paths
     assert receipt["run_commit"] == receipt["commit"] == "head-1"
 
 
 def test_legacy_run_configs_migrate_without_rewriting_prior_results(publication):
     manifest, _, hub, row, save = publication
     HuggingFacePublisher("team/results", "legacy", manifest, api=hub)(save([row()]))
-    retained = {path: raw for path, raw in hub.files.items() if path.startswith("runs/legacy/")}
-    del hub.files["viewer-index.json"]
-    hub.files["README.md"] = b"---\nlicense: mit\nconfigs:\n- config_name: legacy\n  default: true\n  data_files:\n  - split: test\n    path: runs/legacy/scores.csv\n- config_name: manual\n  data_files: manual.csv\n---\n# Retained scientific card\n"
+    retained = {path: raw for path, raw in hub.files.items() if path.startswith("results/runs/legacy/")}
+    del hub.files["results/viewer-index.json"]
+    hub.files["results/README.md"] = b"---\nlicense: mit\nconfigs:\n- config_name: legacy\n  default: true\n  data_files:\n  - split: test\n    path: results/runs/legacy/scores.csv\n- config_name: manual\n  data_files: manual.csv\n---\n# Retained scientific card\n"
     HuggingFacePublisher("team/results", "next", manifest, api=hub)(save([row()]))
-    card = hub.files["README.md"].decode()
+    card = hub.files["results/README.md"].decode()
     configs = yaml.safe_load(card.split("---\n", 2)[1])["configs"]
     assert "---\n# Retained scientific card\n\n<!-- simreadybench-leaderboard:start -->" in card
-    assert configs[0]["data_files"][0]["path"] == ["viewer/legacy/scores.parquet", "viewer/next/scores.parquet"]
+    assert configs[0]["data_files"][0]["path"] == ["results/viewer/legacy/scores.parquet", "results/viewer/next/scores.parquet"]
     assert configs[-1] == {"config_name": "manual", "data_files": "manual.csv"}
     assert "legacy" not in {config["config_name"] for config in configs}
     assert all(hub.files[path] == raw for path, raw in retained.items())
-    assert not any(operation.path_in_repo.startswith("runs/legacy/") for operation in hub.commits[-1]["operations"])
+    assert not any(operation.path_in_repo.startswith("results/runs/legacy/") for operation in hub.commits[-1]["operations"])
 
 
 def _score_csv(rows, fields=None):
@@ -913,10 +914,10 @@ def test_viewer_unifies_legacy_and_current_headers_with_explicit_nullable_featur
     index, shards = build_viewer_dataset({"old": (readout, old_csv), "new": (readout, new_csv)})
     assert index["schema"] == "simreadybench-viewer-index/v3"
     assert (old_csv.encode(), new_csv) == before
-    assert all(path.startswith("viewer/") for path in shards)
+    assert all(path.startswith("results/viewer/") for path in shards)
     assert all(_viewer_table(raw).column_names == index["columns"] for raw in shards.values())
-    legacy = _viewer_rows(shards["viewer/old/scores.parquet"])
-    current = _viewer_rows(shards["viewer/new/scores.parquet"])
+    legacy = _viewer_rows(shards["results/viewer/old/scores.parquet"])
+    current = _viewer_rows(shards["results/viewer/new/scores.parquet"])
     assert all(row["input_tokens"] is None and row["total_cost_usd"] is None and row["extra"] == "" for row in legacy)
     assert all(row["input_tokens"] == 123 and row["extra"] == "0017" for row in current)
     configs = yaml.safe_load(render_viewer_card("# Retained\n", index).split("---\n", 2)[1])["configs"]
@@ -925,7 +926,7 @@ def test_viewer_unifies_legacy_and_current_headers_with_explicit_nullable_featur
         assert all(features[field] == "float64" for field in USAGE_FIELDS)
         assert features["extra"] == "string"
         for split in config["data_files"]:
-            assert all(path in shards and path.startswith("viewer/") for path in split["path"])
+            assert all(path in shards and path.startswith("results/viewer/") for path in split["path"])
 
 
 def test_viewer_schema_expansion_rebuilds_retained_shards_and_keeps_split_names():
@@ -940,11 +941,11 @@ def test_viewer_schema_expansion_rebuilds_retained_shards_and_keeps_split_names(
     assert updated["splits"] == first["splits"]
     assert updated["schema_sha256"] != first["schema_sha256"]
     assert {path for path in original} <= shards.keys()
-    assert all(row["future_measurement"] == "" for row in _viewer_rows(shards["viewer/old/scores.parquet"]))
-    assert all(row["future_measurement"] == "1.2500" for row in _viewer_rows(shards["viewer/new/scores.parquet"]))
+    assert all(row["future_measurement"] == "" for row in _viewer_rows(shards["results/viewer/old/scores.parquet"]))
+    assert all(row["future_measurement"] == "1.2500" for row in _viewer_rows(shards["results/viewer/new/scores.parquet"]))
     repeated, files_again = build_viewer_update("new", readout, changed, index=updated)
     assert repeated == updated
-    assert files_again == {path: content for path, content in shards.items() if path.startswith("viewer/new/")}
+    assert files_again == {path: content for path, content in shards.items() if path.startswith("results/viewer/new/")}
 
 
 def test_v1_viewer_migration_preserves_registry_and_card_body():
@@ -960,7 +961,7 @@ def test_v1_viewer_migration_preserves_registry_and_card_body():
     metadata = yaml.safe_load(rendered.split("---\n", 2)[1])
     assert metadata["license"] == "mit" and metadata["simreadybench_viewer"] == 3
     assert metadata["configs"][-1] == {"config_name": "manual", "data_files": "manual.csv"}
-    for invalid in ("viewer/other/scores.parquet", "../private.csv"):
+    for invalid in ("results/viewer/other/scores.parquet", "../private.csv"):
         tampered = deepcopy(updated)
         tampered["runs"]["old"]["viewer_scores"] = invalid
         with pytest.raises(ValueError, match="original run paths"):
@@ -974,20 +975,20 @@ def test_v1_viewer_migration_preserves_registry_and_card_body():
 def test_publication_migrates_v1_mixed_headers_without_changing_raw_legacy_files(publication):
     manifest, _, hub, row, save = publication
     HuggingFacePublisher("team/results", "legacy", manifest, api=hub)(save([row()]))
-    old_rows = list(csv.DictReader(io.StringIO(hub.files["runs/legacy/scores.csv"].decode())))
+    old_rows = list(csv.DictReader(io.StringIO(hub.files["results/runs/legacy/scores.csv"].decode())))
     stripped = [{key: value for key, value in item.items() if key not in USAGE_FIELDS} for item in old_rows]
-    hub.files["runs/legacy/scores.csv"] = _score_csv(stripped)
-    index = json.loads(hub.files["viewer-index.json"])
+    hub.files["results/runs/legacy/scores.csv"] = _score_csv(stripped)
+    index = json.loads(hub.files["results/viewer-index.json"])
     legacy = _legacy_viewer_index(index, 1)
-    hub.files["viewer-index.json"] = json.dumps(legacy).encode()
-    retained = {path: raw for path, raw in hub.files.items() if path.startswith("runs/legacy/")}
+    hub.files["results/viewer-index.json"] = json.dumps(legacy).encode()
+    retained = {path: raw for path, raw in hub.files.items() if path.startswith("results/runs/legacy/")}
     current = row()
     current["inference_calls_used"] = 4
     HuggingFacePublisher("team/results", "current", manifest, api=hub)(save([current]))
     assert all(hub.files[path] == raw for path, raw in retained.items())
-    assert not any(item.path_in_repo.startswith("runs/legacy/") for item in hub.commits[-1]["operations"])
-    assert _viewer_table(hub.files["viewer/legacy/scores.parquet"]).schema == _viewer_table(hub.files["viewer/current/scores.parquet"]).schema
-    legacy_view = _viewer_rows(hub.files["viewer/legacy/scores.parquet"])[0]
+    assert not any(item.path_in_repo.startswith("results/runs/legacy/") for item in hub.commits[-1]["operations"])
+    assert _viewer_table(hub.files["results/viewer/legacy/scores.parquet"]).schema == _viewer_table(hub.files["results/viewer/current/scores.parquet"]).schema
+    legacy_view = _viewer_rows(hub.files["results/viewer/legacy/scores.parquet"])[0]
     assert all(legacy_view[field] is None for field in USAGE_FIELDS)
     paths = []
     original_download = hub.hf_hub_download
@@ -998,7 +999,7 @@ def test_publication_migrates_v1_mixed_headers_without_changing_raw_legacy_files
 
     hub.hf_hub_download = downloaded
     HuggingFacePublisher("team/results", "current", manifest, api=hub)(save([current]))
-    assert not any(path.startswith("runs/legacy/") for path in paths)
+    assert not any(path.startswith("results/runs/legacy/") for path in paths)
 
 
 def test_publication_schema_growth_rebuilds_old_viewer_files_in_one_commit(publication, monkeypatch):
@@ -1006,8 +1007,8 @@ def test_publication_schema_growth_rebuilds_old_viewer_files_in_one_commit(publi
 
     manifest, _, hub, row, save = publication
     HuggingFacePublisher("team/results", "legacy", manifest, api=hub)(save([row()]))
-    retained = {path: raw for path, raw in hub.files.items() if path.startswith("runs/legacy/")}
-    previous = json.loads(hub.files["viewer-index.json"])
+    retained = {path: raw for path, raw in hub.files.items() if path.startswith("results/runs/legacy/")}
+    previous = json.loads(hub.files["results/viewer-index.json"])
     original_write = publishing.write_scores
 
     def expanded(path, rows):
@@ -1019,13 +1020,13 @@ def test_publication_schema_growth_rebuilds_old_viewer_files_in_one_commit(publi
     HuggingFacePublisher("team/results", "next", manifest, api=hub)(save([row()]))
     assert all(hub.files[path] == raw for path, raw in retained.items())
     paths = {operation.path_in_repo for operation in hub.commits[-1]["operations"]}
-    assert {"viewer/legacy/scores.parquet", "viewer/next/scores.parquet", "viewer-index.json", "README.md"} <= paths
-    assert not any(path.startswith("runs/legacy/") for path in paths)
-    current = json.loads(hub.files["viewer-index.json"])
+    assert {"results/viewer/legacy/scores.parquet", "results/viewer/next/scores.parquet", "results/viewer-index.json", "results/README.md"} <= paths
+    assert not any(path.startswith("results/runs/legacy/") for path in paths)
+    current = json.loads(hub.files["results/viewer-index.json"])
     assert current["schema_sha256"] != previous["schema_sha256"]
     assert current["splits"] == previous["splits"]
-    assert _viewer_rows(hub.files["viewer/legacy/scores.parquet"])[0]["future_measurement"] == ""
-    assert _viewer_rows(hub.files["viewer/next/scores.parquet"])[0]["future_measurement"] == "007"
+    assert _viewer_rows(hub.files["results/viewer/legacy/scores.parquet"])[0]["future_measurement"] == ""
+    assert _viewer_rows(hub.files["results/viewer/next/scores.parquet"])[0]["future_measurement"] == "007"
 
 
 def test_privacy_change_prevents_any_atomic_publication(publication, monkeypatch):
@@ -1055,7 +1056,7 @@ def test_publication_preserves_nondefault_authoring_protocol(publication, turns)
     )
     publisher = HuggingFacePublisher("team/results", "turns-" + str(turns), manifest, api=hub)
     assert publisher(save([measured]))["completed_conditions"] == 1
-    index = json.loads(hub.files["viewer-index.json"])
+    index = json.loads(hub.files["results/viewer-index.json"])
     assert index["runs"]["turns-" + str(turns)]["groups"]["by_protocol"][0]["split"] == "authoring_" + str(turns) + "_native_output_v1"
 
 
@@ -1066,13 +1067,13 @@ def test_effective_reasoning_uses_defaults_then_matching_overrides(publication):
     manifest["overrides"] = [{"match": {"asset": "reference-a"}, "settings": {"generation": {"reasoning_effort": "high"}}}]
     publisher = HuggingFacePublisher("team/results", "effective", manifest, api=hub)
     publisher(save([row(), row(asset="reference-b")]))
-    public = json.loads(hub.files["runs/effective/results.json"])
+    public = json.loads(hub.files["results/runs/effective/results.json"])
     assert {item["asset_id"]: item["reasoning_effort"] for item in public["results"]} == {"reference-a": "high", "reference-b": "low"}
-    assert "reasoning_effort" not in next(csv.reader(io.StringIO(hub.files["runs/effective/scores.csv"].decode())))
+    assert "reasoning_effort" not in next(csv.reader(io.StringIO(hub.files["results/runs/effective/scores.csv"].decode())))
     # A legacy missing provenance field may be enriched, but explicit values stay immutable.
     for item in public["results"]:
         del item["reasoning_effort"]
-    hub.files["runs/effective/results.json"] = json.dumps(public).encode()
+    hub.files["results/runs/effective/results.json"] = json.dumps(public).encode()
     publisher(save([row(), row(asset="reference-b")]))
     changed = deepcopy(manifest)
     changed["overrides"][0]["settings"]["generation"]["reasoning_effort"] = "medium"
@@ -1101,7 +1102,7 @@ def test_complete_set_publication_replays_keep_prior_and_concurrent_entries(
         "composite_scores": {"formal": {"score": 0, "status": "measured"}},
         "usage": {"input_tokens": {"mean": None, "measured_attempts": 0}},
     }
-    hub.files["leaderboard.json"] = json.dumps({"schema": "simreadybench-leaderboard/v1", "entries": [retained]}).encode()
+    hub.files["results/leaderboard.json"] = json.dumps({"schema": "simreadybench-leaderboard/v1", "entries": [retained]}).encode()
     rows = [row(asset["id"], repetition) for asset in manifest["assets"] for repetition in range(4)]
     callback = save(rows)
     original_source = (report / "results.json").read_bytes()
@@ -1115,8 +1116,8 @@ def test_complete_set_publication_replays_keep_prior_and_concurrent_entries(
             if fault == "conflict":
                 concurrent = deepcopy(retained)
                 concurrent.update(model="concurrent-model", results_url=retained["results_url"].replace("earlier", "concurrent"))
-                hub.files["leaderboard.json"] = json.dumps({"schema": "simreadybench-leaderboard/v1", "entries": [retained, concurrent]}).encode()
-                hub.files["README.md"] += b"\nExternal scientific note.\n"
+                hub.files["results/leaderboard.json"] = json.dumps({"schema": "simreadybench-leaderboard/v1", "entries": [retained, concurrent]}).encode()
+                hub.files["results/README.md"] += b"\nExternal scientific note.\n"
                 hub.revision += 1
                 raise RuntimeError("Parent commit changed")
             original_commit(**kwargs)
@@ -1130,11 +1131,11 @@ def test_complete_set_publication_replays_keep_prior_and_concurrent_entries(
         publisher(callback)
     assert failure.value.retryable
     assert publisher(callback, final=True)["leaderboard_complete"]
-    entries = json.loads(hub.files["leaderboard.json"])["entries"]
+    entries = json.loads(hub.files["results/leaderboard.json"])["entries"]
     assert entries[0] == retained
     assert sum(item["model"] == "another-model" for item in entries) == 1
     assert attempted == ["head-0", "head-1"]
-    card = hub.files["README.md"].decode()
+    card = hub.files["results/README.md"].decode()
     assert card.count("<!-- simreadybench-leaderboard:start -->") == 1
     assert "| earlier-model | unknown | opencode | none |" in card
     assert "| another-model | high | pi | none |" in card
@@ -1148,4 +1149,60 @@ def test_complete_set_publication_replays_keep_prior_and_concurrent_entries(
         assert hub.files == first_commit
     assert (report / "results.json").read_bytes() == original_source
     paths = {operation.path_in_repo for operation in hub.commits[-1]["operations"]}
-    assert {"leaderboard.json", "README.md", "eval.yaml", "runs/full/results.json"} <= paths
+    assert {"results/leaderboard.json", "results/README.md", "results/eval.yaml", "results/runs/full/results.json"} <= paths
+
+
+def test_results_publication_cannot_overwrite_benchmark_root(publication):
+    manifest, _, hub, row, save = publication
+    hub.files['eval.yaml'] = b'tasks: benchmark/tasks.parquet\n'
+    original = {name: hub.files[name] for name in ('README.md', 'eval.yaml')}
+    HuggingFacePublisher('team/results', 'isolated', manifest, api=hub)(save([row()]))
+    assert {name: hub.files[name] for name in original} == original
+    paths = {operation.path_in_repo for operation in hub.commits[-1]['operations']}
+    assert paths and all(name.startswith('results/') for name in paths)
+    assert {'results/README.md', 'results/eval.yaml', 'results/leaderboard.json',
+            'results/viewer-index.json', 'results/runs/isolated/results.json'} <= paths
+
+
+def test_publisher_requires_existing_legacy_results_to_be_migrated(publication):
+    manifest, _, hub, row, save = publication
+    del hub.files['results/README.md']
+    hub.files['leaderboard.json'] = b'{"schema":"simreadybench-leaderboard/v1","entries":[]}'
+    before = deepcopy(hub.files)
+    with pytest.raises(PublicationError, match='[Mm]igrat'):
+        HuggingFacePublisher('team/results', 'premature', manifest, api=hub)(save([row()]))
+    assert hub.files == before and not hub.commits
+
+
+def test_publication_preserves_all_retained_shards_with_missing_original_csvs(publication):
+    manifest, _, hub, row, save = publication
+    HuggingFacePublisher('team/results', 'seed', manifest, api=hub)(save([row()]))
+    index = json.loads(hub.files['results/viewer-index.json'])
+    template = index['runs']['seed']
+    index['runs'] = {}
+    original = {}
+    for n in range(11):
+        run = 'retained-' + str(n)
+        item = deepcopy(template)
+        item['scores'] = 'results/runs/' + run + '/scores.csv'
+        item['viewer_scores'] = 'results/viewer/' + run + '/scores.parquet'
+        for groups in item['groups'].values():
+            for group in groups:
+                group['path'] = group['path'].replace('/seed/', '/' + run + '/')
+        index['runs'][run] = item
+        original[item['viewer_scores']] = hub.files['results/viewer/seed/scores.parquet']
+    hub.files.update(original)
+    hub.files['results/viewer-index.json'] = json.dumps(index).encode()
+    requested = []
+    download = hub.hf_hub_download
+    def recorded(repo, filename, **kwargs):
+        requested.append(filename)
+        return download(repo, filename, **kwargs)
+    hub.hf_hub_download = recorded
+    HuggingFacePublisher('team/results', 'next', manifest, api=hub)(save([row()]))
+    current = json.loads(hub.files['results/viewer-index.json'])
+    assert set(index['runs']) < set(current['runs'])
+    assert all(hub.files[name] == raw for name, raw in original.items())
+    assert all(not name.startswith('results/runs/retained-') for name in requested)
+    paths = {operation.path_in_repo for operation in hub.commits[-1]['operations']}
+    assert not set(original) & paths

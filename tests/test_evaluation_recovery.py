@@ -35,14 +35,14 @@ def test_explicit_repair_updates_fidelity_and_is_idempotent(publication):
         publisher(report)
     request = _request(changed, 'head-1')
     publisher(report, evaluation_recovery=request)
-    public = json.loads(hub.files['runs/run-a/results.json'])
+    public = json.loads(hub.files['results/runs/run-a/results.json'])
     assert public['results'][0]['fidelity']['components']['shape']['score_percent'] == 25
     assert public['results'][0]['simready']['score_percent'] == 100
     assert public['evaluation_recoveries'][0]['authoring_unchanged'] is True
     assert len(public['evaluation_recoveries']) == 1
-    assert any(name.startswith('runs/run-a/evaluation-recoveries/') for name in hub.files)
+    assert any(name.startswith('results/runs/run-a/evaluation-recoveries/') for name in hub.files)
     publisher(report, evaluation_recovery=request)
-    assert len(json.loads(hub.files['runs/run-a/results.json'])['evaluation_recoveries']) == 1
+    assert len(json.loads(hub.files['results/runs/run-a/results.json'])['evaluation_recoveries']) == 1
 
 
 def test_repair_does_not_backfill_new_alignment_into_previous_unknown_fidelity(publication):
@@ -55,7 +55,7 @@ def test_repair_does_not_backfill_new_alignment_into_previous_unknown_fidelity(p
     publisher(save([original]))
     changed = with_comparison(row())
     publisher(save([changed]), evaluation_recovery=_request(changed, 'head-1'))
-    public = json.loads(hub.files['runs/run-a/results.json'])
+    public = json.loads(hub.files['results/runs/run-a/results.json'])
     assert public['results'][0]['fidelity']['alignment'] == changed['fidelity']['alignment']
     assert public['evaluation_recoveries'][0]['authoring_unchanged'] is True
 
@@ -64,7 +64,7 @@ def test_optional_repair_requires_explicit_stage_and_preserves_mandatory_result(
     manifest, report, hub, row, save = publication
     publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
     publisher(save([row()]))
-    previous = json.loads(hub.files['runs/run-a/results.json'])['results']
+    previous = json.loads(hub.files['results/runs/run-a/results.json'])['results']
     current = deepcopy(previous)
     current[0]['optional_score_percent'] = 0
     current[0]['optional_score'] = {'score_percent': 0}
@@ -86,7 +86,7 @@ def test_repair_cannot_change_any_authoring_evidence(publication, field):
     publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
     save([row()])
     publisher(report)
-    previous = json.loads(hub.files['runs/run-a/results.json'])['results']
+    previous = json.loads(hub.files['results/runs/run-a/results.json'])['results']
     current = deepcopy(previous)
     current[0]['fidelity']['components']['shape']['score_percent'] = 25
     if field == 'candidate':
@@ -109,7 +109,7 @@ def test_repair_rejects_unbound_authority(publication, damage):
     publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
     save([row()])
     publisher(report)
-    previous = json.loads(hub.files['runs/run-a/results.json'])['results']
+    previous = json.loads(hub.files['results/runs/run-a/results.json'])['results']
     request = _request(row(), 'head-1')
     if damage == 'revision':
         request['previous_revision'] = 'head-0'
@@ -141,7 +141,7 @@ def test_publisher_retains_render_status_when_checking_capture_completion(public
                        for role in ('reference', 'candidate')]
     publisher = HuggingFacePublisher('group/results', 'run-a', manifest, api=hub)
     publisher(save([value]))
-    public = json.loads(hub.files['runs/run-a/results.json'])
+    public = json.loads(hub.files['results/runs/run-a/results.json'])
     assert public['results'][0]['illustrations']['status'] == 'rendered'
     assert public['results'][0]['evaluation_completion']['complete']
     assert public['evaluated_conditions'] == 1

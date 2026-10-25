@@ -280,3 +280,25 @@ class ParetoDataTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_pareto_snapshot_fetches_prefixed_results_without_changing_pinned_entry_url(tmp_path, monkeypatch):
+    revision = 'a' * 40
+    original_url = f'{p.BASE}/blob/{revision}/runs/earlier/report.html'
+    entry = {'model': 'm', 'harness': 'pi', 'reference_count': 25, 'repetitions': 4,
+             'completed_attempts': 100, 'results_url': original_url}
+    board_url = f'{p.BASE}/resolve/{revision}/results/leaderboard.json'
+    run_url = f'{p.BASE}/resolve/{revision}/results/runs/earlier/results.json'
+    responses = {board_url: json.dumps({'entries': [entry]}).encode(),
+                 run_url: json.dumps({'results': [row(str(asset), repetition) for asset in range(25) for repetition in range(4)],
+                                      'benchmark_complete': True}).encode()}
+    requested = []
+    def local_bytes(url, cache):
+        requested.append(url)
+        return responses[url]
+    monkeypatch.setattr(p, 'get_bytes', local_bytes)
+    snapshot = p.build_snapshot(revision, tmp_path, {})
+    assert requested == [board_url, run_url]
+    assert snapshot['source_url'] == board_url
+    assert snapshot['runs'][0]['source_url'] == run_url
+    assert entry['results_url'] == original_url
