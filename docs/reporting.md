@@ -42,7 +42,7 @@ The leaderboard and reconstruction reports are hosted on [Hugging Face](https://
 
 Pass `--hf-repo OWNER/DATASET --hf-run RUN` to publish each completed reconstruction. Install the `publish` extra and set `HF_TOKEN` or use `hf auth login`. The dataset viewer reads published Parquet tables, and the report includes captures, generated USDs, validator findings and Harbor trajectories. A run enters the NV25 leaderboard after all 25 assets in that public reference set have four scored reconstructions.
 
-The viewer opens with `references`, the 100 NV100 reference objects and their public observation images. Select `results` for historical NV25 scores and paired images. Reference rows have `type="reference"` and an `id`; result rows have `type="result"` and a `reference_id`. Join `results.reference_id = reference_index.id` to retrieve the corresponding object. The `historical_references` config contains the 25 NV25 objects. Additional subsets group results by model, harness, skills, asset, reference set, authoring protocol and reasoning level.
+The viewer opens with `references`, the 100 NV100 reference objects and their public observation images. Select `results` for historical NV25 scores and paired images. Reference rows have `type="reference"` and an `id`; result rows have `type="result"` and a `reference_id`. The `references` config has `nv100` and `nv25` splits with the same image schema. Join each result’s `reference_id` to the reference `id` across those splits to retrieve its object. Additional subsets group results by model, harness, skills, asset, reference set, authoring protocol and reasoning level.
 
 ## Benchmark registration and leaderboard
 
