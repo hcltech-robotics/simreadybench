@@ -230,6 +230,19 @@ profile work on a 4-CPU host; let the asset owner's queued isolated retries
 provide that separate host evidence. No retries, limit increases or roster purge
 were performed here for those failures. STC remains the selected Harbor host.
 
+The latest portable evaluator bundle is Library
+`libfile_10c62858c51c8191b0d253a305d03ebf` version 4, filename
+`simreadybench-native-renderer-v1.zip`, 145677 bytes, SHA256
+`b824a2b9cd30d19bbc80564e3b5b0f986e458b0322a8ac013c34dfe68fb7cb5b`.
+It is built from exact commit `2925c7baa37011e1ee311ccea52781dcda0355e3`,
+wheel SHA256 `9a8c2bb14551bc89df6af8ecc763f32bf7bdb10122ae0097e64ce7fa03b90395`.
+The renderer, worker and image recipe retain their prior hashes; only the final
+conversion allocation and accompanying documentation/validation changed since
+version 3. Existing source renders do not need regeneration for this update.
+The accepted STC Oracle artifact remains version 1 at its earlier exact commit;
+it was not rerun merely to refresh package metadata. Whole published NV100
+validation will use STC after the final asset freeze and clean publication.
+
 Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
 pass; the optional 51 remain diagnostic. Visual uses
 `sqrt(full_3D_geometry * mean(four_foreground_SSIM_percentages))`. Four views have
