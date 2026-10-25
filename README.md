@@ -9,9 +9,8 @@
   <p><a href="https://www.hcltech.com/">Robotics Intelligence CoE, HCLTech, Santa Clara, CA</a></p>
   <p>
     <a href="https://hcltech-robotics.github.io/simreadybench/"><img src="https://img.shields.io/badge/Project-page-006B73?style=flat-square" alt="Project page"></a>
-    <a href="https://hcltech-robotics.github.io/simreadybench/#paper"><img src="https://img.shields.io/badge/Paper-coming_soon-8A6D3B?style=flat-square" alt="Paper coming soon"></a>
     <a href="https://github.com/hcltech-robotics/simreadybench"><img src="https://img.shields.io/badge/Code-GitHub-24292F?style=flat-square" alt="Code on GitHub"></a>
-    <a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench"><img src="https://img.shields.io/badge/Dataset-results-567A9A?style=flat-square" alt="Dataset and results on Hugging Face"></a>
+    <a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench"><img src="https://img.shields.io/badge/Dataset-assets_and_results-567A9A?style=flat-square" alt="Dataset and results on Hugging Face"></a>
     <a href="https://hub.harborframework.com/datasets/hcltech-robotics/simreadybench"><img src="https://img.shields.io/badge/Harbor-Hub-006B73?style=flat-square" alt="SimReadyBench on Harbor Hub"></a>
     <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/evaluation.md"><img src="https://img.shields.io/badge/Scoring-guide-5B6573?style=flat-square" alt="Scoring guide"></a>
     <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/LICENSE"><img src="https://img.shields.io/badge/Licence-MIT-5B6573?style=flat-square" alt="MIT licence"></a>
@@ -21,7 +20,35 @@
 SimReadyBench turns reference OpenUSD assets into Harbor reconstruction tasks and evaluates the generated assets. It measures formal fidelity, visual fidelity and kinematic fidelity, with models, agent harnesses and authoring skills as independent experimental factors. The same environment supplies validator feedback and terminal rewards for reinforcement learning with an externally trained policy.
 
 
-## Install
+## NV100 tasks and data
+
+NV100 contains 100 OpenUSD reconstruction tasks. Each task supplies one reference image, an authoring brief and nominal dimensions. The agent produces a USD package with its geometry, materials, rigid bodies and joints. Evaluation reports formal, visual and kinematic fidelity separately.
+
+The [Harbor Hub dataset](https://hub.harborframework.com/datasets/hcltech-robotics/simreadybench) contains the runnable tasks. [Hugging Face](https://huggingface.co/datasets/hcltech-robotics/simreadybench) contains the source assets, instructions, 100 public observations, 400 verifier comparison images, masks, camera data and licences.
+
+On a Linux Docker host, install Harbor with Python 3.12 and download the tasks:
+
+```sh
+python3.12 -m venv .venv
+. .venv/bin/activate
+python -m pip install harbor==0.24.0
+harbor download hcltech-robotics/simreadybench@nv100-v1 --output-dir ./nv100
+```
+
+Check local setup with one task and a no-op agent:
+
+```sh
+harbor run --dataset hcltech-robotics/simreadybench@nv100-v1 \
+  --agent nop --n-tasks 1 --n-concurrent 1 --max-retries 0
+```
+
+The no-op agent submits no asset, so its scores are zero. For a reconstruction experiment, select a Harbor agent and model, configure its provider credentials and add the provider endpoints to `agents[].extra_allowed_hosts`. The [Harbor documentation](https://harborframework.com/docs) describes agent configuration.
+
+The verifier requests 16 GiB of memory. Allow additional memory for the host and other services. Rendering uses the CPU. Each submission has a top-level `asset.usd`, includes all dependencies, and is limited to 1 GiB and 10,000 files/directories. Up to five formal validator feedback calls are available. Blender is reserved for verifier rendering.
+
+Task inputs use HF revision `631fd67d899a3cc6bdeb1f3dceb6145337c8ec87`. The agent receives the public observation and instructions; reference USDs and the four comparison views are supplied separately to the verifier.
+
+## Install the benchmark tools
 
 Use Python 3.12 in a Linux or WSL shell:
 
@@ -51,14 +78,12 @@ On a Linux/Docker host with the [local runtime images](docs/deployment.md#local)
 
 ```sh
 python -m pip install '.[validator]'
-simready-bench benchmark nvidia-25 --model gpt-6.1-sol --harness pi --deploy local --runtime-images /tmp/srb-snapshot/local-runtime-images.json --repetitions 4 --authoring-turns 64 --output-dir ../simreadybench-nv25-local
+simready-bench benchmark nvidia-25 --model gpt-6.1-sol --harness pi --deploy local --runtime-images ./local-runtime-images.json --repetitions 4 --authoring-turns 64 --output-dir ../simreadybench-nv25-local
 ```
 
 The standard NV25 command runs four reconstructions per asset, giving 100 attempts with up to 64 authoring turns each. Open `report.html` in the output directory to inspect scores and aligned captures. `scores.csv` contains the score table and `results.json` contains the structured measurements and trace links. Completed reconstructions enter the report during the run.
 
-`--workers` selects a positive number of Daytona workers within your organisation's CPU, memory and disk allocation. Transient asset downloads retry automatically, failed workers are replaced without waiting for the others and `--supervise` restarts an interrupted coordinator using the saved run. Completed conditions and admitted attempts retain their original identities and authoring limits. To publish completed readouts during evaluation, set `HF_TOKEN` and add `--hf-repo YOUR_ACCOUNT/simreadybench-results --hf-run RUN_ID`.
-
-`--max-retries` allows two further attempts per failed reconstruction by default, with backoff and a fixed aggregate allowance. Completed measurements, including zero scores, are retained. An exhausted reconstruction is reported while the remaining conditions continue. Each new Daytona worker stops after ten minutes without coordinator contact, and a worker making no provider or reconstruction progress for 65 minutes is stopped, collected and replaced within its retry limit. Set `runtime.executor_stall_seconds` in an operator policy to change the latter interval. Reference comparisons run for valid USD even when formal SimReady validation fails.
+Concurrency, retries and recovery are described in the [deployment guide](docs/deployment.md#recovery).
 
 ## Monitor a Daytona run
 
@@ -115,7 +140,7 @@ Your trainer collects these episodes and updates the served policy between rollo
 
 ## Reference sets and evaluation
 
-NV25 and NV100 are distinct public reference sets, separate from the withheld internal benchmark reference set. The packaged [`nvidia-25` manifest](src/simready_bench/resources/benchmarks/nvidia-25.json) defines NV25 and its 25 NVIDIA SimReady assets.
+NV25 and NV100 contain 25 and 100 NVIDIA SimReady reference assets, respectively. The packaged [`nvidia-25` manifest](src/simready_bench/resources/benchmarks/nvidia-25.json) defines NV25 and its 25 NVIDIA SimReady assets.
 
 ![An eyeglasses reference shown partly as wireframe and partly textured, with callouts for the evaluation factors.](site/assets/evaluation-factors.png)
 
@@ -129,8 +154,9 @@ Formal fidelity is `95 x passed/46`, with five additional points when all 46 man
 
 Fidelity evaluation normalises units and the up-axis, then aligns the reconstruction with one whole-object yaw and translation. Object scale and relative part transforms are preserved, with no scale fitting or independent part fitting. Reference and reconstruction captures share the same aligned cameras. The [scoring guide](docs/evaluation.md) gives the diagrams, formulas and full measurement definitions.
 
-The [leaderboard](https://huggingface.co/datasets/hcltech-robotics/simreadybench) reports complete NV25 sets with 95% confidence intervals, token and elapsed-time efficiency and strict pass rates. Tables and plots update automatically when a complete set is published. The dataset viewer shows paired reference and candidate images, with subsets for models, harnesses, skills, protocols and assets. The [statistics guide](docs/leaderboard.md) defines the intervals and efficiency denominators.
+The [leaderboard](https://huggingface.co/datasets/hcltech-robotics/simreadybench) reports complete NV25 sets with 95% confidence intervals, token and elapsed-time efficiency and strict pass rates. Tables and plots update automatically when a complete set is published. The dataset viewer opens with the NV100 reference assets. The `results` config shows historical NV25 scores and paired images, with further subsets for models, harnesses, skills, protocols and assets. The [statistics guide](docs/leaderboard.md) defines the intervals and efficiency denominators.
 
 ## Authors and citation
 
 Chris von Csefalvay, Pranav Doma, Achyuthan Unni Krishnan and Tamas Foldi, HCLTech. Cite the software using [CITATION.cff](CITATION.cff). The code is licensed under [MIT](LICENSE), and the reference assets use the [NVIDIA SimReady Assets licence](https://huggingface.co/datasets/nvidia/simready-assets).
+
