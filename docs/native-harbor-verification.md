@@ -471,3 +471,39 @@ reproduced the old `hcltech-robotics/nv100` dataset default. The exporter/helper
 suite passes 63 checks including the explicit destination guard. The handoff
 also documents installing the neutral wheel with the existing STC `uv` into its
 dedicated no-pip environment. No publication is performed by these changes.
+
+## Published release acceptance
+
+The sole STC publisher reports successful public publication and consumption:
+
+- Hub dataset: `hcltech-robotics/simreadybench`, revision 4, content digest
+  `sha256:eeb3fdc558409ce23ce1f04d9c45636fc0464cd606a32a00c0e0a2af8b231c56`.
+- Published runtime source: `300afbdab1c191411828f2fbdc0c9289f48518ed`, wheel
+  SHA-256 `a8251571d91e1fb4db7b493c361db2d400013782e8403d75c94dbe6d6d1f9b0d`.
+  The publisher corrected dataset identity explicitly. The later source-only
+  exporter-default fix `bdd8b7eccadee690a59bb6f0e5c5104276530efe` prevents future
+  target drift; it is not claimed to be the published runtime revision.
+- All 100 freshly anonymous-pulled task folders passed hashes, bundled actor
+  pairs, names, nominal dimensions and role-isolation checks.
+- Formerly failing task `nv100_e7a7d6fbf4f2326f`, trial
+  `nv100_e7a7d6fbf4f2326f__2TTRyj4`, completed from that public digest with
+  completed=1, errors=0, null exception and evaluation_complete=1. This was a
+  no-output (`nop`) consumption test with expected invalid-candidate rewards,
+  not model-quality or task-specific Oracle evidence. The same task also passed
+  before publication using the source-backed exact verifier.
+- Original HF payload remains pinned to
+  `631fd67d899a3cc6bdeb1f3dceb6145337c8ec87`; names/common reference-image schema
+  are published at `9e61d44e2ecc55cb6ce7103d3547318426aeeb6e`. Live first/page
+  images in both NV100/NV25 splits and historical-results joins passed the
+  publisher's checks. Historical data remains preserved.
+- Final evidence: Library `libfile_0a924faacd348191a6695be770ccde3a` version 1,
+  35033097 bytes, SHA-256
+  `9ed27a4d2ba0972caa333b28b0fb86ba170fec697c2815ee85d922d584facbb3`.
+
+The original inline-assert Compose failures remain preserved; their definitive
+root cause is not established. The current published strict source verification
+passes without weakening integrity, permissions, isolation or resource checks.
+Scoring, renderer and feedback modules are byte-identical to the accepted wheel;
+only export/fetch and package version changed. No new inference, runner changes,
+publication, remote writes or duplicate verification were performed by this
+worker while recording these externally supplied final receipts.
