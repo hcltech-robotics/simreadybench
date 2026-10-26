@@ -474,10 +474,16 @@ def test_hf_public_catalog_redirects_are_not_followed(monkeypatch):
     from aiohttp import web
     from simready_bench.engine import hf_pricing as hf
 
+    # A six-second retry cannot fit the five-second admission deadline. Keep
+    # this HTTP redirect check independent of randomized retry scheduling.
+    monkeypatch.setattr(hf.random, "uniform", lambda low, high: high)
+
     async def run():
+        redirects = []
         followed = []
 
         async def redirect(request):
+            redirects.append(True)
             raise web.HTTPFound("/destination")
 
         async def destination(request):
@@ -503,6 +509,7 @@ def test_hf_public_catalog_redirects_are_not_followed(monkeypatch):
                 cost.CostDenied, match="hf_pricing_metadata_unavailable"
             ):
                 await hf.fetch_hf_route(MODEL, deadline_at=time.time() + 5)
+            assert redirects == [True]
             assert not followed
         finally:
             await runner.cleanup()
