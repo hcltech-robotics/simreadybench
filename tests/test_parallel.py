@@ -4,7 +4,7 @@ import json
 import os
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import replace
 
 import pytest
@@ -274,8 +274,17 @@ def test_worker_failure_keeps_other_workers_and_their_reports(tmp_path, monkeypa
     wheel = tmp_path / "frozen.whl"
     frozen_wheel(wheel)
     barrier = threading.Barrier(4)
+    failure_recorded = threading.Event()
     seen = []
     failed = set()
+
+    class RecordedFailure(Future):
+        def set_exception(self, error):
+            super().set_exception(error)
+            if str(error) == "One worker is unavailable":
+                failure_recorded.set()
+
+    monkeypatch.setattr("simready_bench.orchestration.Future", RecordedFailure)
 
     def execute(selected, **options):
         conditions = resume.condition_plan(selected)
@@ -294,6 +303,9 @@ def test_worker_failure_keeps_other_workers_and_their_reports(tmp_path, monkeypa
         )
         options["on_report"]({"directory": str(path.parent), "results": str(path)})
         barrier.wait(timeout=10)
+        # Exercise stopping after an observable failure. Releasing every worker
+        # together can otherwise make success arrive before the failure exists.
+        assert failure_recorded.wait(timeout=10)
 
     monkeypatch.setattr("simready_bench.daytona.run_daytona", execute)
     with pytest.raises(RuntimeError, match="bounded recovery policy") as caught:
