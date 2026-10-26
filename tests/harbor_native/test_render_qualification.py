@@ -170,6 +170,54 @@ def test_unqualified_cpu_bridge_cannot_mint_new_compatibility(tmp_path,monkeypat
     with pytest.raises(ValueError,match='bridge'): compatibility(gpu_receipt())
 
 
+def role_inventory(root,task_id,version='v1'):
+    from simready_eval.prepare import _row
+    value={'schema':'simready-task-role-inventory-v1','repo_id':'hcltech-robotics/simreadybench',
+           'task_id':task_id,'revision_binding':'Bind outside self-hashed content.','actor':[],'verifier':[]}
+    for role,directories in (('actor',('public',)),('verifier',('reference','comparison'))):
+        for directory in directories:
+            for path in sorted((root/directory).rglob('*')):
+                if path.is_file():
+                    row=_row(path,root);relative=row.pop('path')
+                    value[role].append({**row,'path':f'benchmark/nv100/{version}/tasks/{task_id}/'+relative,
+                        'destination':relative.removeprefix('public/') if role=='actor' else relative})
+    return value
+
+
+def test_legitimate_role_inventory_is_verified_then_rebuilt_for_v2(tmp_path):
+    from simready_eval.capture import import_capture
+    root,capture,raw,_=capture_fixture(tmp_path)
+    old=role_inventory(root,'synthetic')
+    (root/'role-inventory.json').write_text(json.dumps(old))
+    output=tmp_path/'new'
+    result=import_capture(root,capture/'render-receipt.json',capture,output)
+    assert result['status']=='prepared',result
+    updated=json.loads((output/'role-inventory.json').read_text())
+    assert all(row['path'].startswith('benchmark/nv100/v2/tasks/synthetic/')
+               for role in ('actor','verifier') for row in updated[role])
+    for role in ('actor','verifier'):
+        for row in updated[role]:
+            path=output/('public/'+row['destination'] if role=='actor' else row['destination'])
+            assert render._hash(path)==row['sha256']
+    assert 'comparison/raw-producer-receipt.json' in {row['destination'] for row in updated['verifier']}
+    assert (root/'role-inventory.json').read_text()==json.dumps(old)
+
+
+@pytest.mark.parametrize('fault',['schema','hash','extra_reference','actor_reference','missing'])
+def test_role_inventory_is_not_an_unchecked_extra_file(tmp_path,fault):
+    from simready_eval.capture import import_capture
+    root,capture,_,_=capture_fixture(tmp_path)
+    old=role_inventory(root,'synthetic')
+    if fault=='schema':old['schema']='unknown'
+    elif fault=='hash':old['actor'][0]['sha256']='0'*64
+    elif fault=='extra_reference':old['verifier'].append({**old['verifier'][0],'destination':'reference/untracked'})
+    elif fault=='actor_reference':old['actor'][0]['path']=old['actor'][0]['path'].replace('public/','reference/')
+    else:old['verifier'].pop()
+    (root/'role-inventory.json').write_text(json.dumps(old))
+    result=import_capture(root,capture/'render-receipt.json',capture,tmp_path/'new')
+    assert result['status']=='unknown'
+
+
 @pytest.mark.parametrize('fault', ['source','camera','scene','pixels','mask','producer','extra_view','link'])
 def test_import_rejects_mismatched_capture_without_partial_release(tmp_path, fault):
     from simready_eval.capture import import_capture

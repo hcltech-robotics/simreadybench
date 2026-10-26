@@ -35,6 +35,8 @@ their recorded image hashes. Original USD, textures, licenses, profile and
 instructions are preserved. The raw producer receipt is retained unchanged;
 derived eligibility binds it to the CPU evaluator. Failed imports leave no
 new task output.
+An existing `role-inventory.json` is validated against both original role trees;
+the new sidecar is rebuilt with v2 paths and current image/eligibility hashes.
 
 Store the new tasks under `benchmark/nv100/v2/tasks/` in a new immutable dataset
 revision. Build their Harbor release using `simready-harbor-release-v2` and the

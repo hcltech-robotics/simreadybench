@@ -19,6 +19,41 @@ from .prepare import _row, _write, _normalized_render
 from .qualification import compatibility, validate_producer
 
 
+def _role_inventory(root,task_id,version):
+    value={'schema':'simready-task-role-inventory-v1','repo_id':'hcltech-robotics/simreadybench',
+           'task_id':task_id,
+           'revision_binding':'Bind these exact entries to the immutable published HF commit outside self-hashed benchmark content. This inventory is not a runtime acquisition manifest.',
+           'actor':[],'verifier':[]}
+    for role,directories in (('actor',('public',)),('verifier',('reference','comparison'))):
+        for directory in directories:
+            for path in sorted((root/directory).rglob('*')):
+                if path.is_file():
+                    relative=path.relative_to(root).as_posix()
+                    row=_row(cli._regular(root,relative),root)
+                    value[role].append({
+                        'path':f'benchmark/nv100/{version}/tasks/{task_id}/'+relative,
+                        'destination':relative.removeprefix('public/') if role=='actor' else relative,
+                        'sha256':row['sha256'],'size_bytes':row['size_bytes']})
+    return value
+
+
+def _validate_role_inventory(root,task_id,value,version):
+    from .fetch import validate_manifest, REPO_ID, SCHEMA
+    if (not isinstance(value,dict) or set(value)!={'schema','repo_id','task_id','revision_binding','actor','verifier'}
+            or value['schema']!='simready-task-role-inventory-v1' or value['repo_id']!=REPO_ID
+            or value['task_id']!=task_id or not isinstance(value['revision_binding'],str)
+            or not 1<=len(value['revision_binding'])<=1024):
+        raise ValueError('Invalid typed role inventory')
+    expected=_role_inventory(root,task_id,version)
+    for role in ('actor','verifier'):
+        # This sidecar deliberately has no revision. Validate its exact role
+        # shape locally; an immutable commit is bound only after publication.
+        validate_manifest({'schema':SCHEMA,'repo_id':REPO_ID,'task_id':task_id,
+                           'revision':'0'*40,'role':role,'files':value[role]})
+        if sorted(value[role],key=lambda row:row['path'])!=sorted(expected[role],key=lambda row:row['path']):
+            raise ValueError('Role inventory file set or hashes mismatch')
+
+
 def _capture_images(receipt, root, cameras):
     if receipt.get('role') != 'all' or cameras['resolution'] != [512,512]:
         raise ValueError('Five-view 512-pixel raw reference capture required')
@@ -75,11 +110,13 @@ def import_capture(task, receipt_file, capture_root, output):
         actual = {p.relative_to(task).as_posix() for p in task.rglob('*') if p.is_file() or p.is_symlink()}
         # The published roster inventory lists role files; the evaluator and
         # source provenance are separate fixed-name release metadata files.
-        metadata_files = {'asset-inventory.json','evaluator.json','provenance.json'}
+        metadata_files = {'asset-inventory.json','evaluator.json','provenance.json','role-inventory.json'}
         if actual - metadata_files != {row['path'] for row in declared} - metadata_files:
             raise ValueError('Original task has unrecorded or missing files')
         for name in actual & metadata_files:
             cli._regular(task,name)
+        if 'role-inventory.json' in actual:
+            _validate_role_inventory(task,config['task_id'],cli._json(task/'role-inventory.json'),'v1')
         raw = cli._json(cli._regular(receipt_file.parent,receipt_file.name))
         validate_producer(raw)
         if raw.get('task',config['task_id']) != config['task_id']:
@@ -146,6 +183,11 @@ def import_capture(task, receipt_file, capture_root, output):
             eligibility['files'] = [_row(path,staging) for role in ('reference','comparison')
                 for path in sorted((staging/role).rglob('*')) if path.is_file() and path != staging/config['eligibility']]
             _write(staging/config['eligibility'],eligibility)
+            # Rebuild derived roles from the new image/eligibility bytes. Never
+            # carry v1 paths or eight-sample observation hashes into the v2 set.
+            roles=_role_inventory(staging,config['task_id'],'v2')
+            _validate_role_inventory(staging,config['task_id'],roles,'v2')
+            _write(staging/'role-inventory.json',roles)
             inventory['files'] = [_row(path,staging) for path in sorted(staging.rglob('*'))
                                   if path.is_file() and path.name != 'asset-inventory.json']
             for row in inventory['files']:
