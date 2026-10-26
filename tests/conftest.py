@@ -22,6 +22,20 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
+def non_hf_policy():
+    """Declare the real non-HF route for coordinator tests with mocked workers."""
+    return {
+        "providers": {
+            "selected": {
+                "kind": "openai",
+                "base_url": "https://api.openai.com/v1",
+                "api_key_env": "TEST_UNUSED_KEY",
+            }
+        }
+    }
+
+
+@pytest.fixture
 def setup(tmp_path):
     roots = {}
     for name in ("assets", "input_views", "skills", "private_manifests"):

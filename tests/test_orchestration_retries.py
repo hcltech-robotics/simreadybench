@@ -26,7 +26,7 @@ def select_conditions(original, conditions):
 
 
 def test_unstarted_tail_membership_does_not_consume_transport_retries(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, non_hf_policy
 ):
     selected = manifest()
     selected["assets"] = selected["assets"][:1]
@@ -37,7 +37,7 @@ def test_unstarted_tail_membership_does_not_consume_transport_retries(
     for name in ("assets", "skills", "input_views", "private_manifests"):
         (output / name).mkdir()
         roots[name] = str(output / name)
-    policy = {"roots": roots}
+    policy = {**non_hf_policy, "roots": roots}
     wheel = output / "frozen.whl"
     frozen_executor_wheel(wheel)
     tail_id, tail = conditions[3]

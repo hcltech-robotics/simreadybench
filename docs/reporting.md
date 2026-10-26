@@ -40,12 +40,13 @@ Use one output directory per model/harness/skill condition. For the NV25 public 
 
 The leaderboard and reconstruction reports are hosted on [Hugging Face](https://huggingface.co/datasets/hcltech-robotics/simreadybench), together with result tables, generated USDs and captures. The GitHub repository contains the benchmark code, configuration and project page.
 
-Pass `--hf-repo OWNER/DATASET --hf-run RUN` to publish each completed reconstruction. Install the `publish` extra and set `HF_TOKEN` or use `hf auth login`. The dataset viewer reads `scores.csv`, and the report includes captures, generated USDs, validator findings and Harbor trajectories. A run enters the NV25 leaderboard after all 25 assets in that public reference set have four scored reconstructions.
+Pass `--hf-repo OWNER/DATASET --hf-run RUN` to publish each completed reconstruction. Install the `publish` extra and set `HF_TOKEN` or use `hf auth login`. The dataset viewer reads published Parquet tables, and the report includes captures, generated USDs, validator findings and Harbor trajectories. A run enters the NV25 leaderboard after all 25 assets in that public reference set have four scored reconstructions.
 
-The viewer opens with all published results. Its other subsets group rows by model, harness, skills, asset, reference set, authoring protocol and reasoning level. Select a subset and then a split to choose a factor value, such as a model or harness. Each publication updates these groups together with its readout.
+The viewer opens with `references`, the 100 NV100 reference objects and their public observation images. Select `results` for historical NV25 scores and paired images. Reference rows have `type="reference"` and an `id`; result rows have `type="result"` and a `reference_id`. The `references` config has `nv100` and `nv25` splits with the same image schema. Join each result’s `reference_id` to the reference `id` across those splits to retrieve its object. Additional subsets group results by model, harness, skills, asset, reference set, authoring protocol and reasoning level.
 
 ## Benchmark registration and leaderboard
 
 Each publication maintains the dataset's `eval.yaml` benchmark definition, discovery metadata and visible leaderboard. NV25 leaderboard admission requires the pinned reference set and all 100 reconstructions, with four attempts for every asset under the declared model, harness, skills and authoring protocol. Formal, visual and kinematic fidelity remain separate scores.
 
 Completing the set automatically adds its entry to `leaderboard.json` and the dataset card in the same commit as the readout. Repeating publication or resuming the same run updates that entry while retaining other completed runs. Partial runs remain available through the viewer and enter the leaderboard when their set is complete. The benchmark definition uses Harbor and declares the NV25 64-turn, four-reconstruction formal, visual and kinematic tasks.
+
