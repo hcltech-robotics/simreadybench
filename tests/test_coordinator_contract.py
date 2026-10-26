@@ -37,7 +37,7 @@ def test_default_cli_uses_coordinator_from_first_dispatch(tmp_path, monkeypatch)
 
 
 @pytest.mark.parametrize('exception', [ValueError('receipt integrity mismatch'), OSError('temporary download failure')])
-def test_collection_failure_is_bounded_and_persisted(tmp_path, monkeypatch, exception):
+def test_collection_failure_is_bounded_and_persisted(tmp_path, monkeypatch, exception, non_hf_policy):
     selected = manifest()
     selected['assets'] = selected['assets'][:1]
     selected['repetitions'] = 1
@@ -61,7 +61,7 @@ def test_collection_failure_is_bounded_and_persisted(tmp_path, monkeypatch, exce
     monkeypatch.setattr(resume, '_daytona_client', object)
     monkeypatch.setattr(daytona, 'contain_executor', lambda *args, **kwargs: {'cleanup_pending': True}, raising=False)
     with pytest.raises(RecoveryLimitReached, match='collection|Collection|observation|Observation'):
-        orchestration.coordinate_daytona(selected, policy={}, output_dir=output, workers=1,
+        orchestration.coordinate_daytona(selected, policy=non_hf_policy, output_dir=output, workers=1,
             wheel=None, cpu_snapshot=None, runtime_images=DEFAULT_IMAGES,
             max_retries=0, retry_delay_seconds=0, maximum_retry_delay_seconds=0)
     assert len(calls) == 1
@@ -70,13 +70,13 @@ def test_collection_failure_is_bounded_and_persisted(tmp_path, monkeypatch, exce
     assert state['attempts'][0]['infrastructure'] == 'held'
     assert state['attempts'][0]['cleanup'] == 'pending'
     with pytest.raises(RecoveryLimitReached):
-        orchestration.coordinate_daytona(selected, policy={}, output_dir=output, workers=1,
+        orchestration.coordinate_daytona(selected, policy=non_hf_policy, output_dir=output, workers=1,
             wheel=None, cpu_snapshot=None, runtime_images=DEFAULT_IMAGES,
             max_retries=0, retry_delay_seconds=0, maximum_retry_delay_seconds=0)
     assert len(calls) == 1
 
 
-def test_saved_dispatch_resumes_its_original_batch(tmp_path, monkeypatch):
+def test_saved_dispatch_resumes_its_original_batch(tmp_path, monkeypatch, non_hf_policy):
     selected = manifest()
     selected['assets'] = selected['assets'][:1]
     selected['repetitions'] = 1
@@ -84,7 +84,7 @@ def test_saved_dispatch_resumes_its_original_batch(tmp_path, monkeypatch):
     from pathlib import Path
     for path in roots.values():
         Path(path).mkdir()
-    policy = {'roots': roots}
+    policy = {**non_hf_policy, 'roots': roots}
     batch = parallel._stage_shards(selected, policy, tmp_path, 1,
         assets_root=roots['assets'], skills_root=roots['skills'], wheel=None,
         cpu_snapshot=None, runtime_images=DEFAULT_IMAGES)[0][0]
@@ -109,7 +109,7 @@ def test_saved_dispatch_resumes_its_original_batch(tmp_path, monkeypatch):
     assert len(list((tmp_path / 'executions').iterdir())) == 1
 
 
-def test_measured_batch_without_delivery_cannot_author_again(tmp_path, monkeypatch):
+def test_measured_batch_without_delivery_cannot_author_again(tmp_path, monkeypatch, non_hf_policy):
     from test_resume import portable
     from simready_bench.attempt_state import AttemptStore
     selected = manifest()
@@ -130,7 +130,7 @@ def test_measured_batch_without_delivery_cannot_author_again(tmp_path, monkeypat
     monkeypatch.setattr(daytona, 'contain_executor', lambda *a, **k: {})
     monkeypatch.setattr(resume, '_daytona_client', object)
     with pytest.raises(RecoveryLimitReached):
-        orchestration.coordinate_daytona(selected, policy={}, output_dir=tmp_path,
+        orchestration.coordinate_daytona(selected, policy=non_hf_policy, output_dir=tmp_path,
             workers=1, wheel=None, cpu_snapshot=None, runtime_images=DEFAULT_IMAGES,
             max_retries=0, retry_delay_seconds=0, maximum_retry_delay_seconds=0)
     state = AttemptStore(tmp_path, selected).snapshot()
@@ -139,7 +139,7 @@ def test_measured_batch_without_delivery_cannot_author_again(tmp_path, monkeypat
     assert state['attempts'][0]['infrastructure'] == 'held'
 
 
-def test_failure_before_delivery_retries_the_same_owned_batch(tmp_path, monkeypatch):
+def test_failure_before_delivery_retries_the_same_owned_batch(tmp_path, monkeypatch, non_hf_policy):
     from simready_bench.attempt_state import AttemptStore
     from test_resume import portable
 
@@ -165,7 +165,7 @@ def test_failure_before_delivery_retries_the_same_owned_batch(tmp_path, monkeypa
 
     monkeypatch.setattr(daytona, 'run_daytona', execute)
     result = orchestration.coordinate_daytona(
-        selected, policy={}, output_dir=tmp_path, workers=1,
+        selected, policy=non_hf_policy, output_dir=tmp_path, workers=1,
         wheel=None, cpu_snapshot=None, runtime_images=DEFAULT_IMAGES,
         max_retries=1, retry_delay_seconds=0, maximum_retry_delay_seconds=0,
     )
@@ -181,7 +181,7 @@ def test_failure_before_delivery_retries_the_same_owned_batch(tmp_path, monkeypa
 
 
 @pytest.mark.parametrize('permanent', [False, True])
-def test_held_data_can_retry_cleanup_without_reauthoring(tmp_path, monkeypatch, permanent):
+def test_held_data_can_retry_cleanup_without_reauthoring(tmp_path, monkeypatch, permanent, non_hf_policy):
     from simready_bench.attempt_state import AttemptStore
     monkeypatch.setattr(orchestration.time, 'time', lambda: 100.0)
     selected = manifest()
@@ -214,7 +214,7 @@ def test_held_data_can_retry_cleanup_without_reauthoring(tmp_path, monkeypatch, 
     monkeypatch.setattr(orchestration, 'ReportIndex', index)
     for _ in range(5):
         with pytest.raises(RecoveryLimitReached):
-            orchestration.coordinate_daytona(selected, policy={}, output_dir=tmp_path,
+            orchestration.coordinate_daytona(selected, policy=non_hf_policy, output_dir=tmp_path,
                 workers=1, wheel=None, cpu_snapshot=None, runtime_images=DEFAULT_IMAGES,
                 max_retries=0, retry_delay_seconds=0, maximum_retry_delay_seconds=0)
     assert len(observed) == 1

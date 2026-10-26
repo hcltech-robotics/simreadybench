@@ -496,7 +496,11 @@ def test_invalid_submission_is_published_and_does_not_block_later_reconstruction
     assert invalid["candidate"]["status"] == "unavailable"
     assert invalid["images"] == [] and invalid["traces"] == []
     assert invalid["nvidia_validator_report_file"] is None
-    assert invalid["optional_score"]["unknown_count"] == 51
+    # Publication must preserve the explicit invalid-package assessment,
+    # rather than turn it into an unavailable-validator result.
+    assert invalid["optional_score"] == failed["simready"]["optional_score"]
+    assert invalid["optional_score"]["failed_count"] == 51
+    assert invalid["optional_score"]["unknown_count"] == 0
 
 
 def test_scored_submission_without_available_captures_still_publishes(publication):
