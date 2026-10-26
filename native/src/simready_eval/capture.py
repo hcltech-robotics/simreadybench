@@ -54,14 +54,14 @@ def _validate_role_inventory(root,task_id,value,version):
             raise ValueError('Role inventory file set or hashes mismatch')
 
 
-def _capture_images(receipt, root, cameras):
-    if receipt.get('role') != 'all' or cameras['resolution'] != [512,512]:
-        raise ValueError('Five-view 512-pixel raw reference capture required')
-    views = cameras['views']+[cameras['observation']]
+def _capture_images(receipt, root, cameras, *, role='all'):
+    if receipt.get('role') != role or cameras['resolution'] != [512,512]:
+        raise ValueError('Qualified 512-pixel raw reference capture required')
+    views = cameras['views']+[cameras['observation']] if role=='all' else [cameras['observation']]
     rows = receipt.get('images', [])
     indexed = {row['camera_id']: row for row in rows}
-    if len(rows) != 5 or set(indexed) != {view['id'] for view in views}:
-        raise ValueError('Exactly five distinct frozen capture views required')
+    if len(rows) != len(views) or set(indexed) != {view['id'] for view in views}:
+        raise ValueError('Exact distinct frozen capture views required')
     checked = []
     for view in views:
         row = indexed[view['id']]
@@ -86,9 +86,14 @@ def _capture_images(receipt, root, cameras):
     return checked
 
 
-def import_capture(task, receipt_file, capture_root, output):
+def import_capture(task, receipt_file, capture_root, output, *, observation_receipt=None,
+                   observation_root=None, cameras=None, object_name=None):
     result = {'schema':'simready-capture-import-v1','status':'unknown'}
     try:
+        requested_cameras=cameras
+        independent=any(value is not None for value in (observation_receipt,observation_root,requested_cameras))
+        if independent and any(value is None for value in (observation_receipt,observation_root,requested_cameras,object_name)):
+            raise ValueError('Independent observation requires receipt, root, selected cameras and reviewed object name')
         task,capture_root,output = (Path(path).absolute() for path in (task,capture_root,output))
         receipt_file = Path(receipt_file).absolute()
         if output.exists() or output.is_symlink() or output.parent.resolve() != output.parent:
@@ -129,11 +134,43 @@ def import_capture(task, receipt_file, capture_root, output):
             raise ValueError('Capture does not match frozen cameras')
         checked = _capture_images(raw,capture_root,cameras)
         seal = compatibility(raw)
+        comparison_cameras=cameras
+        observed_raw=raw
+        if independent:
+            from .observation import freeze_observation
+            observation_root=Path(observation_root).absolute()
+            observation_receipt=Path(observation_receipt).absolute()
+            if (observation_root.resolve()!=observation_root
+                    or output.is_relative_to(observation_root) or observation_root.is_relative_to(output)):
+                raise ValueError('Regular independent observation root separate from output required')
+            source_provenance=cli._json(cli._regular(task,'provenance.json'))
+            bounds=source_provenance['reference_bounds_m_Z_up']
+            selected=render.validate_cameras(requested_cameras)
+            candidate_index=selected.get('observation_policy',{}).get('candidate_index',0)
+            if selected!=freeze_observation(cameras,bounds,config['task_id'],candidate_index=candidate_index,
+                                           reselection_reason=selected.get('observation_policy',{}).get('reselection_reason')):
+                raise ValueError('Selected observation does not match the frozen task-seeded camera policy')
+            observed_raw=cli._json(cli._regular(observation_receipt.parent,observation_receipt.name))
+            validate_producer(observed_raw)
+            if (observed_raw.get('task',config['task_id'])!=config['task_id']
+                    or observed_raw.get('scene_sha256')!=scene
+                    or observed_raw.get('camera_sha256')!=render._identity(selected)
+                    or compatibility(observed_raw)!=seal):
+                raise ValueError('Independent observation source, cameras or producer mismatch')
+            checked=[item for item in checked if item[0]['camera_id']!=cameras['observation']['id']]
+            checked+=_capture_images(observed_raw,observation_root,selected,role='observation')
+            cameras=selected
         original_hashes = {path:cli._hash(cli._regular(task,path)) for path in actual}
         output.parent.mkdir(parents=True,exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='.simready-capture-',dir=output.parent) as temporary:
             staging = Path(temporary)/'task'
             shutil.copytree(task,staging)
+            if independent:
+                _write(staging/'comparison/producer-cameras.json',comparison_cameras)
+                _write(staging/config['cameras'],cameras)
+                shutil.copyfile(observation_receipt,staging/'reference/observation-raw-producer-receipt.json')
+                if cli._json(staging/'reference/observation-raw-producer-receipt.json')!=observed_raw:
+                    raise ValueError('Independent observation receipt changed during import')
             for row,files in checked:
                 name = row['camera_id']
                 observation = name == cameras['observation']['id']
@@ -148,8 +185,8 @@ def import_capture(task, receipt_file, capture_root, output):
                 raise ValueError('Producer receipt changed during import')
             comparison = {**raw,'role':'comparison','render_batch_role':'all',
                           'images':[row for row in raw['images'] if row['camera_id'] != cameras['observation']['id']]}
-            observed = {**raw,'role':'observation','render_batch_role':'all',
-                        'images':[row for row in raw['images'] if row['camera_id'] == cameras['observation']['id']]}
+            observed = {**observed_raw,'role':'observation','render_batch_role':observed_raw['role'],
+                        'images':[row for row in observed_raw['images'] if row['camera_id'] == cameras['observation']['id']]}
             _write(staging/'comparison/render-receipt.json',_normalized_render(comparison))
             observed = _normalized_render(observed)
             observed['images'][0].update(file='../public/observation.png',mask_file='observation-mask.png')
@@ -159,25 +196,52 @@ def import_capture(task, receipt_file, capture_root, output):
                 frozen = 'reference/'+relative
                 if frozen not in original_hashes or cli._hash(staging/frozen) != original_hashes[frozen]:
                     raise ValueError('Original source closure changed')
-            _write(staging/'reference/capture-import.json',{
+            import_provenance={
                 'schema':'simready-capture-import-provenance-v1',
                 'baseline_eligibility_sha256':cli._hash(task/config['eligibility']),
                 'baseline_inventory_sha256':cli._hash(task/'asset-inventory.json'),
                 'raw_producer_receipt_sha256':cli._hash(receipt_file),
-                'source_scene_sha256':scene,'render_compatibility':seal})
+                'source_scene_sha256':scene,'render_compatibility':seal}
+            if object_name is not None:
+                from .public_input import named_instruction
+                original_instruction=cli._regular(task,'public/instruction.md')
+                shutil.copyfile(original_instruction,staging/'reference/baseline-public-instruction.txt')
+                (staging/'public/instruction.md').write_text(named_instruction(original_instruction.read_text(),object_name))
+                import_provenance.update(object_name=object_name,
+                    baseline_public_instruction_sha256=cli._hash(original_instruction),
+                    public_instruction_sha256=cli._hash(staging/'public/instruction.md'))
+            if independent:
+                import_provenance.update(schema='simready-capture-import-provenance-v2',
+                    comparison_camera_sha256=render._identity(comparison_cameras),
+                    observation_camera_sha256=render._identity(cameras),
+                    observation_receipt_sha256=cli._hash(observation_receipt),
+                    observation_image_sha256=observed_raw['images'][0]['sha256'],
+                    reference_bounds_m_Z_up=bounds,observation_policy=cameras['observation_policy'])
+            _write(staging/'reference/capture-import.json',import_provenance)
             if (staging/'provenance.json').exists():
                 provenance = cli._json(staging/'provenance.json')
+                if object_name is not None:
+                    provenance['object_name']=object_name
+                    provenance['authoring_instruction']=(staging/'public/instruction.md').read_text()
+                    inventory['metadata']['object_name']=object_name
                 provenance['capture'] = {
                     'recipe_sha256':raw['recipe_sha256'],
                     'bridge_code_sha256':raw['bridge_code_sha256'],
                     'renderer_binary_sha256':raw['renderer_binary_sha256'],
-                    'camera_sha256':raw['camera_sha256'],
+                    'camera_sha256':render._identity(cameras),
                     'scene_sha256':raw['scene_sha256'],
                     'image_count':5,'mask_count':5,
                     'render_compatibility':seal}
+                if independent:
+                    provenance['capture'].update(comparison_camera_sha256=raw['camera_sha256'],
+                        observation_camera_sha256=observed_raw['camera_sha256'],
+                        comparison_receipt_sha256=cli._hash(receipt_file),
+                        observation_receipt_sha256=cli._hash(observation_receipt),
+                        observation_policy=cameras['observation_policy'])
                 _write(staging/'provenance.json',provenance)
             eligibility.update(schema='simready-reference-eligibility-v2',
                 render_compatibility=seal,render_recipe_sha256=raw['recipe_sha256'],
+                render_camera_sha256=render._identity(cameras),
                 render_bridge_code_sha256=raw['bridge_code_sha256'],
                 renderer_binary_sha256=raw['renderer_binary_sha256'])
             eligibility['files'] = [_row(path,staging) for role in ('reference','comparison')
@@ -212,8 +276,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     for argument in ('task','receipt','capture-root','output'):
         parser.add_argument('--'+argument,required=True,type=Path)
+    parser.add_argument('--observation-receipt',type=Path)
+    parser.add_argument('--observation-root',type=Path)
+    parser.add_argument('--cameras',type=Path)
+    parser.add_argument('--object-name')
     args = parser.parse_args(argv)
-    result = import_capture(args.task,args.receipt,args.capture_root,args.output)
+    result = import_capture(args.task,args.receipt,args.capture_root,args.output,
+        observation_receipt=args.observation_receipt,observation_root=args.observation_root,
+        cameras=args.cameras,object_name=args.object_name)
     print(json.dumps(result,sort_keys=True,allow_nan=False))
     return 0 if result['status'] == 'prepared' else 2
 

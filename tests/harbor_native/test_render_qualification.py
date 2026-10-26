@@ -218,6 +218,110 @@ def test_role_inventory_is_not_an_unchecked_extra_file(tmp_path,fault):
     assert result['status']=='unknown'
 
 
+def independent_observation_fixture(tmp_path,*,candidate_index=0):
+    from simready_eval.observation import freeze_observation
+    from PIL import Image
+    root,capture,raw,config=capture_fixture(tmp_path)
+    bounds=[[-1.,-1.,-1.],[1.,1.,1.]]
+    (root/'provenance.json').write_text(json.dumps({'reference_bounds_m_Z_up':bounds}))
+    cameras=json.loads((root/'comparison/cameras.json').read_text())
+    chosen=freeze_observation(cameras,bounds,config['task_id'],candidate_index=candidate_index,
+        reselection_reason='Main assembly was obscured in the prior reviewed view' if candidate_index else None)
+    observed_root=tmp_path/'new-observation';observed_root.mkdir()
+    rgb=observed_root/'observation.png';mask=observed_root/'observation-mask.png'
+    Image.new('RGB',(512,512),(120,60,90)).save(rgb)
+    Image.new('L',(512,512),255).save(mask)
+    observed={**deepcopy(raw),'role':'observation','camera_sha256':render._identity(chosen),
+        'images':[{'camera_id':'observation','file':str(rgb),'mask_file':str(mask),
+                   'sha256':render._hash(rgb),'mask_sha256':render._hash(mask),'foreground_pixels':512**2}]}
+    (observed_root/'diagnostic-receipt.json').write_text(json.dumps(observed))
+    return root,capture,raw,config,observed_root,observed,chosen
+
+
+@pytest.mark.parametrize('candidate_index',[0,1])
+def test_independent_observation_keeps_four_comparisons_and_both_true_raw_batches(tmp_path,candidate_index):
+    from simready_eval.capture import import_capture
+    from simready_eval import cli
+    root,capture,raw,config,observed_root,observed,chosen=independent_observation_fixture(tmp_path,candidate_index=candidate_index)
+    original_brief=(root/'public/instruction.md').read_bytes()
+    output=tmp_path/'new'
+    result=import_capture(root,capture/'render-receipt.json',capture,output,
+        observation_receipt=observed_root/'diagnostic-receipt.json',observation_root=observed_root,
+        cameras=chosen,object_name='articulated storage box')
+    assert result['status']=='prepared',result
+    eligibility,cameras,images=cli._fixtures(output,cli._configuration(config))
+    assert cameras==chosen
+    for row in images:
+        original=next(item for item in raw['images'] if item['camera_id']==row['camera_id'])
+        assert row['sha256']==original['sha256']
+        assert row['mask_sha256']==original['mask_sha256']
+    assert json.loads((output/'comparison/raw-producer-receipt.json').read_text())==raw
+    assert json.loads((output/'reference/observation-raw-producer-receipt.json').read_text())==observed
+    assert render._hash(output/'public/observation.png')==observed['images'][0]['sha256']
+    assert (output/'reference/baseline-public-instruction.txt').read_bytes()==original_brief
+    assert (output/'public/instruction.md').read_text().startswith('Reconstruct this articulated storage box ')
+    provenance=json.loads((output/'reference/capture-import.json').read_text())
+    assert provenance['schema']=='simready-capture-import-provenance-v2'
+    assert provenance['comparison_camera_sha256']==raw['camera_sha256']
+    assert provenance['observation_camera_sha256']==observed['camera_sha256']
+    assert raw['camera_sha256']!=observed['camera_sha256']
+    assert eligibility['render_camera_sha256']==observed['camera_sha256']
+
+
+@pytest.mark.parametrize('fault',['comparison_camera','seed','observation_scene','observation_pixels','extra_view','object_name'])
+def test_independent_observation_rejects_mismatched_projection_or_capture(tmp_path,fault):
+    from simready_eval.capture import import_capture
+    root,capture,raw,config,observed_root,observed,chosen=independent_observation_fixture(tmp_path)
+    object_name='articulated storage box'
+    if fault=='comparison_camera': chosen['views'][0]['camera_to_world'][0][3]+=1
+    elif fault=='seed': chosen['observation_policy']['task_id']='other-task'
+    elif fault=='observation_scene': observed['scene_sha256']='0'*64
+    elif fault=='observation_pixels': (observed_root/'observation.png').write_bytes(b'wrong')
+    elif fault=='extra_view': observed['images'].append(observed['images'][0])
+    else: object_name=None
+    (observed_root/'diagnostic-receipt.json').write_text(json.dumps(observed))
+    result=import_capture(root,capture/'render-receipt.json',capture,tmp_path/'new',
+        observation_receipt=observed_root/'diagnostic-receipt.json',observation_root=observed_root,
+        cameras=chosen,object_name=object_name)
+    assert result['status']=='unknown'
+    assert not (tmp_path/'new').exists()
+
+
+@pytest.mark.parametrize('fault',['camera','scene','mask','policy'])
+def test_runtime_rejects_rehashed_independent_observation_tampering(tmp_path,fault):
+    from simready_eval import cli
+    from simready_eval.capture import import_capture
+    root,capture,raw,config,observed_root,observed,chosen=independent_observation_fixture(tmp_path)
+    output=tmp_path/'new'
+    result=import_capture(root,capture/'render-receipt.json',capture,output,
+        observation_receipt=observed_root/'diagnostic-receipt.json',observation_root=observed_root,
+        cameras=chosen,object_name='articulated storage box')
+    assert result['status']=='prepared',result
+    eligibility=json.loads((output/'reference/eligibility.json').read_text())
+    provenance=json.loads((output/'reference/capture-import.json').read_text())
+    receipt_path=output/'reference/observation-raw-producer-receipt.json'
+    receipt=json.loads(receipt_path.read_text())
+    def rehash(relative):
+        path=output/relative
+        row=next(row for row in eligibility['files'] if row['path']==relative)
+        row.update(sha256=cli._hash(path),size_bytes=path.stat().st_size)
+    if fault=='camera':receipt['camera_sha256']='0'*64
+    elif fault=='scene':receipt['scene_sha256']='0'*64
+    elif fault=='mask':receipt['images'][0]['mask_sha256']='0'*64
+    else:
+        chosen['observation_policy']['task_id']='other-task'
+        (output/'comparison/cameras.json').write_text(json.dumps(chosen));rehash('comparison/cameras.json')
+        changed_camera_sha=render._identity(chosen)
+        eligibility['render_camera_sha256']=changed_camera_sha
+        receipt['camera_sha256']=changed_camera_sha
+        provenance.update(observation_camera_sha256=changed_camera_sha,observation_policy=chosen['observation_policy'])
+    receipt_path.write_text(json.dumps(receipt));rehash('reference/observation-raw-producer-receipt.json')
+    provenance['observation_receipt_sha256']=cli._hash(receipt_path)
+    (output/'reference/capture-import.json').write_text(json.dumps(provenance));rehash('reference/capture-import.json')
+    (output/'reference/eligibility.json').write_text(json.dumps(eligibility))
+    with pytest.raises(ValueError):cli._fixtures(output,cli._configuration(config))
+
+
 @pytest.mark.parametrize('fault', ['source','camera','scene','pixels','mask','producer','extra_view','link'])
 def test_import_rejects_mismatched_capture_without_partial_release(tmp_path, fault):
     from simready_eval.capture import import_capture

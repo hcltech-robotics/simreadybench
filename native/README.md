@@ -43,6 +43,38 @@ revision. Build their Harbor release using `simready-harbor-release-v2` and the
 2.0.0 wheel. V1 remains under its existing revision and uses the 1.0.2 wheel.
 Role manifests select only their own version, task and role.
 
+The task observation uses a reproducible task/index-seeded viewing angle,
+world Z-up without roll. The selector samples azimuth 0–360° and elevation
+15–70°, projects all eight authoritative reference-bounds corners, and fits
+both image dimensions with 15% margin and valid clipping. Its seed is separate
+from the fixed Cycles noise seed. Nonzero candidate indices require a recorded
+pixel-review reason; once chosen, the camera remains fixed for the task.
+
+```sh
+python -m simready_eval.observation --cameras original-cameras.json \
+  --bounds original-provenance.json --task-id TASK_ID --candidate-index 0 \
+  --output selected-cameras.json
+```
+
+To reuse an existing full GPU batch's four comparison pairs and independently
+render only the new observation, preserve both actual raw receipts and import:
+
+```sh
+python -m simready_eval.capture --task /frozen-v1/tasks/TASK_ID \
+  --receipt /comparison-batch/TASK_ID/diagnostic-receipt.json \
+  --capture-root /comparison-batch/TASK_ID \
+  --observation-receipt /observation-batch/TASK_ID/diagnostic-receipt.json \
+  --observation-root /observation-batch/TASK_ID \
+  --cameras /selected/TASK_ID/cameras.json --object-name 'reviewed object name' \
+  --output /new-v2/tasks/TASK_ID
+```
+
+The importer proves the four comparison cameras are unchanged, verifies both
+producer receipts against the original source scene, and records their distinct
+full camera hashes. It retains the original public brief separately and writes
+the reviewed object name into the new brief without dropping its constraints.
+The final CPU evaluation continues to render only the four comparison views.
+
 ## Reference preparation and rendering
 
 Install the clean wheel in an isolated Python 3.12 environment. Use the delivered

@@ -84,10 +84,16 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('task','receipt','capture-root','submission','output'):
         parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--observation-receipt',type=Path)
+    parser.add_argument('--observation-root',type=Path)
+    parser.add_argument('--cameras',type=Path)
+    parser.add_argument('--object-name')
     args=parser.parse_args(argv)
     root=args.output.absolute()
     if root.exists() or root.is_symlink():parser.error('output must be fresh')
     protected=[path.absolute().resolve() for path in (args.task,args.capture_root,args.submission)]
+    protected.extend(path.absolute().resolve() for path in (args.observation_root,) if path is not None)
+    protected.extend(path.parent.absolute().resolve() for path in (args.cameras,args.observation_receipt) if path is not None)
     if root.resolve()!=root or any(root.is_relative_to(path) or path.is_relative_to(root) for path in protected):
         parser.error('output must have regular ancestors and be separate from all inputs')
     root.mkdir(parents=True)
@@ -95,7 +101,9 @@ def main(argv=None):
     try:
         result['task_stage']=stage_regular(args.task,root/'original-task',maximum_bytes=2*1024**3)
         result['candidate_stage']=stage_regular(args.submission,root/'candidate',maximum_bytes=CANDIDATE_BYTES)
-        imported=import_capture(root/'original-task',args.receipt,args.capture_root,root/'fixtures-v2')
+        imported=import_capture(root/'original-task',args.receipt,args.capture_root,root/'fixtures-v2',
+            observation_receipt=args.observation_receipt,observation_root=args.observation_root,
+            cameras=args.cameras,object_name=args.object_name)
         result['capture_import']=imported
         if imported['status']!='prepared':raise ValueError(imported.get('error','Capture import failed'))
         config=cli._configuration(root/'fixtures-v2/evaluator.json')

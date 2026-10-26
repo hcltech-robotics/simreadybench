@@ -348,18 +348,48 @@ def _fixtures(root, config, deadline=None, *, _legacy_import=False):
                            ("renderer_binary_sha256", "renderer_binary_sha256")):
             if eligibility.get(field) != GPU[key]:
                 raise ValueError("Frozen reference render producer identity mismatch")
-        if raw.get("camera_sha256") != _identity(cameras):
-            raise ValueError("Frozen raw producer camera mismatch")
         provenance_path = "reference/capture-import.json"
         if provenance_path not in indexed:
             raise ValueError("Frozen capture import provenance required")
         provenance = _json(root / provenance_path)
-        if (provenance.get("schema") != "simready-capture-import-provenance-v1"
+        provenance_schema=provenance.get("schema")
+        if (provenance_schema not in ("simready-capture-import-provenance-v1","simready-capture-import-provenance-v2")
                 or provenance.get("raw_producer_receipt_sha256") != indexed[raw_path]["sha256"]
                 or provenance.get("source_scene_sha256") != raw.get("scene_sha256")
                 or provenance.get("render_compatibility") != eligibility["render_compatibility"]):
             raise ValueError("Frozen reference capture provenance mismatch")
-        views = cameras["views"] + [cameras["observation"]]
+        comparison_cameras=cameras
+        observation_raw=raw
+        if provenance_schema=="simready-capture-import-provenance-v2":
+            from .observation import freeze_observation
+            producer_cameras_path="comparison/producer-cameras.json"
+            observation_raw_path="reference/observation-raw-producer-receipt.json"
+            baseline_instruction_path="reference/baseline-public-instruction.txt"
+            if not {producer_cameras_path,observation_raw_path,baseline_instruction_path}<=set(indexed):
+                raise ValueError("Separate comparison/observation provenance required")
+            comparison_cameras=validate_cameras(_json(root/producer_cameras_path))
+            policy=cameras.get("observation_policy",{})
+            expected_cameras=freeze_observation(comparison_cameras,provenance["reference_bounds_m_Z_up"],
+                config["task_id"],candidate_index=policy.get("candidate_index",0),
+                reselection_reason=policy.get("reselection_reason"))
+            if (cameras!=expected_cameras or provenance.get("observation_policy")!=policy
+                    or provenance.get("comparison_camera_sha256")!=_identity(comparison_cameras)
+                    or provenance.get("observation_camera_sha256")!=_identity(cameras)
+                    or provenance.get("baseline_public_instruction_sha256")!=indexed[baseline_instruction_path]["sha256"]):
+                raise ValueError("Frozen independent observation policy mismatch")
+            observation_raw=_json(root/observation_raw_path)
+            validate_compatibility(eligibility["render_compatibility"],observation_raw)
+            observation_rows=observation_raw.get("images",[])
+            if (observation_raw.get("role")!="observation" or len(observation_rows)!=1
+                    or observation_rows[0].get("camera_id")!=cameras["observation"]["id"]
+                    or observation_raw.get("camera_sha256")!=_identity(cameras)
+                    or observation_raw.get("scene_sha256")!=raw.get("scene_sha256")
+                    or provenance.get("observation_receipt_sha256")!=indexed[observation_raw_path]["sha256"]
+                    or provenance.get("observation_image_sha256")!=observation_rows[0].get("sha256")):
+                raise ValueError("Frozen independent observation capture mismatch")
+        if raw.get("camera_sha256") != _identity(comparison_cameras):
+            raise ValueError("Frozen raw comparison producer camera mismatch")
+        views = comparison_cameras["views"] + [comparison_cameras["observation"]]
         rows = raw.get("images", [])
         by_camera = {row["camera_id"]: row for row in rows}
         if (raw.get("role") != "all" or cameras["resolution"] != [512,512]
@@ -370,6 +400,8 @@ def _fixtures(root, config, deadline=None, *, _legacy_import=False):
             row = by_camera[name]
             # The actor's observation RGB is deliberately absent from the final
             # verifier closure. Its mask and all four comparison pairs are frozen.
+            if name==cameras["observation"]["id"]:
+                row=next(item for item in observation_raw["images"] if item["camera_id"]==name)
             paths = [("reference/observation-mask.png", "mask_sha256")] if name == cameras["observation"]["id"] else [
                 ("comparison/"+name+".png", "sha256"),
                 ("comparison/"+name+"-mask.png", "mask_sha256")]

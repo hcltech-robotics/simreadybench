@@ -189,13 +189,14 @@ def public_instruction(dimensions):
         "Do not use Blender for authoring; Blender is used only by the verifier renderer.\n")
 
 
-def freeze_cameras(observation, *, resolution=512):
+def freeze_cameras(observation, *, resolution=512, task_id=None):
     """Freeze five reference-only orthographic views in canonical metres/Z-up.
 
     Vertical scale is 1.65 times the largest bounding-box span. Camera distance
     is three spans. The separate observation faces (1,-1,.8); comparison views
     face isometric (1,1,.8), front (-Y), side (+X), and top (+Z), sharing a center.
     Matrix columns are right/up/backward/position, acting on column vectors.
+    Supplying task_id replaces only the observation with the seeded policy.
     """
     triangles = np.asarray(observation["triangles"], dtype=float)
     if triangles.ndim != 3 or triangles.shape[1:] != (3, 3) or not triangles.size or not np.isfinite(triangles).all():
@@ -221,9 +222,13 @@ def freeze_cameras(observation, *, resolution=512):
         views.append({"id": name, "projection": "orthographic", "camera_to_world": matrix.tolist(),
                       "orthographic_scale": 1.65 * span, "clip_start": .01 * span,
                       "clip_end": 10 * span})
-    return render.validate_cameras({"schema": "simready-cameras-v1", "resolution": [resolution, resolution],
-                                    "observed_camera_id": "observation", "views": views[:4],
-                                    "observation": views[4]})
+    frozen = render.validate_cameras({"schema": "simready-cameras-v1", "resolution": [resolution, resolution],
+                                     "observed_camera_id": "observation", "views": views[:4],
+                                     "observation": views[4]})
+    if task_id is not None:
+        from .observation import freeze_observation
+        return freeze_observation(frozen, [low.tolist(), high.tolist()], task_id)
+    return frozen
 
 
 def _normalized_render(receipt):
@@ -294,7 +299,7 @@ def prepare(source, package_root, output, task_id, *, cameras=None, timeout=180,
                 raise _Reject("public_nominal_dimensions_required")
             metadata["nominal_dimensions_m"] = dimensions
             instruction = public_instruction(dimensions)
-            frozen = render.validate_cameras(cameras) if cameras is not None else freeze_cameras(observation)
+            frozen = render.validate_cameras(cameras) if cameras is not None else freeze_cameras(observation, task_id=task_id)
             separate_observation = frozen.get("observation")
             comparison_ids = {view["id"] for view in frozen["views"]}
             if (not isinstance(separate_observation, dict)
