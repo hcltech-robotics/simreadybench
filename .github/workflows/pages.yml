@@ -29,6 +29,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Check published results inputs
+        run: |
+          python3 - <<'PY'
+          import json
+          from urllib.request import urlopen
+
+          base = "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/"
+          with urlopen("https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/leaderboard.json", timeout=60) as response:
+              board = json.load(response)
+          if board.get("schema") != "simreadybench-leaderboard/v1" or not isinstance(board.get("entries"), list):
+              raise RuntimeError("Published results leaderboard is unavailable or invalid")
+          with urlopen(base + "viewer-index.json", timeout=60) as response:
+              index = json.load(response)
+          if not index.get("runs") or any(
+              not run.get("viewer_scores", "").startswith("results/viewer/")
+              for run in index["runs"].values()
+          ):
+              raise RuntimeError("Published results viewer inputs are unavailable or invalid")
+          PY
       - name: Reconstruct trajectory usage for the Pareto chart
         run: >-
           python3 scripts/build_pareto_data.py

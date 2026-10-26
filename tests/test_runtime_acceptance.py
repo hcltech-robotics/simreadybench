@@ -74,7 +74,7 @@ def test_installed_cli_converges_without_reauthoring(installed_product, tmp_path
     assert len(rows) == 1
     row = rows[0]
     assert row["status"] == "completed" and row["simready_reward"] == 0
-    published = json.loads((tmp_path / "hub/runs/fixture/results.json").read_text())
+    published = json.loads((tmp_path / "hub/results/runs/fixture/results.json").read_text())
     assert len(published["results"]) == 1
     assert published["results"][0]["condition_id"] == row["condition_id"]
     assert published["results"][0]["simready_reward"] == 0
@@ -166,7 +166,7 @@ def test_installed_cli_holds_measured_condition_when_delivery_receipt_is_lost(in
     first = invoke(installed, tmp_path, "missing_delivery")
     assert first.returncode == 77, first.stdout + first.stderr
     before = json.loads((tmp_path / "transport-state.json").read_text())
-    published_path = tmp_path / "hub/runs/fixture/results.json"
+    published_path = tmp_path / "hub/results/runs/fixture/results.json"
     published = json.loads(published_path.read_text())
     assert len(published["results"]) == 1 and published["results"][0]["simready_reward"] == 0
     delivery_path, = (tmp_path / "run/executions").glob("*/daytona-delivery.json")

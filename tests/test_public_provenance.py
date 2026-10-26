@@ -41,12 +41,12 @@ def test_portable_and_public_results_retain_bound_runtime_and_interventions(publ
     (report / "results.json").write_text(json.dumps(raw))
     publisher = HuggingFacePublisher("team/results", "canonical", manifest, api=hub)
     publisher(saved)
-    public = json.loads(hub.files["runs/canonical/results.json"])
+    public = json.loads(hub.files["results/runs/canonical/results.json"])
     assert public["run_spec"] == spec
     assert public["results"][0]["execution_provenance"] == receipt
     assert public['results'][0]['request_recovery'] == current['request_recovery']
     assert public["results"][0]["simready_reward"] == 0
-    assert hub.files["runs/canonical/run-spec.json"]
+    assert hub.files["results/runs/canonical/run-spec.json"]
     changed = deepcopy(raw)
     changed["results"][0]["execution_provenance"] = build_attempt_provenance(spec,
         attempt_id="attempt-2", condition_id=current["condition_id"],
@@ -60,7 +60,7 @@ def test_legacy_publication_can_gain_schema_without_changing_measured_rows(publi
     manifest, _, hub, row, save = publication
     publisher = HuggingFacePublisher("team/results", "legacy", manifest, api=hub)
     publisher(save([row(passed=0)]))
-    key = "runs/legacy/results.json"
+    key = "results/runs/legacy/results.json"
     previous = json.loads(hub.files[key])
     previous["settings"].pop("budgets", None)
     previous["settings"].pop("overrides", None)
@@ -100,7 +100,7 @@ def test_later_interventions_preserve_published_attempt_identity(publication, tm
     second = json.loads((tmp_path / 'results.json').read_text())['results'][0]['execution_provenance']
     assert second == first
     publisher(report)
-    public = json.loads(hub.files['runs/canonical/results.json'])
+    public = json.loads(hub.files['results/runs/canonical/results.json'])
     assert public['results'][0]['execution_provenance'] == first
     assert public['operational_provenance']['entries'][0]['path'] == 'operational-interventions/001.json'
     assert len(hub.commits) == 2
@@ -118,7 +118,7 @@ def test_resuming_published_canonical_rows_does_not_add_attempt_receipts(publica
     report = save([current])
     publisher = HuggingFacePublisher('team/results', 'canonical', manifest, api=hub)
     publisher(report)
-    original = json.loads(hub.files['runs/canonical/results.json'])['results'][0]
+    original = json.loads(hub.files['results/runs/canonical/results.json'])['results'][0]
     assert 'execution_provenance' not in original
 
     write_run_spec(source, build_run_spec(manifest))
@@ -128,4 +128,4 @@ def test_resuming_published_canonical_rows_does_not_add_attempt_receipts(publica
     assert 'execution_provenance' not in resumed
     assert resumed['simready_reward'] == current['simready_reward']
     publisher(report)
-    assert json.loads(hub.files['runs/canonical/results.json'])['results'][0] == original
+    assert json.loads(hub.files['results/runs/canonical/results.json'])['results'][0] == original

@@ -663,8 +663,8 @@ def _viewer_index(value):
             raise ValueError("Invalid dataset viewer run identity")
         if (
             set(run) != ({"scores", "groups"} if legacy else {"scores", "viewer_scores", "groups"})
-            or run.get("scores") != "runs/" + run_id + "/scores.csv"
-            or not legacy and run.get("viewer_scores") != "viewer/" + run_id + "/scores" + extension
+            or run.get("scores") != "results/runs/" + run_id + "/scores.csv"
+            or not legacy and run.get("viewer_scores") != "results/viewer/" + run_id + "/scores" + extension
             or not isinstance(run.get("groups"), dict)
             or set(run["groups"]) != set(_VIEWER_AXES)
         ):
@@ -679,7 +679,7 @@ def _viewer_index(value):
                     or group.get("split") not in index["splits"][axis].values()
                     or group.get("path") not in (
                         run["scores"] if legacy else run["viewer_scores"],
-                        "viewer/" + run_id + "/" + axis + "/" + str(group.get("split")) + extension,
+                        "results/viewer/" + run_id + "/" + axis + "/" + str(group.get("split")) + extension,
                     )
                 ):
                     raise ValueError("A viewer group must use its owned score source")
@@ -808,7 +808,7 @@ def _viewer_captures(row, run_id, image_reader):
             path = _relative(item["path"])
             if path.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
                 raise ValueError("Unsupported viewer capture format")
-            raw = image_reader("runs/" + run_id + "/evidence/" + path.as_posix())
+            raw = image_reader("results/runs/" + run_id + "/evidence/" + path.as_posix())
             if not isinstance(raw, bytes) or not raw or len(raw) > 32 * 1024**2:
                 raise ValueError("Viewer captures require non-empty image bytes no larger than 32 MiB")
             if ("bytes" in item and item["bytes"] != len(raw)
@@ -897,8 +897,8 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None,
         for axis, value in factors.items():
             identity = json.dumps(value, ensure_ascii=True, sort_keys=True)
             grouped[axis].setdefault(identity, []).append(record)
-    score_path = "runs/" + run_id + "/scores.csv"
-    viewer_path = "viewer/" + run_id + "/scores.parquet"
+    score_path = "results/runs/" + run_id + "/scores.csv"
+    viewer_path = "results/viewer/" + run_id + "/scores.parquet"
     groups, shards = {}, {}
 
     def encoded(selected):
@@ -911,7 +911,7 @@ def build_viewer_update(run_id, readout, score_csv, *, index=None, repo_id=None,
             split = _viewer_split(index, axis, json.loads(identity))
             path = viewer_path
             if len(values) > 1:
-                path = "viewer/" + run_id + "/" + axis + "/" + split + ".parquet"
+                path = "results/viewer/" + run_id + "/" + axis + "/" + split + ".parquet"
                 shards[path] = encoded(records)
             groups[axis].append({"split": split, "path": path})
     index["runs"][run_id] = {"scores": score_path, "viewer_scores": viewer_path, "groups": groups}
@@ -922,7 +922,7 @@ def build_viewer_dataset(sources, *, index=None, repo_id=None, image_reader=None
     """Build schema-compatible viewer files from all retained raw run sources.
 
     ``sources`` maps run identifiers to ``(public_readout, score_csv)`` pairs.
-    The returned files are confined to ``viewer/``. Original run artefacts and
+    The returned files are confined to ``results/viewer/``. Original run artefacts and
     measurements are read only, including during index migration. ``image_reader``
     returns the bytes of a capture from its repository-relative evidence path.
     """
@@ -1006,6 +1006,45 @@ def render_viewer_card(existing, index):
     default = next((config for config in generated if config["config_name"] == "by_model"), generated[0])
     default["default"] = True
     metadata.update(configs=generated + configs, simreadybench_viewer=3)
+    return "---\n" + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False) + "---\n" + body
+
+
+def compose_benchmark_card(existing, *, historical_index=None):
+    """Explicit release-card composition; ordinary results publishing never calls it.
+
+    The release must already declare a ``tasks`` config under ``benchmark/``.
+    Preserve its body, license and other metadata; optionally expose historical
+    viewer configs by explicit names, with tasks as the sole default.
+    """
+    if not existing.startswith("---\n"):
+        raise ValueError("The benchmark card must declare its tasks configuration")
+    end = existing.index("\n---\n", 4)
+    metadata, body = yaml.safe_load(existing[4:end]) or {}, existing[end + 5:]
+    if not isinstance(metadata, dict) or not isinstance(metadata.get("configs"), list):
+        raise ValueError("The benchmark card must declare its tasks configuration")
+    configs = []
+    for original in metadata["configs"]:
+        if not isinstance(original, dict):
+            raise ValueError("A dataset viewer configuration must be an object")
+        config = deepcopy(original)
+        config.pop("default", None)
+        if historical_index is None or not str(config.get("config_name", "")).startswith("historical_"):
+            configs.append(config)
+    tasks = [config for config in configs if config.get("config_name") == "tasks"]
+    if len(tasks) != 1 or not _data_paths(tasks[0].get("data_files")) or any(
+        not str(path).startswith("benchmark/") or ".." in _relative(path).parts
+        for path in _data_paths(tasks[0].get("data_files"))
+    ):
+        raise ValueError("The default tasks configuration must use clean benchmark paths")
+    tasks[0]["default"] = True
+    if historical_index is not None:
+        rendered = render_viewer_card("", historical_index)
+        historical = yaml.safe_load(rendered[4:rendered.index("\n---\n", 4)])
+        for config in historical["configs"]:
+            config.pop("default", None)
+            config["config_name"] = "historical_" + config["config_name"]
+            configs.append(config)
+    metadata["configs"] = configs
     return "---\n" + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False) + "---\n" + body
 
 
@@ -1199,7 +1238,9 @@ class HuggingFacePublisher:
                 raise ValueError("A retained viewer capture requires its published evidence")
             return retained.read_bytes()
 
-        retained = self._download("viewer-index.json", revision)
+        retained = self._download("results/viewer-index.json", revision)
+        if retained is None and self._download("viewer-index.json", revision) is not None:
+            raise ValueError("Migrate the retained viewer results before publishing under results/")
         index = _viewer_index(_json(retained) if retained else None)
         retained_ids = set(index["runs"])
         legacy_ids = set()
@@ -1211,7 +1252,7 @@ class HuggingFacePublisher:
                 if (
                     isinstance(run_id, str) and _NAME.fullmatch(run_id)
                     and run_id not in index["runs"] and run_id != self.run_id
-                    and _data_paths(config.get("data_files")) == ["runs/" + run_id + "/scores.csv"]
+                    and _data_paths(config.get("data_files")) == ["results/runs/" + run_id + "/scores.csv"]
                 ):
                     legacy_ids.add(run_id)
         if index["schema"] == _VIEWER_SCHEMA and not legacy_ids:
@@ -1222,8 +1263,8 @@ class HuggingFacePublisher:
                 pass
         sources = {self.run_id: (public, score_csv)}
         for run_id in sorted((retained_ids | legacy_ids) - {self.run_id}):
-            readout = self._download("runs/" + run_id + "/results.json", revision)
-            scores = self._download("runs/" + run_id + "/scores.csv", revision)
+            readout = self._download("results/runs/" + run_id + "/results.json", revision)
+            scores = self._download("results/runs/" + run_id + "/scores.csv", revision)
             if readout is None or scores is None:
                 raise ValueError("A retained viewer run requires its original score table and readout")
             sources[run_id] = (_json(readout), scores.read_bytes())
@@ -1249,13 +1290,13 @@ class HuggingFacePublisher:
                 raise PublicationError(
                     "The dataset visibility changed during evaluation", retryable=False
                 )
-            path = "runs/" + self.run_id
+            path = "results/runs/" + self.run_id
             old_readout = self._download(path + "/results.json", info.sha)
             with tempfile.TemporaryDirectory(
                 prefix=".hf-readout-", dir=source
             ) as temporary:
                 stage = Path(temporary)
-                run_stage = stage / "runs" / self.run_id
+                run_stage = stage / "results" / "runs" / self.run_id
                 run_stage.mkdir(parents=True)
                 public = {
                     "schema": "simready-bench-portable-report-v1",
@@ -1337,15 +1378,17 @@ class HuggingFacePublisher:
                 (run_stage / "report.html").write_text(
                     render_html(public), encoding="utf-8"
                 )
-                card = self._download("README.md", info.sha)
+                card = self._download("results/README.md", info.sha)
                 existing = card.read_text(encoding="utf-8") if card else ""
                 index, shards = self._viewer_update(existing, public, (run_stage / "scores.csv").read_bytes(), info.sha, stage)
                 for name, raw in shards.items():
                     target = stage.joinpath(*_relative(name).parts)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(raw)
-                _write_json(stage / "viewer-index.json", index)
-                board_file = self._download("leaderboard.json", info.sha)
+                _write_json(stage / "results/viewer-index.json", index)
+                board_file = self._download("results/leaderboard.json", info.sha)
+                if board_file is None and self._download("leaderboard.json", info.sha) is not None:
+                    raise ValueError("Migrate the historical leaderboard before publishing under results/")
                 board = _json(board_file) if board_file else {"schema": "simreadybench-leaderboard/v1", "entries": []}
                 if board.get("schema") != "simreadybench-leaderboard/v1" or not isinstance(board.get("entries"), list):
                     raise ValueError("The existing leaderboard has an unexpected schema")
@@ -1357,9 +1400,9 @@ class HuggingFacePublisher:
                 board["entries"] = [item for item in board["entries"] if item.get("results_url") != url]
                 if entry:
                     board["entries"].append(entry)
-                _write_json(stage / "leaderboard.json", board)
+                _write_json(stage / "results/leaderboard.json", board)
                 for name, raw in build_benchmark_metadata(render_viewer_card(existing, index), board).items():
-                    target = stage.joinpath(*_relative(name).parts)
+                    target = (stage / "results").joinpath(*_relative(name).parts)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(raw)
                 latest = self.api.repo_info(self.repo_id, repo_type="dataset")

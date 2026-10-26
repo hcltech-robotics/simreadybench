@@ -444,13 +444,13 @@ def build_run(entry, document, *, run_id, source_url, results_sha256, trajectory
 
 
 def build_snapshot(revision, cache, supplements):
-    leaderboard_url = f"{BASE}/resolve/{revision}/leaderboard.json"
+    leaderboard_url = f"{BASE}/resolve/{revision}/results/leaderboard.json"
     raw = get_bytes(leaderboard_url, cache)
     leaderboard = json.loads(raw)
     entries = [e for e in leaderboard["entries"] if e.get("reference_count") == 25 and e.get("repetitions") == 4 and e.get("completed_attempts") == 100]
     def build(entry):
         run = run_identity(entry)
-        base = f"{BASE}/resolve/{revision}/runs/{run}"
+        base = f"{BASE}/resolve/{revision}/results/runs/{run}"
         results = get_bytes(base + "/results.json", cache)
         def trajectory_loader(trace):
             relative = trace["path"]
