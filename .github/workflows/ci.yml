@@ -11,7 +11,7 @@ permissions:
 jobs:
   execution:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -24,6 +24,31 @@ jobs:
         run: python -m pip install ".[test,daytona,publish]" build
       - name: Discover and test the local regression tier
         run: >-
-          python -m pytest -q -p no:cacheprovider
+          python -m pytest -q -p no:cacheprovider --ignore=tests/harbor_native
       - name: Build wheel and source distribution
         run: python -m build --wheel --sdist
+
+  native-evaluator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      PXR_WORK_THREAD_LIMIT: "2"
+    steps:
+      - name: Install the pinned CPU renderer
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates blender=4.3.2+dfsg-2
+          echo '0dfe9af0f3e67643ecf15327fa5e14e7315f61d1a81afdcafe76a71b1918e2b4  /usr/bin/blender' | sha256sum --check
+          rm -rf /var/lib/apt/lists/*
+      - uses: actions/checkout@v4
+      - name: Install runner test dependencies and the independent evaluator
+        run: python -m pip install ".[test,daytona,publish]" "./native[validator,fetch]" build
+      - name: Test the native evaluator and clean exports
+        run: python -m pytest -q -p no:cacheprovider tests/harbor_native
+      - name: Build the independent evaluator distribution
+        run: python -m build --wheel --sdist native
