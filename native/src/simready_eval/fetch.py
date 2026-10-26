@@ -61,7 +61,11 @@ def validate_manifest(manifest):
     files = manifest["files"]
     if not isinstance(files, list) or not files:
         raise ValueError("files must be a nonempty exact allowlist")
-    prefix = f"benchmark/nv100/v1/tasks/{task_id}/"
+    first_path = files[0].get("path") if isinstance(files[0], dict) else None
+    version = re.match(rf"benchmark/nv100/(v1|v2)/tasks/{re.escape(task_id)}/", first_path) if isinstance(first_path, str) else None
+    if version is None:
+        raise ValueError("file path must use an exact v1 or v2 task prefix")
+    prefix = version.group(0)
     actor_paths = {prefix + "public/observation.png", prefix + "public/instruction.md"}
     paths, destinations, validated = set(), set(), []
     for entry in files:

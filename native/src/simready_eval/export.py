@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+from email.parser import Parser
 import hashlib
 import io
 import json
@@ -19,6 +20,8 @@ from .dependencies import runtime_lock
 from .limits import FEEDBACK_SCRATCH_BYTES
 
 DATASET_NAME = "hcltech-robotics/simreadybench"
+RELEASE_VERSIONS = {"simready-harbor-release-v1": ("v1", "1.0.2"),
+                    "simready-harbor-release-v2": ("v2", "2.0.0")}
 
 BASE_IMAGE = "python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704"
 SOURCE_COLLECTION = {"repo_id": "nvidia/simready-assets", "revision": "f4860aa0c75607adb50a78bf96e77510bffc040f"}
@@ -46,11 +49,20 @@ def _task_name(task_id):
     return task_id if task_id.startswith(("nv100_", "nv100-")) else "nv100-" + task_id
 
 
+def release_version(release):
+    """Return the schema-bound asset prefix version and Harbor package version."""
+    schema = release.get("schema") if isinstance(release, dict) else None
+    if not isinstance(schema, str) or schema not in RELEASE_VERSIONS:
+        raise ValueError("unsupported release schema version")
+    return RELEASE_VERSIONS[schema]
+
+
 def _validate_release(release, fixture):
     if not isinstance(release, dict) or set(release) != {"schema", "repo_id", "revision", "source_commit", "source_collection", "tasks"}:
         raise ValueError("release must contain exactly the release schema fields")
-    if release["schema"] != "simready-harbor-release-v1" or release["repo_id"] != REPO_ID:
-        raise ValueError("unsupported release schema or repo_id")
+    asset_version, _ = release_version(release)
+    if release["repo_id"] != REPO_ID:
+        raise ValueError("unsupported release repo_id")
     for field in ("revision", "source_commit"):
         if not isinstance(release[field], str) or not re.fullmatch(r"[0-9a-f]{40}", release[field]):
             raise ValueError(f"{field} must be a full immutable 40-character revision")
@@ -88,8 +100,10 @@ def _validate_release(release, fixture):
                 raise ValueError("role manifest must match release repo, revision, task and role")
             # Preserve the release layout verbatim. Renaming an allowed public
             # observation into a reference destination would break its contract.
-            prefix = f"benchmark/nv100/v1/tasks/{task_id}/"
+            prefix = f"benchmark/nv100/{asset_version}/tasks/{task_id}/"
             for file in manifest["files"]:
+                if not file["path"].startswith(prefix):
+                    raise ValueError("role path version must match the release schema prefix")
                 expected = file["path"][len(prefix):]
                 if role == "actor":
                     expected = expected.removeprefix("public/")
@@ -150,7 +164,7 @@ def _check_imports(source, name):
             raise ValueError("wheel contains a legacy, Harbor or private import")
 
 
-def _wheel_inputs(wheel):
+def _wheel_inputs(wheel, expected_version=None):
     wheel = Path(wheel)
     if not re.fullmatch(r"[A-Za-z0-9_.+-]+\.whl", wheel.name):
         raise ValueError("wheel must have a safe wheel filename")
@@ -184,6 +198,10 @@ def _wheel_inputs(wheel):
                         raise ValueError("unexpected distribution metadata")
                     if path.name == "METADATA":
                         metadata = archive.read(member).decode("utf-8")
+                        if expected_version is not None:
+                            headers = Parser().parsestr(metadata)
+                            if headers.get("Name", "").lower().replace("_", "-") != "simreadybench-eval" or headers.get("Version") != expected_version:
+                                raise ValueError(f"release requires the simreadybench-eval {expected_version} wheel")
                         if re.search(r"^Requires-Dist:\s*(?:harbor|simready[-_]bench)(?:[\s;(<=>[]|$)", metadata, re.MULTILINE | re.IGNORECASE):
                             raise ValueError("native wheel must not depend on Harbor or the old package")
                 else:
@@ -199,13 +217,13 @@ def _wheel_inputs(wheel):
     return wheel.name, payload, metric
 
 
-def _task_toml(task, fixture):
+def _task_toml(task, fixture, package_version="1.0.2"):
     return f'''schema_version = "1.4"
 artifacts = [{{source = "/output/submission", destination = "candidate"}}]
 
 [task]
 name = "hcltech-robotics/{_task_name(task['id'])}"
-version = "1.0.2"
+version = "{package_version}"
 description = {json.dumps("Reconstruct this " + task["object_name"] + " from one frozen observation")}
 
 [metadata]
@@ -330,7 +348,7 @@ SOFTWARE.
 '''
 
 
-def _task_files(task, wheel_name, wheel_payload, fixture):
+def _task_files(task, wheel_name, wheel_payload, fixture, package_version="1.0.2"):
     evaluator = {"schema": "simready-evaluator-config-v1", "task_id": task["id"],
                  "entrypoint": task["entrypoint"], "reference": task["reference"],
                  "cameras": "comparison/cameras.json", "eligibility": "reference/eligibility.json",
@@ -361,7 +379,7 @@ the busy request has not been admitted and does not consume a feedback call.
 
 Final evaluation independently measures formal, visual, and kinematic fidelity.
 '''
-    return {"instruction.md": instruction, "task.toml": _task_toml(task, fixture),
+    return {"instruction.md": instruction, "task.toml": _task_toml(task, fixture, package_version),
             "environment/instruction.md": instruction.replace("(environment/observation.png)", "(observation.png)")
                                                      .replace(" · [Public instructions](environment/instruction.md)", ""),
             "environment/Dockerfile": _actor_docker(wheel_name),
@@ -498,8 +516,9 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
     if type(fixture) is not bool:
         raise ValueError("fixture must be a boolean")
     release = _validate_release(release, fixture)
+    _, package_version = release_version(release)
     output = _fresh_output(output)
-    wheel_name, wheel_payload, metric = _wheel_inputs(wheel)
+    wheel_name, wheel_payload, metric = _wheel_inputs(wheel, expected_version=package_version)
     files, task_refs = {}, []
     with tempfile.TemporaryDirectory(prefix="simready-export-public-") as temporary:
         staging = Path(temporary)
@@ -510,7 +529,7 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
             fetch_assets(task["actor"], public, cache_dir=staging / "cache", downloader=downloader,
                          timeout_seconds=300)
             task_files = {path: payload.encode() if isinstance(payload, str) else payload
-                          for path, payload in _task_files(task, wheel_name, wheel_payload, fixture).items()}
+                          for path, payload in _task_files(task, wheel_name, wheel_payload, fixture, package_version).items()}
             for file in task["actor"]["files"]:
                 destination = "source-public-instruction.txt" if file["destination"] == "instruction.md" else file["destination"]
                 task_files["environment/" + destination] = (public / file["destination"]).read_bytes()
@@ -535,7 +554,7 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
                     "The source collection is nvidia/simready-assets at " + SOURCE_COLLECTION["revision"] + ". "
                     "Runtime dependencies retain their own licenses, including Blender (GPL-3.0-or-later), OpenUSD (Apache-2.0), Pillow (HPND), NumPy (BSD-3-Clause), and HF Hub/Xet (Apache-2.0). "
                     "Per-asset source and licence provenance accompany the pinned dataset.\n").encode()})
-    dataset = f'schema_version = "1.0"\n\n[dataset]\nname = {json.dumps(DATASET_NAME)}\nversion = "1.0.2"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
+    dataset = f'schema_version = "1.0"\n\n[dataset]\nname = {json.dumps(DATASET_NAME)}\nversion = "{package_version}"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
     for task in task_refs:
         dataset += '\n[[tasks]]\nname = ' + json.dumps(task["name"]) + '\ndigest = ' + json.dumps(task["digest"]) + '\n'
     for name in ("metric.py", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "release.json"):

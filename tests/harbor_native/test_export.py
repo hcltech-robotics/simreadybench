@@ -49,14 +49,14 @@ def release_input(count=1):
 
 @pytest.fixture
 def wheel(tmp_path):
-    path = tmp_path / "simreadybench_eval-1.0.0-py3-none-any.whl"
+    path = tmp_path / "simreadybench_eval-1.0.2-py3-none-any.whl"
     with zipfile.ZipFile(path, "w") as archive:
-        archive.writestr("simready_eval/__init__.py", '__version__ = "1.0.0"\n')
+        archive.writestr("simready_eval/__init__.py", '__version__ = "1.0.2"\n')
         archive.writestr("simready_eval/cli.py", "def main(): pass\n")
         archive.writestr("simready_eval/metric.py", Path("native/src/simready_eval/metric.py").read_bytes())
-        archive.writestr("simreadybench_eval-1.0.0.dist-info/METADATA", "Metadata-Version: 2.4\nName: simreadybench-eval\nVersion: 1.0.0\n")
-        archive.writestr("simreadybench_eval-1.0.0.dist-info/WHEEL", "Wheel-Version: 1.0\nGenerator: local-test\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
-        archive.writestr("simreadybench_eval-1.0.0.dist-info/RECORD", "")
+        archive.writestr("simreadybench_eval-1.0.2.dist-info/METADATA", "Metadata-Version: 2.4\nName: simreadybench-eval\nVersion: 1.0.2\n")
+        archive.writestr("simreadybench_eval-1.0.2.dist-info/WHEEL", "Wheel-Version: 1.0\nGenerator: local-test\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+        archive.writestr("simreadybench_eval-1.0.2.dist-info/RECORD", "")
     return path
 
 
@@ -577,3 +577,66 @@ def test_named_wrappers_retain_original_public_constraints_verbatim(tmp_path, wh
         assert original in wrapper, "the named brief must preserve the original public constraints byte-for-byte"
         assert wrapper.count(original) == 1
     assert (task / "environment/source-public-instruction.txt").read_bytes() == original
+
+
+def release_v2():
+    release = release_input()
+    release["schema"] = "simready-harbor-release-v2"
+    for task in release["tasks"]:
+        for role in ("actor", "verifier"):
+            for file in task[role]["files"]:
+                file["path"] = file["path"].replace("/nv100/v1/", "/nv100/v2/")
+    return release
+
+
+def native_wheel_v2(wheel):
+    result = wheel.with_name(wheel.name.replace("1.0.2", "2.0.0"))
+    with zipfile.ZipFile(wheel) as old, zipfile.ZipFile(result, "w") as new:
+        for file in old.infolist():
+            new.writestr(file.filename.replace("1.0.2", "2.0.0"), old.read(file).replace(b"1.0.2", b"2.0.0"))
+    return result
+
+
+def test_v2_release_exports_v2_assets_and_200_packages_without_changing_legacy(tmp_path, wheel, synthetic_public_download):
+    output = tmp_path / "v2"
+    exporter().export_release(release_v2(), output, native_wheel_v2(wheel), fixture=True)
+    dataset = tomllib.loads((output / "dataset.toml").read_text())
+    task = tomllib.loads((output / "nv100-fixture-000/task.toml").read_text())
+    assert dataset["dataset"]["version"] == "2.0.0"
+    assert dataset["dataset"]["name"] == REPO
+    assert task["task"]["version"] == "2.0.0"
+    assert all("/nv100/v2/" in call["filename"] for call in synthetic_public_download)
+    exporter().export_release(release_input(), tmp_path / "v1", wheel, fixture=True)
+    legacy = tomllib.loads((tmp_path / "v1/dataset.toml").read_text())
+    assert legacy["dataset"]["version"] == "1.0.2"
+
+
+@pytest.mark.parametrize("schema,actor_version,verifier_version", [
+    ("simready-harbor-release-v2", "v1", "v1"),
+    ("simready-harbor-release-v2", "v2", "v1"),
+    ("simready-harbor-release-v1", "v2", "v2"),
+    ("simready-harbor-release-v1", "v1", "v2"),
+])
+def test_release_schema_strictly_binds_both_role_path_versions(tmp_path, wheel, schema, actor_version, verifier_version):
+    release = release_input()
+    release["schema"] = schema
+    for role, version in (("actor", actor_version), ("verifier", verifier_version)):
+        for file in release["tasks"][0][role]["files"]:
+            file["path"] = file["path"].replace("/nv100/v1/", "/nv100/" + version + "/")
+    with pytest.raises(ValueError, match="version|prefix"):
+        exporter().export_release(release, tmp_path / "out", native_wheel_v2(wheel), fixture=True)
+    assert not (tmp_path / "out").exists()
+
+
+def test_v2_release_requires_native_wheel_200_before_asset_acquisition(tmp_path, wheel, synthetic_public_download):
+    with pytest.raises(ValueError, match="2.0.0"):
+        exporter().export_release(release_v2(), tmp_path / "out", wheel, fixture=True)
+    assert not synthetic_public_download
+    assert not (tmp_path / "out").exists()
+
+
+def test_v1_release_rejects_v2_wheel_before_asset_acquisition(tmp_path, wheel, synthetic_public_download):
+    with pytest.raises(ValueError, match="1.0.2"):
+        exporter().export_release(release_input(), tmp_path / "out", native_wheel_v2(wheel), fixture=True)
+    assert not synthetic_public_download
+    assert not (tmp_path / "out").exists()

@@ -466,3 +466,27 @@ def test_runtime_wrapper_has_separate_offline_identity_and_is_never_hf_downloade
     assert "instruction.md" in rejected.stderr
     assert instruction["sha256"] in rejected.stderr
     assert hashlib.sha256(changed).hexdigest() in rejected.stderr
+
+
+def test_v2_role_manifest_fetches_only_its_pinned_v2_public_paths(tmp_path, hub):
+    manifest = manifest_for()
+    for file in manifest["files"]:
+        file["path"] = file["path"].replace("/nv100/v1/", "/nv100/v2/")
+    hub["payloads"].update({path.replace("/nv100/v1/", "/nv100/v2/"): data for path, data in list(hub["payloads"].items())})
+    receipt = fetch_module().fetch_assets(manifest, tmp_path / "out", cache_dir=tmp_path / "cache", downloader=hub["downloader"])
+    assert set(hub["requests"]) == {file["path"] for file in manifest["files"]}
+    assert all(path.startswith("benchmark/nv100/v2/tasks/widget-001/public/") for path in hub["requests"])
+    assert (tmp_path / "out/instruction.md").read_bytes() == b"Build the widget."
+    assert receipt["revision"] == REVISION
+
+
+@pytest.mark.parametrize("role", ["actor", "verifier"])
+@pytest.mark.parametrize("other_version", ["v1", "v3", "v20"])
+def test_role_manifest_rejects_mixed_or_unknown_asset_versions(role, other_version):
+    payloads = PUBLIC if role == "actor" else {"reference/asset.usd": b"usd", "comparison/front.png": b"png"}
+    manifest = manifest_for(payloads, role=role)
+    for file in manifest["files"]:
+        file["path"] = file["path"].replace("/nv100/v1/", "/nv100/v2/")
+    manifest["files"][1]["path"] = manifest["files"][1]["path"].replace("/nv100/v2/", "/nv100/" + other_version + "/")
+    with pytest.raises(ValueError):
+        fetch_module().validate_manifest(manifest)

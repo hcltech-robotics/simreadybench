@@ -642,3 +642,64 @@ def test_texture_peak_bound_returns_resource_unknown_before_blender(tmp_path,mon
     assert result['status']=='unknown'and result['reason']=='render_resource_bound'
     assert result['error_type']=='MemoryError'and result['error_phase']=='extract'
     assert result['images']==[]
+
+
+def test_qualified_cpu_recipe_defaults_and_exact_legacy_identity():
+    import simready_eval.render as rendering
+    assert rendering.RECIPE['samples']==256
+    assert rendering.RECIPE['threads']==4
+    assert rendering.RECIPE['device']=='CPU'
+    assert rendering._identity(rendering.LEGACY_RECIPE)=='0bd3c8bbdf84136880ec5d0efdda59938bea8fa9f7561cf8f811f2567b17fb9d'
+    selected=rendering.validate_recipe()
+    assert selected==rendering.RECIPE and selected is not rendering.RECIPE
+    selected['lights'][0]['energy']=0
+    assert rendering.RECIPE['lights'][0]['energy']==450
+    assert rendering.validate_recipe(rendering.LEGACY_RECIPE)==rendering.LEGACY_RECIPE
+
+
+@pytest.mark.parametrize('override',[{'device':'OPTIX'},{'device':'GPU'},{'threads':1},
+                                      {'threads':True},{'threads':8},{'samples':128},
+                                      {'world_strength':0},{'blender_version':'4.5.11 LTS'}])
+def test_unqualified_render_recipe_is_rejected_before_extraction(tmp_path,monkeypatch,override):
+    import simready_eval.render as rendering
+    def forbidden(*args,**kwargs):raise AssertionError('Invalid recipe reached source extraction')
+    monkeypatch.setattr(rendering,'_extract_scene',forbidden)
+    recipe={**rendering.RECIPE,**override}
+    with pytest.raises(ValueError,match='qualified CPU recipe'):
+        rendering.render_asset(tmp_path/'source.usda',cameras(),tmp_path/'output',recipe=recipe)
+    assert not(tmp_path/'output').exists()
+
+
+def test_worker_cpu_execution_settings_reject_gpu_and_invalid_pairs(monkeypatch):
+    import importlib.util,sys,types
+    import simready_eval.render as rendering
+    monkeypatch.setitem(sys.modules,'bpy',types.SimpleNamespace())
+    monkeypatch.setitem(sys.modules,'mathutils',types.SimpleNamespace(Matrix=object,Vector=object))
+    spec=importlib.util.spec_from_file_location('cpu_recipe_worker_unit',Path(rendering.__file__).with_name('render_worker.py'))
+    worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
+    assert worker._cpu_execution_settings(rendering.RECIPE)==(256,4)
+    assert worker._cpu_execution_settings(rendering.LEGACY_RECIPE)==(8,1)
+    for override in [{'device':'OPTIX'},{'device':'GPU'},{'threads':True},{'threads':1},{'samples':128}]:
+        with pytest.raises(ValueError,match='qualified CPU'):
+            worker._cpu_execution_settings({**rendering.RECIPE,**override})
+
+
+@pytest.mark.skipif(not Path('/usr/bin/blender').exists(),reason='public Blender unavailable')
+def test_real_blender_qualified_cpu256_threads4_and_explicit_legacy(tmp_path):
+    import simready_eval.render as rendering
+    source=tmp_path/'cube.usda';write_cube(source)
+    original=hashlib.sha256(source.read_bytes()).hexdigest()
+    qualified=rendering.render_asset(source,cameras(32),tmp_path/'qualified',blender='/usr/bin/blender')
+    assert qualified['status']=='measured',qualified
+    assert qualified['recipe']==rendering.RECIPE
+    assert qualified['renderer']['device']=='CPU'
+    assert qualified['renderer']['samples']==256 and qualified['renderer']['threads']==4
+    assert len(qualified['images'])==4
+    legacy=rendering.render_asset(source,cameras(32),tmp_path/'legacy',blender='/usr/bin/blender',recipe=rendering.LEGACY_RECIPE)
+    assert legacy['status']=='measured',legacy
+    assert legacy['recipe']==rendering.LEGACY_RECIPE
+    assert legacy['renderer']['device']=='CPU'
+    assert legacy['renderer']['samples']==8 and legacy['renderer']['threads']==1
+    assert qualified['scene_sha256']==legacy['scene_sha256']
+    assert qualified['recipe_sha256']!=legacy['recipe_sha256']
+    assert hashlib.sha256(source.read_bytes()).hexdigest()==original

@@ -29,7 +29,7 @@ import tempfile
 import numpy as np
 from PIL import Image
 
-RECIPE = {
+LEGACY_RECIPE = {
     'schema': 'simready-neutral-cycles-v1', 'blender_version':'4.3.2', 'engine': 'CYCLES', 'device': 'CPU',
     'texture_input_precision':'lossless streamed 8-bit RGBA canonical PNG; original 16-bit PNG samples preserved for native Blender decoding',
     'maximum_triangles':4_000_000,'maximum_surface_bytes':1024**3,'maximum_decoded_texture_bytes':1024**3,
@@ -46,6 +46,10 @@ RECIPE = {
     'unbound_material_policy':'authored displayColor/displayOpacity per corner; otherwise renderer defaults linear RGB0.18, roughness0.5, metallic0, opacity1; source material remains unbound and diagnostic N/A',
 }
 
+# Keep the published eight-sample recipe byte-for-byte identifiable. The new
+# default changes only sample count and the explicitly frozen CPU thread count.
+RECIPE = {**json.loads(json.dumps(LEGACY_RECIPE)), 'samples':256, 'threads':4}
+
 
 def _hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -58,6 +62,24 @@ def _identity(value):
     for start in range(0,len(encoded),1024**2):
         digest.update(encoded[start:start+1024**2].encode())
     return digest.hexdigest()
+
+
+def validate_recipe(recipe=None):
+    """Copy one exact supported CPU profile; arbitrary rendering changes fail.
+
+    The default is CPU256/four threads. Explicit LEGACY_RECIPE retains the
+    published CPU8/one-thread settings for characterization; fixture eligibility
+    is controlled separately by the evaluator's frozen qualification contract.
+    """
+    selected=RECIPE if recipe is None else recipe
+    try:
+        if not isinstance(selected,dict):raise ValueError('Recipe must be an object')
+        selected=json.loads(json.dumps(selected,allow_nan=False))
+        if _identity(selected) not in {_identity(RECIPE),_identity(LEGACY_RECIPE)}:
+            raise ValueError('Unrecognized frozen profile')
+    except (TypeError,ValueError) as exc:
+        raise ValueError('An exact qualified CPU recipe is required') from exc
+    return selected
 
 
 def _write_scene_json(path,value):
@@ -569,13 +591,16 @@ def _extract_scene(source, target, alignment,package_root=None):
                    'shader_scope':'universal PreviewSurface colour, roughness, metallic, opacity, tangent normal, emission, literal IOR; UsdUVTexture including UDIM and fallback + PrimvarReader + UsdTransform2d; declared unbound display/default policy'}
 
 
-def render_asset(source, cameras_manifest, output_dir, alignment=None, timeout=180, blender='blender',role='comparison',package_root=None):
+def render_asset(source, cameras_manifest, output_dir, alignment=None, timeout=180, blender='blender',role='comparison',package_root=None,recipe=None):
     """Render four exact frozen cameras; unavailable/support failures stay unknown.
 
     ``alignment`` may be a 4x4 matrix or geometry alignment receipt containing
     ``rotation`` and ``translation_m``. Receipt paths point to persisted PNGs.
     Source packages must have passed the caller's immutable package boundary.
+    ``recipe`` selects an exact supported CPU profile; None uses CPU256/four
+    threads. Explicit LEGACY_RECIPE preserves CPU8/one-thread characterization.
     """
+    recipe=validate_recipe(recipe)
     cameras=validate_cameras(cameras_manifest); matrix=_alignment_matrix(alignment)
     source=Path(source).resolve()
     package_root=Path(package_root).resolve()if package_root is not None else source.parent
@@ -587,7 +612,7 @@ def render_asset(source, cameras_manifest, output_dir, alignment=None, timeout=1
     selected_views=(cameras['views']+[cameras['observation']]if role=='all'else cameras['views']if role=='comparison'else[cameras['observation']])
     output=Path(output_dir).resolve(); output.mkdir(parents=True,exist_ok=True)
     receipt={'schema':'simready-render-receipt-v1','status':'unknown','images':[],
-             'camera_sha256':_identity(cameras),'recipe':RECIPE,'recipe_sha256':_identity(RECIPE),
+             'camera_sha256':_identity(cameras),'recipe':recipe,'recipe_sha256':_identity(recipe),
              'alignment':matrix.tolist(),'variant':'raw' if alignment is None else 'globally_aligned','role':role}
     phase='extract'
     try:
@@ -607,7 +632,7 @@ def render_asset(source, cameras_manifest, output_dir, alignment=None, timeout=1
                     value['tiles']={tile:Path(file).name for tile,file in value['tiles'].items()}
         receipt['scene_sha256']=_identity(scientific_scene)
         worker_cameras={**cameras,'views':selected_views}
-        scene.update(cameras=worker_cameras, recipe=RECIPE,output_dir=str(output))
+        scene.update(cameras=worker_cameras, recipe=recipe,output_dir=str(output))
         phase='exchange_write'
         scene_file=output/'scene.json';_write_scene_json(scene_file,scene)
         # The immutable exchange file now owns this data; retaining the parent
@@ -621,7 +646,7 @@ def render_asset(source, cameras_manifest, output_dir, alignment=None, timeout=1
         receipt['renderer_binary_sha256']=_hash(executable)
         receipt['bridge_code_sha256']=_identity([_hash(__file__),_hash(worker)])
         phase='blender'
-        process=subprocess.run([str(blender),'--background','--factory-startup','--threads','1',
+        process=subprocess.run([str(blender),'--background','--factory-startup','--threads',str(recipe.get('threads',1)),
                                 '--python-exit-code','1','--python',str(worker),'--',str(scene_file)],
                                stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
                                timeout=timeout,check=False)

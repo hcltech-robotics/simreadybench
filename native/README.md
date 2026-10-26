@@ -9,6 +9,38 @@ NVIDIA assets retain their own licenses and provenance.
 Blender 4.3.2 is used **only by the verifier renderer**. Blender authoring remains
 prohibited. The actor recipe installs neither Blender nor NVIDIA validation SDKs.
 
+NV100 v2 evaluates candidates with Cycles CPU, 256 fixed samples, seed 1729,
+four CPU threads, no adaptive sampling and no denoising. Its reference images
+use the qualified Blender 4.5.11 LTS OptiX producer. The reference receipt retains
+the actual producer's recipe, binary and bridge identities; eligibility also
+pins the CPU evaluator and shared scientific settings. Formal, visual and
+kinematic scores retain their existing definitions.
+
+## Import existing NV100 v2 reference captures
+
+Run this command in the pinned CPU verifier environment (Blender 4.3.2 and the
+2.0.0 evaluator wheel). It imports five completed RGB/mask pairs without rendering:
+
+```sh
+python -m simready_eval.capture --task /frozen-v1/tasks/TASK_ID \
+  --receipt /captures/TASK_ID/diagnostic-receipt.json \
+  --capture-root /captures/TASK_ID --output /new-v2/tasks/TASK_ID
+```
+
+The input task must contain its original `asset-inventory.json`, `evaluator.json`,
+public inputs and complete reference/comparison closure. Only the frozen v1
+producer identity is accepted as the baseline. New captures must match its
+complete source scene and five frozen cameras, the approved GPU producer, and
+their recorded image hashes. Original USD, textures, licenses, profile and
+instructions are preserved. The raw producer receipt is retained unchanged;
+derived eligibility binds it to the CPU evaluator. Failed imports leave no
+new task output.
+
+Store the new tasks under `benchmark/nv100/v2/tasks/` in a new immutable dataset
+revision. Build their Harbor release using `simready-harbor-release-v2` and the
+2.0.0 wheel. V1 remains under its existing revision and uses the 1.0.2 wheel.
+Role manifests select only their own version, task and role.
+
 ## Reference preparation and rendering
 
 Install the clean wheel in an isolated Python 3.12 environment. Use the delivered

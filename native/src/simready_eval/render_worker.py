@@ -26,6 +26,16 @@ def _intern_uv_corners(value):
     return value
 
 
+def _cpu_execution_settings(recipe):
+    """Reject GPU labels and unsupported CPU sample/thread pairs before setup."""
+    if not isinstance(recipe,dict) or recipe.get('schema')!='simready-neutral-cycles-v1' or recipe.get('engine')!='CYCLES' or recipe.get('device')!='CPU' or recipe.get('blender_version')!='4.3.2':
+        raise ValueError('Expected a qualified CPU execution recipe')
+    samples=recipe.get('samples');threads=recipe.get('threads',1)
+    if type(samples)is not int or type(threads)is not int or (samples,threads)not in ((8,1),(256,4)):
+        raise ValueError('Expected a qualified CPU sample/thread pair')
+    return samples,threads
+
+
 def texture(nodes, links, descriptor, uv_name):
     if descriptor.get('fallback_only'):
         outputs=[]
@@ -132,13 +142,14 @@ def make_material(record):
 def main():
     path=Path(sys.argv[sys.argv.index('--')+1]); data=json.loads(path.read_text(),object_hook=_intern_uv_corners)
     output=Path(data['output_dir']); recipe=data['recipe']; rig=data['cameras']
+    samples,threads=_cpu_execution_settings(recipe)
     if bpy.app.version_string!=recipe['blender_version']:
         raise RuntimeError('Unqualified Blender version: '+bpy.app.version_string)
     bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
     scene=bpy.context.scene; scene.render.engine='CYCLES'; scene.cycles.device='CPU'
-    scene.cycles.samples=recipe['samples']; scene.cycles.seed=recipe['seed']
+    scene.cycles.samples=samples; scene.cycles.seed=recipe['seed']
     scene.cycles.use_adaptive_sampling=False; scene.cycles.use_denoising=False
-    scene.render.threads_mode='FIXED'; scene.render.threads=1
+    scene.render.threads_mode='FIXED'; scene.render.threads=threads
     scene.render.resolution_x,scene.render.resolution_y=rig['resolution']; scene.render.resolution_percentage=100
     scene.render.image_settings.file_format='PNG'; scene.render.image_settings.color_mode='RGB'
     scene.render.image_settings.color_depth='8'; scene.render.film_transparent=False
@@ -211,7 +222,7 @@ def main():
         scene.render.filepath=str(output/(view['id']+'-mask.png')); bpy.ops.render.render(write_still=True)
         bpy.data.objects.remove(camera,do_unlink=True)
     (output/'worker-receipt.json').write_text(json.dumps({'renderer':{'name':'Blender','version':bpy.app.version_string,
-        'engine':'Cycles','device':'CPU','threads':1,'recipe':recipe}},sort_keys=True))
+        'engine':'Cycles','device':scene.cycles.device,'threads':scene.render.threads,'samples':scene.cycles.samples,'recipe':recipe}},sort_keys=True))
 
 
 if __name__=='__main__': main()

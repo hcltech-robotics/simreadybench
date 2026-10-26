@@ -283,15 +283,18 @@ def _run_worker(mode, request, scratch, deadline, *, seconds=120):
         return {"status": "unknown", "reason": "invalid_worker_result"}
 
 
-def _fixtures(root, config, deadline=None):
+def _fixtures(root, config, deadline=None, *, _legacy_import=False):
     from . import render
     from .render import RECIPE, _identity, validate_cameras
     root = Path(root).absolute()
     if root.resolve() != root:
         raise ValueError("Regular fixture root required")
     eligibility = _json(_regular(root, config["eligibility"]))
-    if eligibility.get("schema") != ELIGIBILITY_SCHEMA:
-        raise ValueError("Expected " + ELIGIBILITY_SCHEMA)
+    schema = eligibility.get("schema")
+    if schema not in (ELIGIBILITY_SCHEMA, "simready-reference-eligibility-v2"):
+        raise ValueError("Expected frozen reference eligibility v1 or v2")
+    if _legacy_import and schema != ELIGIBILITY_SCHEMA:
+        raise ValueError("Capture import requires the immutable v1 baseline")
     files = eligibility.get("files")
     if not isinstance(files, list) or not 1 <= len(files) <= MAX_FILES:
         raise ValueError("Bounded frozen fixture inventory required")
@@ -328,17 +331,63 @@ def _fixtures(root, config, deadline=None):
     if config["reference"] not in indexed or config["cameras"] not in indexed:
         raise ValueError("Reference and cameras must be frozen in the inventory")
     cameras = validate_cameras(_json(root / config["cameras"]))
-    if eligibility.get("render_recipe_sha256") != _identity(RECIPE):
-        raise ValueError("Frozen reference render recipe identity mismatch")
     if eligibility.get("render_camera_sha256") != _identity(cameras):
         raise ValueError("Frozen reference render camera identity mismatch")
     bridge = _identity([render._hash(render.__file__),
                         render._hash(Path(render.__file__).with_name("render_worker.py"))])
-    if eligibility.get("render_bridge_code_sha256") != bridge:
-        raise ValueError("Frozen reference render bridge identity mismatch")
     binary = shutil.which("blender")
-    if binary is None or eligibility.get("renderer_binary_sha256") != render._hash(binary):
-        raise ValueError("Frozen reference renderer binary identity mismatch")
+    if schema == "simready-reference-eligibility-v2":
+        from .qualification import GPU, validate_compatibility
+        raw_path = "comparison/raw-producer-receipt.json"
+        if raw_path not in indexed:
+            raise ValueError("Frozen raw reference producer receipt required")
+        raw = _json(root / raw_path)
+        validate_compatibility(eligibility.get("render_compatibility"), raw)
+        for field, key in (("render_recipe_sha256", "recipe_sha256"),
+                           ("render_bridge_code_sha256", "bridge_code_sha256"),
+                           ("renderer_binary_sha256", "renderer_binary_sha256")):
+            if eligibility.get(field) != GPU[key]:
+                raise ValueError("Frozen reference render producer identity mismatch")
+        if raw.get("camera_sha256") != _identity(cameras):
+            raise ValueError("Frozen raw producer camera mismatch")
+        provenance_path = "reference/capture-import.json"
+        if provenance_path not in indexed:
+            raise ValueError("Frozen capture import provenance required")
+        provenance = _json(root / provenance_path)
+        if (provenance.get("schema") != "simready-capture-import-provenance-v1"
+                or provenance.get("raw_producer_receipt_sha256") != indexed[raw_path]["sha256"]
+                or provenance.get("source_scene_sha256") != raw.get("scene_sha256")
+                or provenance.get("render_compatibility") != eligibility["render_compatibility"]):
+            raise ValueError("Frozen reference capture provenance mismatch")
+        views = cameras["views"] + [cameras["observation"]]
+        rows = raw.get("images", [])
+        by_camera = {row["camera_id"]: row for row in rows}
+        if (raw.get("role") != "all" or cameras["resolution"] != [512,512]
+                or len(rows) != 5 or set(by_camera) != {view["id"] for view in views}):
+            raise ValueError("Five frozen raw producer views required")
+        for view in views:
+            name = view["id"]
+            row = by_camera[name]
+            # The actor's observation RGB is deliberately absent from the final
+            # verifier closure. Its mask and all four comparison pairs are frozen.
+            paths = [("reference/observation-mask.png", "mask_sha256")] if name == cameras["observation"]["id"] else [
+                ("comparison/"+name+".png", "sha256"),
+                ("comparison/"+name+"-mask.png", "mask_sha256")]
+            for path,key in paths:
+                if path not in indexed or indexed[path]["sha256"] != row.get(key):
+                    raise ValueError("Frozen raw producer pixels mismatch: " + path)
+    else:
+        expected = {"render_recipe_sha256": _identity(RECIPE),
+                    "render_bridge_code_sha256": bridge,
+                    "renderer_binary_sha256": render._hash(binary) if binary else None}
+        if _legacy_import:
+            from .qualification import LEGACY, CPU_BINARY
+            if binary is None or render._hash(binary) != CPU_BINARY:
+                raise ValueError("Qualified CPU renderer required for capture import")
+            expected = LEGACY
+        for key, value in expected.items():
+            if value is None or eligibility.get(key) != value:
+                raise ValueError("Frozen reference render identity mismatch: " + key)
     images = []
     for view in cameras["views"]:
         rgb, mask = "comparison/" + view["id"] + ".png", "comparison/" + view["id"] + "-mask.png"
@@ -394,6 +443,8 @@ def evaluate_submission(submission, fixtures, config, output):
                                "profile_sha256": eligibility["profile_sha256"],
                                "render_recipe_sha256": eligibility["render_recipe_sha256"],
                                "render_camera_sha256": eligibility["render_camera_sha256"]}
+        if "render_compatibility" in eligibility:
+            report["reference"]["render_compatibility"] = eligibility["render_compatibility"]
         with tempfile.TemporaryDirectory(prefix="simready-final-") as temporary:
             scratch = Path(temporary)
             reference_request = {"reference": str(Path(fixtures).absolute() / config["reference"]),
