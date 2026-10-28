@@ -1,0 +1,9 @@
+Reconstruct this oily-waste can from the input image as a self-contained USD package.
+
+Nominal dimensions in canonical metres XYZ: [0.4926615161821246, 0.48329901695251465, 0.6464274525665711]
+
+Preserve the visible geometry, materials, rigid bodies, joints and articulation. Write a top-level asset.usd and include all relative dependencies in your submission.
+
+Submit only USD and its data dependencies: at most 1 GiB and 10000 files/directories combined. Keep authoring programs outside the submission; links, executable files and external dependencies are not accepted.
+
+Do not use Blender for authoring; Blender is used only by the verifier renderer.

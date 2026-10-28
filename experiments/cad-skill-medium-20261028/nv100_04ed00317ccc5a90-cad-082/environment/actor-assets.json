@@ -1,0 +1,21 @@
+{
+  "files": [
+    {
+      "destination": "instruction.md",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/public/instruction.md",
+      "sha256": "b8d4dc2322c20a77660e4ab0edf20e5b79d3bbd7ecad0e76c7aa767d5c2d2bb6",
+      "size_bytes": 655
+    },
+    {
+      "destination": "observation.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/public/observation.png",
+      "sha256": "058ad92263ca6ac778b8b6485bb58642923311e7c744710c54038c5baf86ee51",
+      "size_bytes": 115274
+    }
+  ],
+  "repo_id": "hcltech-robotics/simreadybench",
+  "revision": "c56694fe51cda7833bea4a0e4b6e6ae255f72182",
+  "role": "actor",
+  "schema": "simready-role-assets-v1",
+  "task_id": "nv100_04ed00317ccc5a90"
+}

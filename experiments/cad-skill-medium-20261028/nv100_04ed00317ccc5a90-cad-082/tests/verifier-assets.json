@@ -1,0 +1,279 @@
+{
+  "files": [
+    {
+      "destination": "reference/.metadata/LICENSE.txt",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/.metadata/LICENSE.txt",
+      "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+      "size_bytes": 18657
+    },
+    {
+      "destination": "reference/baseline-public-instruction.txt",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/baseline-public-instruction.txt",
+      "sha256": "f671cdb5b848839deb719d73880a7429aa7a1b6f3ed39e562c54592b119c9bf8",
+      "size_bytes": 649
+    },
+    {
+      "destination": "reference/capture-import.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/capture-import.json",
+      "sha256": "312fa7edbebfbdea3d4d9a3c7ba08e32df22cbe6a783aedb162dab1895b73045",
+      "size_bytes": 3762
+    },
+    {
+      "destination": "reference/eligibility.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/eligibility.json",
+      "sha256": "2ae3b0cc26dde9f01a14dff9053fbabd631eb1529773c88ec19f238b42ee99bb",
+      "size_bytes": 20329
+    },
+    {
+      "destination": "reference/observation-mask.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/observation-mask.png",
+      "sha256": "b0eac73f651347abe374dad7f3369991c905a12256f91beb9a2d0a97f0595b14",
+      "size_bytes": 5262
+    },
+    {
+      "destination": "reference/observation-raw-producer-receipt.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/observation-raw-producer-receipt.json",
+      "sha256": "35b45b76e9b08b6eae16273eed2957062b6df3bd525da21c2092cf24807dcf0f",
+      "size_bytes": 18743
+    },
+    {
+      "destination": "reference/observation-render-receipt.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/observation-render-receipt.json",
+      "sha256": "e528b0e3a0b073d2ab55b086f84770b09205ae10ef5c325bc4cc72073737f09e",
+      "size_bytes": 18776
+    },
+    {
+      "destination": "reference/render-compatibility.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/render-compatibility.json",
+      "sha256": "ec4bbcfdd3713b7790c74ade2a034d697ccbdc3b06f847c3c488859b215563a9",
+      "size_bytes": 2781
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_alb.1001.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_alb.1001.png",
+      "sha256": "446e7bd030eb267cdd336d989919bca5dc7900ef6f00baf4aeee33de064edb11",
+      "size_bytes": 19728087
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_alb.1002.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_alb.1002.png",
+      "sha256": "2b1bb50872a0456ab6713fe30753d228bdc100d77a06539e6a368fd4ff785249",
+      "size_bytes": 8204019
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_alb.1003.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_alb.1003.png",
+      "sha256": "120f163e5b38f5af702fc4e01b60006fbda83cdd5d5c5b439807476da7f36212",
+      "size_bytes": 1237341
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_nor.1001.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_nor.1001.png",
+      "sha256": "5fed114be4c975503a42e338e9d09e29dfff06deabcf63c8c740f02593a6289e",
+      "size_bytes": 5993360
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_nor.1002.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_nor.1002.png",
+      "sha256": "51c5f70805cb2e7ea8141e6141b446db01f0a0a4ae7a1aefa6fd25c012b7f2f2",
+      "size_bytes": 4861446
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_nor.1003.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_nor.1003.png",
+      "sha256": "3a15d9b37ee0c9b95e19f98383ca602480a11fbfd736ff4778c66ee546d98877",
+      "size_bytes": 3145965
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_orm.1001.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_orm.1001.png",
+      "sha256": "6500d199d37ea69e31bb7c3c2202be6025644992b52d1e619ed949781d1aacd3",
+      "size_bytes": 22909560
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_orm.1002.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_orm.1002.png",
+      "sha256": "318a704621879ec82fc266a7c4cbd170022f66d987c4b96e8998d3d094037e43",
+      "size_bytes": 14372278
+    },
+    {
+      "destination": "reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_orm.1003.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/Textures/T_oilyWasteCan_metal_a01_orm.1003.png",
+      "sha256": "64ad38c9909a67861f1fcfaa803ff3afc368b8f56fa5b003c623c300df8c4f4b",
+      "size_bytes": 6445527
+    },
+    {
+      "destination": "reference/simready_usd/payloads/MuJoCo/disabled.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/MuJoCo/disabled.usda",
+      "sha256": "882ce8b3ce29d40577e10d1d752083d97c9c43152c3bfa3b18b716c84768c042",
+      "size_bytes": 6774
+    },
+    {
+      "destination": "reference/simready_usd/payloads/MuJoCo/enabled.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/MuJoCo/enabled.usda",
+      "sha256": "c78a62f324b7c52fa681f4b582dcae5d4f57eced619dde099f140d49a0fd6163",
+      "size_bytes": 8610
+    },
+    {
+      "destination": "reference/simready_usd/payloads/Newton/disabled.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/Newton/disabled.usda",
+      "sha256": "882ce8b3ce29d40577e10d1d752083d97c9c43152c3bfa3b18b716c84768c042",
+      "size_bytes": 6774
+    },
+    {
+      "destination": "reference/simready_usd/payloads/Newton/enabled.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/Newton/enabled.usda",
+      "sha256": "052cc48bd788bb932799d99bf789d517ee12076d3cfe83b72ca1b91b6c598847",
+      "size_bytes": 8148
+    },
+    {
+      "destination": "reference/simready_usd/payloads/PhysX/disabled.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/PhysX/disabled.usda",
+      "sha256": "882ce8b3ce29d40577e10d1d752083d97c9c43152c3bfa3b18b716c84768c042",
+      "size_bytes": 6774
+    },
+    {
+      "destination": "reference/simready_usd/payloads/PhysX/enabled.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/PhysX/enabled.usda",
+      "sha256": "bcd77dbbb9968e41176763180abdb104ce217a71c3e77638b38741cc581ea854",
+      "size_bytes": 7589
+    },
+    {
+      "destination": "reference/simready_usd/payloads/Physics/physics.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/Physics/physics.usda",
+      "sha256": "d6f488c5eeadcd2c3cf5f57cac04843336a97883aff2509cda5ad95d4077b275",
+      "size_bytes": 10484
+    },
+    {
+      "destination": "reference/simready_usd/payloads/base.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/base.usda",
+      "sha256": "bea65eb319e9976756aab14f9199f20b62f4c2650ac65117d2c4f1a32af26f97",
+      "size_bytes": 18114
+    },
+    {
+      "destination": "reference/simready_usd/payloads/geometries.usd",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/geometries.usd",
+      "sha256": "4167fb7991ed253afb82772a42da396b1e2279e16f735f12b1ff76e7f4fa9adf",
+      "size_bytes": 3484948
+    },
+    {
+      "destination": "reference/simready_usd/payloads/instances.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/instances.usda",
+      "sha256": "351d45be8ddd9e7d1fa1a73409751eade26ede93afb3364b313748b853cbb2b9",
+      "size_bytes": 60359
+    },
+    {
+      "destination": "reference/simready_usd/payloads/instances_mujoco.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/instances_mujoco.usda",
+      "sha256": "bc22c8fa49e48a5c190f84f7f0741bbca59c007323ffd9286e02abd98c8b58fd",
+      "size_bytes": 61447
+    },
+    {
+      "destination": "reference/simready_usd/payloads/instances_newton.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/instances_newton.usda",
+      "sha256": "68794e6f9a35fa106ab9580e0ab037cfecfdba6488a91b04eec226b3117d43ff",
+      "size_bytes": 60851
+    },
+    {
+      "destination": "reference/simready_usd/payloads/instances_physx.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/instances_physx.usda",
+      "sha256": "b02f92025dce4b131326b95b78d97d9569fa1bcdea297b511b30671bb21da082",
+      "size_bytes": 60919
+    },
+    {
+      "destination": "reference/simready_usd/payloads/materials.usda",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/payloads/materials.usda",
+      "sha256": "3048fda5b3466f4957c8aa78475c7b43bcc1e06fbb146ee9bbab4f8e3d3d71bf",
+      "size_bytes": 19496
+    },
+    {
+      "destination": "reference/simready_usd/sm_wasteManagement_oilyWasteCan_metal_a01_01.usd",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/sm_wasteManagement_oilyWasteCan_metal_a01_01.usd",
+      "sha256": "603c42056e1ccd52c5fdb316363ccc3976e914d3b05db9f81fa153d13df6ea2e",
+      "size_bytes": 21801
+    },
+    {
+      "destination": "reference/simready_usd/source_assets/OmniPBR.mdl",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/reference/simready_usd/source_assets/OmniPBR.mdl",
+      "sha256": "6e6b3acbccd236e21a6c29964a431d2a53e77251cc6b8b1bc975eb1c62da1781",
+      "size_bytes": 16010
+    },
+    {
+      "destination": "comparison/cameras.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/cameras.json",
+      "sha256": "a709be9b536a759addc857d6453f8f1212788abe7bcb041307623c7c304ecb8f",
+      "size_bytes": 4551
+    },
+    {
+      "destination": "comparison/front-mask.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/front-mask.png",
+      "sha256": "1121a55b7fdd8d8cb785170c90b8f7e528b9deadb9c572d1164503b085807384",
+      "size_bytes": 3802
+    },
+    {
+      "destination": "comparison/front.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/front.png",
+      "sha256": "ea7b8272cf034b19e6e1ea162f448d1cdb4b768ba9eb50d128bcc8be33ca0247",
+      "size_bytes": 48595
+    },
+    {
+      "destination": "comparison/isometric-mask.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/isometric-mask.png",
+      "sha256": "805c5b50669e50fd2553cac4d0d7f4359106d5fa9f0268ff1307ee836c320aa9",
+      "size_bytes": 4562
+    },
+    {
+      "destination": "comparison/isometric.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/isometric.png",
+      "sha256": "e7d445695bfca78ed03deb1caa64c92d4795c35277e7f0a4441bce64ec7dbe31",
+      "size_bytes": 91039
+    },
+    {
+      "destination": "comparison/producer-cameras.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/producer-cameras.json",
+      "sha256": "ef5f93bfdd69bb617fc890834fed3d75455fce166e6db809be06bbdc2b73c079",
+      "size_bytes": 3334
+    },
+    {
+      "destination": "comparison/raw-producer-receipt.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/raw-producer-receipt.json",
+      "sha256": "f403ae753d3a8ae1749c3b13502044f75c84d014f8d55d18f710408e33ac6b40",
+      "size_bytes": 20046
+    },
+    {
+      "destination": "comparison/render-receipt.json",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/render-receipt.json",
+      "sha256": "63bb9e249bb1adc5e5ccc0aa8582c5a5950168e2b0d67029e563d523a9edaaf9",
+      "size_bytes": 19675
+    },
+    {
+      "destination": "comparison/side-mask.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/side-mask.png",
+      "sha256": "1649dc06b63e776892232f9c82a86dfb0e006b95057aad56de26d64e46efbdc6",
+      "size_bytes": 4320
+    },
+    {
+      "destination": "comparison/side.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/side.png",
+      "sha256": "f49cb5f44d614625c275881953440c95aeaedeb6ec80c50e13f6131106746c10",
+      "size_bytes": 61059
+    },
+    {
+      "destination": "comparison/top-mask.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/top-mask.png",
+      "sha256": "667a285976d3bb10bb6e327f80a2037495ca1e7bd7f62158bf29c1c50d0a071b",
+      "size_bytes": 3649
+    },
+    {
+      "destination": "comparison/top.png",
+      "path": "benchmark/nv100/v2/tasks/nv100_04ed00317ccc5a90/comparison/top.png",
+      "sha256": "00de39c016f996b3662a7cd352029ef6d80953a7085f4e988f5cf4986dd3e52c",
+      "size_bytes": 51376
+    }
+  ],
+  "repo_id": "hcltech-robotics/simreadybench",
+  "revision": "c56694fe51cda7833bea4a0e4b6e6ae255f72182",
+  "role": "verifier",
+  "schema": "simready-role-assets-v1",
+  "task_id": "nv100_04ed00317ccc5a90"
+}

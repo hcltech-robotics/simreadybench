@@ -1,0 +1,12 @@
+{
+  "cameras": "comparison/cameras.json",
+  "eligibility": "reference/eligibility.json",
+  "entrypoint": "asset.usd",
+  "fidelity_settings": {
+    "enabled": true
+  },
+  "final_seconds": 600,
+  "reference": "reference/simready_usd/sm_wasteManagement_oilyWasteCan_metal_a01_01.usd",
+  "schema": "simready-evaluator-config-v1",
+  "task_id": "nv100_04ed00317ccc5a90"
+}

@@ -1,0 +1,13 @@
+--- original/environment/Dockerfile
++++ derived/environment/Dockerfile
+@@ -19,0 +20,3 @@
++
++# Exact pinned CAD skill; Harbor registers this directory before Codex starts.
++COPY --chown=1000:1000 authoring-skills/ /opt/simready-authoring-skills/
+--- original/task.toml
++++ derived/task.toml
+@@ -5 +5 @@
+-name = "hcltech-robotics/nv100_04ed00317ccc5a90"
++name = "hcltech-robotics/nv100_04ed00317ccc5a90_cad_082"
+@@ -16,0 +17 @@
++skills_dir = "/opt/simready-authoring-skills"

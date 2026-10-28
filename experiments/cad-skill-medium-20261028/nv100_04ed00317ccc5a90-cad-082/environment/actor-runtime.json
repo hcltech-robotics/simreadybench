@@ -1,0 +1,18 @@
+{
+  "files": [
+    {
+      "destination": "observation.png",
+      "sha256": "058ad92263ca6ac778b8b6485bb58642923311e7c744710c54038c5baf86ee51",
+      "size_bytes": 115274
+    },
+    {
+      "destination": "instruction.md",
+      "sha256": "5176c5f69aa1334c44f2a5ae753c07a4ef36f57cd1c01a80ca2623cca09b5246",
+      "size_bytes": 3042
+    }
+  ],
+  "frozen_actor_manifest_sha256": "7158b5497e51edcde4ac74cd1646b5c1a1a886510f22bdda7beea609ed6cd75d",
+  "instruction_origin": "derived-public-wrapper",
+  "schema": "simready-actor-runtime-v1",
+  "task_id": "nv100_04ed00317ccc5a90"
+}

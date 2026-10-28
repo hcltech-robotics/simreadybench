@@ -1,0 +1,39 @@
+schema_version = "1.4"
+artifacts = [{source = "/output/submission", destination = "candidate"}]
+
+[task]
+name = "hcltech-robotics/nv100_04ed00317ccc5a90_cad_082"
+version = "2.2.0"
+description = "Reconstruct this oily-waste can from one frozen observation"
+
+[metadata]
+integrity_policy_id = "simready-integrity-v1"
+fixture = false
+task_id = "nv100_04ed00317ccc5a90"
+object_name = "oily-waste can"
+nominal_dimensions_m = [0.4926615161821246, 0.48329901695251465, 0.6464274525665711]
+
+[environment]
+skills_dir = "/opt/simready-authoring-skills"
+network_mode = "public"
+build_timeout_sec = 1200
+cpus = 4
+memory_mb = 8192
+storage_mb = 8192
+
+[agent]
+timeout_sec = 231000
+user = 1000
+network_mode = "public"
+
+[verifier]
+environment_mode = "separate"
+network_mode = "no-network"
+timeout_sec = 600
+
+[verifier.environment]
+network_mode = "no-network"
+build_timeout_sec = 1200
+cpus = 4
+memory_mb = 16384
+storage_mb = 8192

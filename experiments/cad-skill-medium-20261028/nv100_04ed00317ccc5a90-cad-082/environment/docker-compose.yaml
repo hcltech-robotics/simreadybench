@@ -1,0 +1,52 @@
+{
+  "services": {
+    "feedback": {
+      "build": {
+        "context": "${CONTEXT_DIR}",
+        "dockerfile": "Dockerfile.feedback"
+      },
+      "cap_add": [
+        "SETUID",
+        "SETGID",
+        "CHOWN"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "cpus": 2,
+      "healthcheck": {
+        "interval": "2s",
+        "retries": 30,
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=2).read()"
+        ],
+        "timeout": "3s"
+      },
+      "mem_limit": "8g",
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "tmpfs": [
+        "/tmp:size=2147483648,mode=1777"
+      ],
+      "user": "0",
+      "volumes": [
+        "feedback-ledger:/state"
+      ]
+    },
+    "main": {
+      "depends_on": {
+        "feedback": {
+          "condition": "service_healthy"
+        }
+      }
+    }
+  },
+  "volumes": {
+    "feedback-ledger": {}
+  }
+}

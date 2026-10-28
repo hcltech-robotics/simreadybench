@@ -1,0 +1,118 @@
+{
+  "schema": "simreadybench-cad-skill-experiment-v1",
+  "scope": {
+    "assets": 1,
+    "trials_total": 2,
+    "conditions": [
+      {
+        "model": "openai/gpt-6.1-sol",
+        "reasoning_effort": "medium",
+        "attempts": 1
+      },
+      {
+        "model": "openai/gpt-6.1-terra",
+        "reasoning_effort": "medium",
+        "attempts": 1
+      }
+    ],
+    "retries_per_trial": 0,
+    "agent": "codex",
+    "agent_version": "0.164.0"
+  },
+  "source": {
+    "task": "hcltech-robotics/nv100_04ed00317ccc5a90",
+    "task_ref": "sha256:66d369bca7399c818976c6537900e9048a9fd8f0f345fc3ea8c886ad846c9283",
+    "dataset_ref": "sha256:8433b438e66de164bf77ae150be907f8c530becc3c46e9532e13fd8097ed4c30",
+    "baseline_job": "dc30f963-ebba-47f8-a052-535ce8a706f4",
+    "base_repository_commit": "4099dd6b131b65e35adff5919223f7fea1121210"
+  },
+  "object": {
+    "name": "oily-waste can",
+    "stable_task_id": "nv100_04ed00317ccc5a90"
+  },
+  "skill": {
+    "repository": "https://github.com/earthtojake/text-to-cad",
+    "revision": "2781952aebca62cb4fd11a9d2f91b4e26ea48590",
+    "release": "0.8.2",
+    "path": "skills/cad",
+    "retrieved_at_utc": "2026-10-28T19:15:19Z",
+    "retrieval_timestamp_source": "Git clone reflog",
+    "native_skill_digest": "sha256:f6875155dd84f1a0afcac82226a3c8497df8eeb734e4ecb7ec0db0125f7ff954",
+    "files": {
+      "SKILL.md": "22678a28225e65083fb5fcdb11992a91024aaf19801d72a00d2dc58e78b84cd6",
+      "LICENSE": "c11168234f932c4a39bb640571079e73b178b4459682a5507e5944ad723058b3",
+      "references/snapshot-review.md": "541f2f26e5ce7da43e5f64870d8655b9c41ebf5f7d45557e2d7094501001b450",
+      "references/model-contract.md": "f72e6e76556f71360173265426c5b1ce657e91f4a1919f0c166025d2244a642d",
+      "references/positioning.md": "2eafd5336a54b9b9b73c4e7da4aa761408dfe48bedbf7b20b2ec64c14db435f1",
+      "references/build123d-modeling.md": "2711b10f102c570db325de34c907b2ef5ad52a01f853a4f013f381fb6ce34b9b",
+      "references/animation.md": "0780da04d26707e498fb02f8d8573c073ab7554047ceb8001a7b4d28ecdf89a0",
+      "references/kinematics.md": "8349e4f8348d6cc1ba2ed171af2e3d1fe2e7ecd5023be4cfc61a06b66ce4ef95",
+      "references/project-layout.md": "5601eeb8e16050763dd989c90e63bdf0b6ac10096c3f6a67bb81cbc5c72732b7",
+      "references/migrations.md": "101cb028ec63b9108662d71b22dba2f743fe4429fd6aa83ccd7c7dbbb42220bd",
+      "references/exports.md": "b35cb9172dc9802dcb27752f8665cf0d34f229a62b36157523a18a23b73d9d6b",
+      "references/inspection-and-validation.md": "f58a70abd7359770fe45914c088ebc2ee44febf035a4bcffa0f613da9e92f5ba",
+      "agents/openai.yaml": "2250f0db89ddfc238baccd2c81a27628505a21e7916db74e006b1b3b973a6697"
+    }
+  },
+  "dependencies": {
+    "cadgen": "0.8.2",
+    "build123d": "0.13.0",
+    "cadquery-ocp-novtk": "8.0.1.1.0",
+    "python": "3.12",
+    "requirements_sha256": "3a00bee027f4b6d93a218a5f0870aadf3e02c0cabac0b174fef5a4b88fa53fc8",
+    "bootstrap_sha256": "50459c151322b621dad52d626218e1230e881649faf0aea8c90d89a246c32d69",
+    "system_libraries_sha256": "6eb200e1a30e8f0b577f581650a83492e16eee953d20162ff7f70875c308f8bb",
+    "installation": "Required native Codex MCP startup installs hash-pinned Python packages and user-local shared libraries, checks headless CAD, then starts CAD MCP before model work."
+  },
+  "derived_task": {
+    "path": "experiments/cad-skill-medium-20261028/nv100_04ed00317ccc5a90-cad-082",
+    "digest": "sha256:70027914ad98a10068508f70a298edc010b154b62df4d499973c76f344e58d43",
+    "publishable_files": 32,
+    "changed_original_files": [
+      "environment/Dockerfile",
+      "task.toml"
+    ],
+    "changes": [
+      "Derived task display/package name",
+      "environment.skills_dir points to bundled full skill tree",
+      "Dockerfile COPY installs exact skill tree with UID 1000 ownership"
+    ],
+    "original_file_hashes": {
+      "task.toml": "fa9efa265efc65dcf91407a94421e2b1d8c4152d4cd536361fd290cfc43b265d",
+      "instruction.md": "d6f514abda954005d929d0d77ff738b407fa6c09c2340aedd14fffde42fa6d99",
+      "tests/evaluator.json": "950b0fca77e4641cb6c9ccef64375be0b4b711b5e143ab409eab7e2e8e526912",
+      "tests/Dockerfile": "a562d0e60bca5fc1946996eb9bb2debda0664e69ffb3dec53fb5be64ce75bc1f",
+      "tests/test.sh": "380c6efb3808678a0e76fb1d822d94c11269ac430fec7d6fff99fbc04c10c555",
+      "tests/verifier.requirements.txt": "ae1389f68a6e85ae766b41ba94068fbaea00df428345f7e6dea57e37c069c12c",
+      "tests/verifier-assets.json": "5de3389ae08ca521feedd738c620a282192140586d4510b328900d042950fb83",
+      "tests/simreadybench_eval-2.2.0-py3-none-any.whl": "caf759ff7d9b392922530567b22678da4556de366fa879ef6395299425627d52",
+      "environment/actor-runtime.json": "25f46a1c90a6b1a225db0fc9f1b08b32052935bdf2bfa887f1e88cc3f1cf43b4",
+      "environment/Dockerfile.feedback": "54296143110d7bd0a4f458a5b696702840eafd42ba21affe197d06ca2a1a6d2a",
+      "environment/Dockerfile": "4d40607a194f0aea4fc364d56d9d4c9c4e6e277a8debafce640cd28f9a8201c2",
+      "environment/observation.png": "058ad92263ca6ac778b8b6485bb58642923311e7c744710c54038c5baf86ee51",
+      "environment/actor-assets.json": "a409027da1bb32150d2435cd3e90b888292a44303c2df71752cde6dabf26890e",
+      "environment/docker-compose.yaml": "e4bddff594f3082090a18c961d73f7266906aa7373e1ce82288b66d7503b0ab6",
+      "environment/feedback.requirements.txt": "a7761b533f6355064823ba027949c7138a810d7599c2fa5048b5770e8f4f8d10",
+      "environment/instruction.md": "5176c5f69aa1334c44f2a5ae753c07a4ef36f57cd1c01a80ca2623cca09b5246",
+      "environment/actor.requirements.txt": "99047fe42d2ed754bb85281e5b55d1e644a735b12ef5e34358594b8bf0e48116",
+      "environment/simreadybench_eval-2.2.0-py3-none-any.whl": "caf759ff7d9b392922530567b22678da4556de366fa879ef6395299425627d52",
+      "environment/source-public-instruction.txt": "b8d4dc2322c20a77660e4ab0edf20e5b79d3bbd7ecad0e76c7aa767d5c2d2bb6"
+    },
+    "original_instruction_observation_verifier_evaluator_unchanged": true,
+    "environment_skill_registration": "Harbor native task skills_dir -> HOME/.agents/skills before codex exec",
+    "git_storage": "The experiment .gitattributes disables text normalization, preserving frozen input and upstream skill bytes."
+  },
+  "validation": {
+    "previous_local_actor_build_passed": true,
+    "previous_headless_geometry_and_STEP_reimport_passed": true,
+    "previous_MCP_startup_passed": true,
+    "native_skill_registration_passed": true,
+    "all_13_skill_files_hash_matched": true,
+    "new_generation_or_duplicate_build_performed_for_staging": false
+  },
+  "caveats": [
+    "This is an explicitly skill-augmented copied task; canonical benchmark tasks and main are unchanged.",
+    "Historical Terra low/high trials are not reasoning-matched controls for these medium conditions.",
+    "No quality comparison exists until the two authorized hosted trials complete."
+  ]
+}
