@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en-GB">
-<head>
+<!DOCTYPE html><html lang="en-GB"><head>
   <meta name="google-site-verification" content="59pmR-a3Tx94N5MB2k3PrCdhMv4HJpMLJiP80z8Cxyk">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,13 +27,13 @@
   <link rel="sitemap" type="application/xml" href="https://hcltech-robotics.github.io/simreadybench/sitemap.xml">
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/index.css">
-  <link rel="stylesheet" href="style.css?v=pareto-available-20261024">
+  <link rel="stylesheet" href="style.css?v=nv100-20261029">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
-  <script src="app.js?v=pin-suffix-20261024" defer></script>
-  <script src="explorer.js?v=pin-suffix-20261024" type="module"></script>
-  <script src="pareto.js?v=available-20261024" type="module"></script>
+  <script src="app.js?v=nv100-20261029" defer=""></script>
+  <script src="explorer.js?v=nv100-20261029" type="module"></script>
+  <script src="pareto.js?v=nv100-20261029" type="module"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -133,32 +131,32 @@
         <div class="explorer-controls">
           <div class="field explorer-field">
             <label class="label" for="explorer-object">Reference object</label>
-            <div class="control"><div class="select is-fullwidth"><select id="explorer-object" disabled><option>Loading…</option></select></div></div>
+            <div class="control"><div class="select is-fullwidth"><select id="explorer-object" disabled=""><option>Loading…</option></select></div></div>
           </div>
           <div class="field explorer-field explorer-condition-field">
             <label class="label" for="explorer-variant">Model and run</label>
-            <div class="control"><div class="select is-fullwidth"><select id="explorer-variant" disabled><option>Loading…</option></select></div></div>
+            <div class="control"><div class="select is-fullwidth"><select id="explorer-variant" disabled=""><option>Loading…</option></select></div></div>
           </div>
         </div>
         <div class="explorer-toolbar">
           <div class="buttons has-addons explorer-modes" role="group" aria-label="Comparison mode">
-            <button type="button" class="button is-small is-dark" id="explorer-mode-swipe" aria-pressed="true" disabled>Swipe</button>
-            <button type="button" class="button is-small" id="explorer-mode-delta" aria-pressed="false" disabled>Mesh delta cloud</button>
+            <button type="button" class="button is-small is-dark" id="explorer-mode-swipe" aria-pressed="true" disabled="">Swipe</button>
+            <button type="button" class="button is-small" id="explorer-mode-delta" aria-pressed="false" disabled="">Mesh delta cloud</button>
           </div>
-          <button type="button" class="button is-small explorer-reset" id="explorer-reset" disabled>Reset view</button>
+          <button type="button" class="button is-small explorer-reset" id="explorer-reset" disabled="">Reset view</button>
         </div>
         <p id="explorer-status" class="is-sr-only" role="status" aria-live="polite"></p>
         <div class="explorer-stage" id="explorer-stage" data-mode="swipe" aria-busy="true" style="--split: 50%">
           <div class="explorer-canvas" id="explorer-canvas"></div>
           <div class="explorer-side-labels" aria-hidden="true">
-            <span>Reference · <span id="explorer-reference-title">NV25</span></span>
+            <span>Reference · <span id="explorer-reference-title">NV100</span></span>
             <span>Reconstruction · <span id="explorer-candidate-title">Model</span></span>
           </div>
-          <div class="explorer-divider" id="explorer-divider" aria-hidden="true" hidden></div>
-          <input type="range" class="explorer-swipe" id="explorer-swipe" min="0" max="100" value="50" step="1" aria-label="Comparison split" aria-valuetext="50% reference, 50% reconstruction" hidden disabled>
+          <div class="explorer-divider" id="explorer-divider" aria-hidden="true" hidden=""></div>
+          <input type="range" class="explorer-swipe" id="explorer-swipe" min="0" max="100" value="50" step="1" aria-label="Comparison split" aria-valuetext="50% reference, 50% reconstruction" hidden="" disabled="">
           <p class="explorer-preview-message" id="explorer-preview-message">Loading geometry…</p>
         </div>
-        <div class="explorer-delta-controls" id="explorer-delta-controls" hidden>
+        <div class="explorer-delta-controls" id="explorer-delta-controls" hidden="">
           <div class="explorer-threshold-control">
             <label for="explorer-threshold">Minimum difference</label>
             <input type="range" id="explorer-threshold" min="0" max="5" step="0.05" value="0" aria-describedby="explorer-threshold-value">
@@ -169,11 +167,16 @@
           </div>
           <p class="table-note explorer-delta-summary"><span id="explorer-point-count"></span><span>Bidirectional surface distance</span></p>
         </div>
+        <div class="explorer-render-pair">
+          <figure><img src="https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4/presentation/assets/explorer/equipment_bench_vise_a01/observation.png" id="explorer-reference-observation" alt="Reference input image" loading="lazy"><figcaption>Reference input</figcaption></figure>
+          <figure><img src="https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4/f6a319d8-7038-4b03-a837-54700dd22580/renders/isometric.png" id="explorer-candidate-render" alt="Rendered reconstruction" loading="lazy"><p id="explorer-render-message" hidden="">Render unavailable</p><figcaption>Reconstruction render</figcaption></figure>
+        </div>
         <div class="explorer-source-links table-note">
           <a id="explorer-reference-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Reference source</a>
+          <a id="explorer-package" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Download USD package</a>
           <a id="explorer-result-source" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">Trial results</a>
         </div>
-        <div class="explorer-readout content" id="explorer-readout" hidden>
+        <div class="explorer-readout content" id="explorer-readout" hidden="">
           <p class="table-note" id="explorer-trial-label"></p>
           <div class="table-container">
             <table class="table is-fullwidth explorer-table" aria-label="Reconstruction fidelity scores">
@@ -181,7 +184,7 @@
               <tbody><tr id="explorer-scores"></tr></tbody>
             </table>
             <table class="table is-fullwidth explorer-table" aria-label="Reconstruction cost, tokens and time">
-              <thead><tr><th scope="col" id="explorer-cost-label">Cost</th><th scope="col">Tokens</th><th scope="col">Elapsed time</th></tr></thead>
+              <thead><tr><th scope="col" id="explorer-cost-label">Cost</th><th scope="col">Tokens</th><th scope="col">Trial time</th></tr></thead>
               <tbody><tr id="explorer-usage"></tr></tbody>
             </table>
           </div>
@@ -198,17 +201,17 @@
           <div class="column">
             <h2 class="title is-3">Leaderboard</h2>
             <div class="content has-text-left">
-              <p>The NV25 public reference set contains 25 NVIDIA SimReady assets. Each entry reports formal, visual and kinematic fidelity across 100 reconstructions, with links to the per-asset measurements, generated USDs and captures. The 51 optional SimReady requirements are scored separately from the 46 mandatory requirements in formal fidelity.</p>
-              <div class="table-container leaderboard-scroll" id="leaderboard-table-region" tabindex="0" role="region" aria-label="Model performance leaderboard" hidden>
+              <p>Compare formal, visual and kinematic fidelity on NV100. Formal fidelity is the primary score.</p>
+              <div class="table-container leaderboard-scroll" id="leaderboard-table-region" tabindex="0" role="region" aria-label="Model performance leaderboard" data-load-state="ready">
                 <table class="table is-fullwidth leaderboard-table">
-                  <caption id="leaderboard-caption">NV25 public reference set, four reconstructions per asset</caption>
-                  <thead><tr><th scope="col">Model</th><th scope="col">Reasoning</th><th scope="col">Harness</th><th scope="col">Skills</th><th scope="col">Formal fidelity</th><th scope="col">Optional score</th><th scope="col">Visual fidelity</th><th scope="col">Kinematic fidelity</th><th scope="col">Requests</th><th scope="col">Time</th><th scope="col">Tokens</th><th scope="col">Cost</th><th scope="col">Results</th></tr></thead>
-                  <tbody id="leaderboard-body"></tbody>
+                  <caption id="leaderboard-caption">100 NV100 objects · three reconstructions per configuration · evaluator 2.2.0</caption>
+                  <thead><tr><th scope="col">Configuration</th><th scope="col">Formal (%)</th><th scope="col">Visual (%)</th><th scope="col">Kinematic (%)</th><th scope="col">Inference cost ($/asset)</th><th scope="col">Trial time (min/asset)</th><th scope="col">Tokens/asset</th><th scope="col">Results</th></tr></thead>
+                  <tbody id="leaderboard-body"><tr><td>Sol low</td><td title="300/300 scores" style="font-weight: 700;">97.69</td><td title="297/300 scores">51.17</td><td title="298/300 scores">2.44</td><td>$0.2072</td><td>5.86</td><td>478,511</td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><td>Sol medium</td><td title="300/300 scores" style="font-weight: 700;">99.98</td><td title="295/300 scores">53.66</td><td title="300/300 scores">3.14</td><td>$0.4145</td><td>9.32</td><td>1,064,313</td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><td>Sol high</td><td title="300/300 scores" style="font-weight: 700;">100</td><td title="282/300 scores">56.86</td><td title="300/300 scores">3.68</td><td>$0.7145</td><td>14.39</td><td>1,990,604</td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><td>Terra low</td><td title="300/300 scores" style="font-weight: 700;">91.13</td><td title="295/300 scores">47.81</td><td title="299/300 scores">0.87</td><td>$0.0969</td><td>4.4</td><td>359,013</td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><td>Terra high</td><td title="300/300 scores" style="font-weight: 700;">100</td><td title="289/300 scores">54.03</td><td title="300/300 scores">2.79</td><td>$0.2735</td><td>7.76</td><td>1,653,681</td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr></tbody>
                 </table>
               </div>
-              <p id="leaderboard-status" class="table-note" aria-live="polite" hidden></p>
-              <p><a id="leaderboard-archive" class="button is-normal is-rounded is-dark" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench">View leaderboard on Hugging Face</a></p>
-              <p class="table-note">Scores are means on a 0-100 scale with 95% confidence intervals from 10,000 asset-cluster bootstrap samples, retaining each asset's four reconstructions together. Requests, time, tokens and costs are means per reconstruction across all 100 attempts. A usage mean is shown only when every attempt has a measurement, with partial coverage shown otherwise. Costs are in USD. Counts sum passed requirements or earned fidelity credit over all eligible criteria, so their pooled fraction can differ from the mean score. Fidelity reference coverage is the mean across eligible reconstructions and is reported separately from the number of criteria measured. N/A means that no reference criteria apply, while an unmeasured result retains its missing score and any known bounds. <a href="#measures">Score definitions</a></p>
+              <p id="leaderboard-status" class="table-note" aria-live="polite" hidden=""></p>
+              <p><a id="leaderboard-archive" class="button is-normal is-rounded is-dark" href="https://huggingface.co/datasets/hcltech-robotics/simreadybench" hidden="">View leaderboard on Hugging Face</a></p>
+              <p class="table-note">Scores are means per reconstruction. Cost and trial time include retries.</p>
             </div>
           </div>
         </div>
@@ -216,48 +219,45 @@
     </section>
 
     <section class="section pareto-section" id="pareto" aria-labelledby="pareto-title">
-      <div class="container is-max-desktop" id="pareto-root" data-load-state="loading">
-        <h2 class="title is-3 has-text-centered" id="pareto-title">Score and inference efficiency</h2>
+      <div class="container is-max-desktop" id="pareto-root" data-load-state="ready" data-axis="cost_usd_per_asset" data-score="formal" data-points="5">
+        <h2 class="title is-3 has-text-centered" id="pareto-title">Quality and efficiency</h2>
         <div class="pareto-controls">
           <div class="buttons has-addons pareto-score-controls" role="group" aria-label="Fidelity score">
-            <button type="button" class="button is-small is-dark" data-pareto-score="cumulative" aria-pressed="true">Cumulative</button>
-            <button type="button" class="button is-small" data-pareto-score="all" aria-pressed="false">All subscores</button>
-            <button type="button" class="button is-small" data-pareto-score="formal" aria-pressed="false"><span class="pareto-swatch pareto-formal" aria-hidden="true"></span>Formal</button>
-            <button type="button" class="button is-small" data-pareto-score="visual" aria-pressed="false"><span class="pareto-swatch pareto-visual" aria-hidden="true"></span>Visual</button>
-            <button type="button" class="button is-small" data-pareto-score="kinematic" aria-pressed="false"><span class="pareto-swatch pareto-kinematic" aria-hidden="true"></span>Kinematic</button>
+            <button type="button" class="button is-small is-dark" data-pareto-score="formal" aria-pressed="true" disabled=""><span class="pareto-swatch pareto-formal" aria-hidden="true"></span>Formal</button>
+            <button type="button" class="button is-small" data-pareto-score="all" aria-pressed="false" disabled="">All three</button>
+            <button type="button" class="button is-small" data-pareto-score="visual" aria-pressed="false" disabled=""><span class="pareto-swatch pareto-visual" aria-hidden="true"></span>Visual</button>
+            <button type="button" class="button is-small" data-pareto-score="kinematic" aria-pressed="false" disabled=""><span class="pareto-swatch pareto-kinematic" aria-hidden="true"></span>Kinematic</button>
           </div>
-          <div class="pareto-options">
-            <label class="checkbox"><input type="checkbox" id="pareto-separate"> Separate scores</label>
+          <div class="pareto-options" hidden="">
+            <label class="checkbox"><input type="checkbox" id="pareto-separate" disabled=""> Separate scores</label>
           </div>
         </div>
         <div class="pareto-chart-wrap">
-          <div id="pareto-plot" class="pareto-plot" aria-label="Fidelity against inference usage"></div>
-          <div id="pareto-tooltip" class="pareto-tooltip" role="group" aria-label="Selected configuration" hidden></div>
+          <div id="pareto-plot" class="pareto-plot" aria-label="Fidelity against inference usage"><svg viewBox="0 0 960 410" width="960" height="410" role="group" aria-label="Formal fidelity against inference cost per asset"><title>Score and inference efficiency</title><desc>Higher scores and lower inference use are better. Focus or select a marker for configuration, measurement coverage and source. Colours identify fidelity scores; shapes identify model families. Shading shows the area attained below each frontier.</desc><g transform="translate(0,0)"><g class="pareto-grid" transform="translate(58,0)" fill="none" font-size="10" font-family="sans-serif" text-anchor="end"><g class="tick" opacity="1" transform="translate(0,353.1818232724829)"><line stroke="currentColor" x2="880"></line><text fill="currentColor" x="-3" dy="0.32em"></text></g><g class="tick" opacity="1" transform="translate(0,293.4214917683951)"><line stroke="currentColor" x2="880"></line><text fill="currentColor" x="-3" dy="0.32em"></text></g><g class="tick" opacity="1" transform="translate(0,233.66116026430734)"><line stroke="currentColor" x2="880"></line><text fill="currentColor" x="-3" dy="0.32em"></text></g><g class="tick" opacity="1" transform="translate(0,173.90082876021953)"><line stroke="currentColor" x2="880"></line><text fill="currentColor" x="-3" dy="0.32em"></text></g><g class="tick" opacity="1" transform="translate(0,114.14049725613168)"><line stroke="currentColor" x2="880"></line><text fill="currentColor" x="-3" dy="0.32em"></text></g><g class="tick" opacity="1" transform="translate(0,54.38016575204391)"><line stroke="currentColor" x2="880"></line><text fill="currentColor" x="-3" dy="0.32em"></text></g></g><g class="pareto-axis" transform="translate(58,0)" fill="none" font-size="10" font-family="sans-serif" text-anchor="end"><g class="tick" opacity="1" transform="translate(0,353.1818232724829)"><line stroke="currentColor" x2="0"></line><text fill="currentColor" x="-9" dy="0.32em">90</text></g><g class="tick" opacity="1" transform="translate(0,293.4214917683951)"><line stroke="currentColor" x2="0"></line><text fill="currentColor" x="-9" dy="0.32em">92</text></g><g class="tick" opacity="1" transform="translate(0,233.66116026430734)"><line stroke="currentColor" x2="0"></line><text fill="currentColor" x="-9" dy="0.32em">94</text></g><g class="tick" opacity="1" transform="translate(0,173.90082876021953)"><line stroke="currentColor" x2="0"></line><text fill="currentColor" x="-9" dy="0.32em">96</text></g><g class="tick" opacity="1" transform="translate(0,114.14049725613168)"><line stroke="currentColor" x2="0"></line><text fill="currentColor" x="-9" dy="0.32em">98</text></g><g class="tick" opacity="1" transform="translate(0,54.38016575204391)"><line stroke="currentColor" x2="0"></line><text fill="currentColor" x="-9" dy="0.32em">100</text></g></g><g class="pareto-axis" transform="translate(0,372)" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle"><path class="domain" stroke="currentColor" d="M58.5,4V0.5H938.5V4"></path><g class="tick" opacity="1" transform="translate(58.5,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.00</text></g><g class="tick" opacity="1" transform="translate(168.5,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.10</text></g><g class="tick" opacity="1" transform="translate(278.5,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.20</text></g><g class="tick" opacity="1" transform="translate(388.49999999999994,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.30</text></g><g class="tick" opacity="1" transform="translate(498.5,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.40</text></g><g class="tick" opacity="1" transform="translate(608.5,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.50</text></g><g class="tick" opacity="1" transform="translate(718.4999999999999,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.60</text></g><g class="tick" opacity="1" transform="translate(828.4999999999999,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.70</text></g><g class="tick" opacity="1" transform="translate(938.5,0)"><line stroke="currentColor" y2="4"></line><text fill="currentColor" y="12" dy="0.71em">$0.80</text></g></g><text class="pareto-axis-title" x="58" y="13">Fidelity / 100</text><path class="pareto-frontier-area" data-score="formal" data-frontier-group="nv100-v1:2.2.0" data-frontier-points="3" fill="#0072b2" d="M164.613,318.98L285.962,318.98L285.962,122.832L358.857,122.832L358.857,53.88L938,53.88L938,53.88L938,372L938,372L358.857,372L358.857,372L285.962,372L285.962,372L164.613,372Z"></path><path class="pareto-frontier" data-score="formal" stroke="#0072b2" d="M164.613,318.98L285.962,318.98L285.962,122.832L358.857,122.832L358.857,53.88L938,53.88L938,53.88"></path><g class="pareto-point" data-run-id="harbor-evaluator-2.2.0-gpt-6.1-sol-unspecified" data-family="Sol" data-score="formal" data-point-id="harbor-evaluator-2.2.0-gpt-6.1-sol-unspecified:formal" data-frontier="true" data-complete="false" transform="translate(285.96208636666665,122.8318960689888)" fill="#0072b2" stroke="#0072b2" role="img" aria-label="Sol low. Formal fidelity: 97.69 / 100. Inference cost: USD 0.2072 per asset. 302/303 executions. On frontier."><circle class="pareto-hit" r="12"></circle><path class="pareto-symbol" d="M5.202,0A5.202,5.202,0,1,1,-5.202,0A5.202,5.202,0,1,1,5.202,0"></path><text class="pareto-point-label" x="9" y="-9" text-anchor="start" font-size="10" fill="#344552">Sol low</text></g><g class="pareto-point" data-run-id="harbor-evaluator-2.2.0-gpt-6.1-sol-medium" data-family="Sol" data-score="formal" data-point-id="harbor-evaluator-2.2.0-gpt-6.1-sol-medium:formal" data-frontier="false" data-complete="true" transform="translate(513.9259023,54.583865307798746)" fill="#0072b2" stroke="#0072b2" role="img" aria-label="Sol medium. Formal fidelity: 99.98 / 100. Inference cost: USD 0.4145 per asset. 302/302 executions. Dominated."><circle class="pareto-hit" r="12"></circle><path class="pareto-symbol" d="M5.202,0A5.202,5.202,0,1,1,-5.202,0A5.202,5.202,0,1,1,5.202,0"></path><text class="pareto-point-label" x="9" y="-9" text-anchor="start" font-size="10" fill="#344552">Sol medium</text></g><g class="pareto-point" data-run-id="harbor-evaluator-2.2.0-gpt-6.1-sol-high" data-family="Sol" data-score="formal" data-point-id="harbor-evaluator-2.2.0-gpt-6.1-sol-high:formal" data-frontier="false" data-complete="true" transform="translate(843.9299854999999,53.88016575204391)" fill="#0072b2" stroke="#0072b2" role="img" aria-label="Sol high. Formal fidelity: 100 / 100. Inference cost: USD 0.7145 per asset. 306/306 executions. Dominated."><circle class="pareto-hit" r="12"></circle><path class="pareto-symbol" d="M5.202,0A5.202,5.202,0,1,1,-5.202,0A5.202,5.202,0,1,1,5.202,0"></path><text class="pareto-point-label" x="-9" y="-9" text-anchor="end" font-size="10" fill="#344552">Sol high</text></g><g class="pareto-point" data-run-id="harbor-evaluator-2.2.0-gpt-6.1-terra-low" data-family="Terra" data-score="formal" data-point-id="harbor-evaluator-2.2.0-gpt-6.1-terra-low:formal" data-frontier="true" data-complete="true" transform="translate(164.61264808333334,318.98002762534065)" fill="#0072b2" stroke="#0072b2" role="img" aria-label="Terra low. Formal fidelity: 91.13 / 100. Inference cost: USD 0.0969 per asset. 300/300 executions. On frontier."><circle class="pareto-hit" r="12"></circle><path class="pareto-symbol" d="M-4.61,-4.61h9.22v9.22h-9.22Z"></path><text class="pareto-point-label" x="9" y="-9" text-anchor="start" font-size="10" fill="#344552">Terra low</text></g><g class="pareto-point" data-run-id="harbor-evaluator-2.2.0-gpt-6.1-terra-high" data-family="Terra" data-score="formal" data-point-id="harbor-evaluator-2.2.0-gpt-6.1-terra-high:formal" data-frontier="true" data-complete="true" transform="translate(358.8566240166666,53.88016575204391)" fill="#0072b2" stroke="#0072b2" role="img" aria-label="Terra high. Formal fidelity: 100 / 100. Inference cost: USD 0.2735 per asset. 300/300 executions. On frontier."><circle class="pareto-hit" r="12"></circle><path class="pareto-symbol" d="M-4.61,-4.61h9.22v9.22h-9.22Z"></path><text class="pareto-point-label" x="9" y="-9" text-anchor="start" font-size="10" fill="#344552">Terra high</text></g></g></svg></div>
+          <div id="pareto-tooltip" class="pareto-tooltip" role="group" aria-label="Selected configuration" hidden=""></div>
         </div>
         <div class="pareto-x-label">
           <label class="is-sr-only" for="pareto-x">Horizontal axis, per asset reconstruction</label>
-          <div class="select is-small"><select id="pareto-x">
-            <option value="cost_usd_per_asset">Inference cost (USD / asset)</option>
-            <option value="time_seconds_per_asset">Inference time (min / asset)</option>
+          <div class="select is-small"><select id="pareto-x" disabled="">
+            <option value="cost_usd_per_asset">Inference cost ($ / asset)</option>
             <option value="tokens_per_asset">Tokens / asset</option>
-            <option value="elapsed_seconds_per_asset">Elapsed time (min / asset)</option>
+            <option value="elapsed_seconds_per_asset">Trial time (min / asset)</option>
           </select></div>
         </div>
-        <ul class="pareto-run-legend" id="pareto-run-legend" aria-label="Model families"></ul>
-        <p class="table-note pareto-note" id="pareto-status" role="status" aria-live="polite">Loading trajectory measurements…</p>
-        <p class="table-note pareto-note">Shading shows the area below each frontier, within the same evaluator and references. Lower inference use and higher scores are better. Means use all available measurements; coverage is shown in the details.</p>
-        <p class="table-note pareto-note">Cumulative score is the mean of the three subscores after subtracting each subscore's leaderboard mean and dividing by its population standard deviation.</p>
+        <ul class="pareto-run-legend" id="pareto-run-legend" aria-label="Model families"><li data-family="Sol"><svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="M4.549,0A4.549,4.549,0,1,1,-4.549,0A4.549,4.549,0,1,1,4.549,0"></path></svg><span>Sol</span></li><li data-family="Terra"><svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="M-4.031,-4.031h8.062v8.062h-8.062Z"></path></svg><span>Terra</span></li></ul>
+        <p class="table-note pareto-note" id="pareto-status" role="status" aria-live="polite">5/5 configurations · 5 score observations</p>
+        <p class="table-note pareto-note">Higher fidelity and lower cost or time are better. The frontier shows configurations that cannot be improved on one axis without losing on the other.</p>
         <details class="pareto-data" id="pareto-data">
           <summary>Measurements and coverage</summary>
           <div class="table-container" tabindex="0" role="region" aria-label="Pareto source measurements">
             <table class="table is-fullwidth pareto-table">
-              <caption>Mean scores and mean usage per reconstruction, each calculated from its available measurements. Coverage can differ between measures.</caption>
-              <thead><tr><th scope="col">Configuration</th><th scope="col">Cumulative</th><th scope="col">Formal</th><th scope="col">Visual</th><th scope="col">Kinematic</th><th scope="col">Inference cost</th><th scope="col">Inference time</th><th scope="col">Tokens</th><th scope="col">Elapsed time</th><th scope="col">Source</th></tr></thead>
-              <tbody id="pareto-table-body"></tbody>
+              <caption>Matched comparison means and usage per reconstruction.</caption>
+              <thead><tr><th scope="col">Configuration</th><th scope="col">Formal</th><th scope="col">Visual</th><th scope="col">Kinematic</th><th scope="col">Inference cost</th><th scope="col">Tokens</th><th scope="col">Trial time</th><th scope="col">Source</th></tr></thead>
+              <tbody id="pareto-table-body"><tr><th scope="row">Sol low<span class="metric-coverage">2.2.0</span></th><td class="metric-value pareto-formal-text">97.69<span class="metric-coverage">300/300 eligible reconstructions</span></td><td class="metric-value pareto-visual-text">50.94<span class="metric-coverage">265/300 eligible reconstructions</span></td><td class="metric-value pareto-kinematic-text">2.45<span class="metric-coverage">297/300 eligible reconstructions</span></td><td class="metric-value">USD 0.2072<span class="metric-coverage">302/303 executions</span></td><td class="metric-value">478,511<span class="metric-coverage">302/303 executions</span></td><td class="metric-value">5.86 min<span class="metric-coverage">303/303 executions</span></td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><th scope="row">Sol medium<span class="metric-coverage">2.2.0</span></th><td class="metric-value pareto-formal-text">99.98<span class="metric-coverage">300/300 eligible reconstructions</span></td><td class="metric-value pareto-visual-text">52.85<span class="metric-coverage">265/300 eligible reconstructions</span></td><td class="metric-value pareto-kinematic-text">3.17<span class="metric-coverage">297/300 eligible reconstructions</span></td><td class="metric-value">USD 0.4145<span class="metric-coverage">302/302 executions</span></td><td class="metric-value">1,064,313<span class="metric-coverage">302/302 executions</span></td><td class="metric-value">9.32 min<span class="metric-coverage">302/302 executions</span></td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><th scope="row">Sol high<span class="metric-coverage">2.2.0</span></th><td class="metric-value pareto-formal-text">100<span class="metric-coverage">300/300 eligible reconstructions</span></td><td class="metric-value pareto-visual-text">56.79<span class="metric-coverage">265/300 eligible reconstructions</span></td><td class="metric-value pareto-kinematic-text">3.71<span class="metric-coverage">297/300 eligible reconstructions</span></td><td class="metric-value">USD 0.7145<span class="metric-coverage">306/306 executions</span></td><td class="metric-value">1,990,604<span class="metric-coverage">306/306 executions</span></td><td class="metric-value">14.39 min<span class="metric-coverage">306/306 executions</span></td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><th scope="row">Terra low<span class="metric-coverage">2.2.0</span></th><td class="metric-value pareto-formal-text">91.13<span class="metric-coverage">300/300 eligible reconstructions</span></td><td class="metric-value pareto-visual-text">47.38<span class="metric-coverage">265/300 eligible reconstructions</span></td><td class="metric-value pareto-kinematic-text">0.87<span class="metric-coverage">297/300 eligible reconstructions</span></td><td class="metric-value">USD 0.0969<span class="metric-coverage">300/300 executions</span></td><td class="metric-value">359,013<span class="metric-coverage">300/300 executions</span></td><td class="metric-value">4.4 min<span class="metric-coverage">300/300 executions</span></td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr><tr><th scope="row">Terra high<span class="metric-coverage">2.2.0</span></th><td class="metric-value pareto-formal-text">100<span class="metric-coverage">300/300 eligible reconstructions</span></td><td class="metric-value pareto-visual-text">54.18<span class="metric-coverage">265/300 eligible reconstructions</span></td><td class="metric-value pareto-kinematic-text">2.81<span class="metric-coverage">297/300 eligible reconstructions</span></td><td class="metric-value">USD 0.2735<span class="metric-coverage">300/300 executions</span></td><td class="metric-value">1,653,681<span class="metric-coverage">300/300 executions</span></td><td class="metric-value">7.76 min<span class="metric-coverage">300/300 executions</span></td><td><a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4">View</a></td></tr></tbody>
             </table>
           </div>
           <p class="table-note" id="pareto-provenance"></p>
-          <p class="table-note"><a href="assets/pareto.json">Download measurements and provenance (JSON)</a></p>
+          <p class="table-note"><a href="assets/pareto.json">Download chart data (JSON)</a></p>
         </details>
         <noscript><p class="table-note">Interactive axes require JavaScript. <a href="assets/pareto.json">Download trajectory measurements</a>.</p></noscript>
       </div>
@@ -265,35 +265,16 @@
 
     <section class="section" id="quickstart">
       <div class="container is-max-desktop content">
-        <h2 class="title is-3">Install and run your first benchmark</h2>
-        <p>Use Python 3.12 on Linux or in an Ubuntu WSL shell. Install from the source checkout:</p>
-        <pre tabindex="0" aria-label="Install SimReadyBench"><code>git clone https://github.com/hcltech-robotics/simreadybench.git
-cd simreadybench
-python3.12 -m venv .venv
+        <h2 class="title is-3">Run the benchmark</h2>
+        <p>Use Python 3.12 and a Linux Docker host. Install Harbor and connect your model provider:</p>
+        <pre tabindex="0" aria-label="Install Harbor"><code>python3.12 -m venv .venv
 . .venv/bin/activate
-python -m pip install '.[daytona,publish]'</code></pre>
-        <p>Set the <a href="#providers">model provider credentials</a>, then choose where the benchmark runs. NV25 evaluates four reconstructions of each of its 25 public reference assets, giving 100 attempts with up to 64 authoring turns each.</p>
-        <h3 class="title is-5">Daytona</h3>
-        <p>Set <code>DAYTONA_API_KEY</code>, then import the published runtime into your organisation:</p>
-        <pre tabindex="0" aria-label="Import the Daytona runtime"><code>simready-bench setup daytona --output ../simreadybench-runtime.json</code></pre>
-        <p>Setup saves the matching image configuration. Use it when starting the benchmark:</p>
-        <pre tabindex="0" aria-label="Run NV25 on Daytona"><code>simready-bench benchmark nvidia-25 \
-  --model gpt-6.1-sol --reasoning medium \
-  --harness pi --deploy daytona --repetitions 4 \
-  --runtime-images ../simreadybench-runtime.json \
-  --authoring-turns 64 --workers 4 --supervise \
-  --output-dir ../simreadybench-results</code></pre>
-        <h3 class="title is-5">Local</h3>
-        <p>Use a Linux Docker host with the <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/deployment.md#local">CPU runtime images</a> and their <code>local-runtime-images.json</code> configuration.</p>
-        <pre tabindex="0" aria-label="Run NV25 locally"><code>python -m pip install '.[validator]'
-simready-bench benchmark nvidia-25 \
-  --model gpt-6.1-sol --reasoning medium \
-  --harness pi --deploy local --repetitions 4 --authoring-turns 64 \
-  --runtime-images /tmp/srb-snapshot/local-runtime-images.json \
-  --output-dir ../simreadybench-local-results</code></pre>
-        <p>Open <code>report.html</code> in the output directory to inspect scores, generated USDs and orientation-aligned captures. Each completed reconstruction also enters <code>scores.csv</code> and <code>results.json</code>. Add <code>--hf-repo YOUR_ACCOUNT/RESULTS --hf-run RUN_ID</code> to publish completed reconstructions to Hugging Face during execution.</p>
-        <p>The default accounting allowance covers the permitted requests at full native provider capacity. Add <code>--max-spend-usd AMOUNT</code> to impose a monetary ceiling. On Daytona, <code>--supervise</code> restarts an interrupted coordinator against the saved run, and <code>--resume</code> reconnects its workers after closing the shell.</p>
-        <p><a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/quickstart.md">Quickstart and result inspection</a> | <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/deployment.md">Runtime setup</a></p>
+python -m pip install harbor==0.24.0
+harbor auth login</code></pre>
+        <pre tabindex="0" aria-label="Run NV100 with Harbor"><code>harbor run -d hcltech-robotics/simreadybench \
+  -a codex -m openai/gpt-6.1-sol \
+  --n-attempts 3 --n-concurrent 1 --max-retries 3 --upload</code></pre>
+        <p>Choose the model, agent and concurrency for your experiment. <a href="https://docs.harborframework.com/jobs/run-a-job">Harbor run guide</a> · <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/quickstart.md">Local development</a></p>
       </div>
     </section>
 
@@ -354,32 +335,21 @@ simready-bench benchmark nvidia-25 \
             <h2 class="title is-3">How scoring and validation work</h2>
             <div class="content has-text-left">
               <p>A reference USD supplies the geometry, dimensions and image for an independent authoring task. The agent uses the selected agent harness in a Harbor environment to create a new USD asset and can request validator feedback during reconstruction. The evaluator compares the final submission with the reference and renders both from matching cameras.</p>
-              <p>The NV25 protocol evaluates each combination of model, harness and skills over four reconstructions of each of its 25 assets, giving 100 attempts.</p>
+              <p>The same tasks and reference objects are used for each model configuration.</p>
             </div>
-            <figure class="methodology-figure">
-              <img src="assets/evaluation-protocol.png" width="2700" height="1680" loading="lazy" alt="Evaluation protocol from reference views, dimensions and an authoring brief through USD reconstruction to profile validation, fidelity scoring and matched captures.">
-              <figcaption>The reference asset defines the observations and eligible measurements for each reconstruction.</figcaption>
-            </figure>
-            <figure class="methodology-figure">
-              <img src="assets/evaluation-factors.png" width="2700" height="1390" loading="lazy" alt="Eyeglasses shown half in wireframe and half textured, with callouts for shape, rigid parts, joints and materials.">
-              <figcaption>Reference correspondence covers geometry, physical structure, joint motion and surface appearance.</figcaption>
-            </figure>
             <div class="table-container has-text-left" id="measures">
               <table class="table is-fullwidth measures-table">
                 <thead><tr><th scope="col">Measure</th><th scope="col">Evaluation</th></tr></thead>
                 <tbody>
                   <tr><th scope="row">Formal fidelity</th><td>Assets are evaluated <a href="https://github.com/NVIDIA/simready-foundation/blob/main/nv_core/sr_specs/docs/guides/profiles_validation_workflow.md">according to the NVIDIA SimReady-Foundation Robotics-Prop 4.0.0 profile</a>. The mandatory score is 95 times the fraction of 46 requirements passed, with five further points when all pass. Strict acceptance requires all 46.</td></tr>
-                  <tr><th scope="row">Visual fidelity</th><td>The geometric mean of shape correspondence and appearance material correspondence. Colours, roughness, metallic response, opacity and supported textures are compared at reference surface samples.</td></tr>
+                  <tr><th scope="row">Visual fidelity</th><td>The geometric mean of surface agreement and appearance similarity across four rendered views. Appearance uses foreground RGB structural similarity (SSIM).</td></tr>
                   <tr><th scope="row">Kinematic fidelity</th><td>Joint recovery and agreement of allowed motion after whole-object alignment. Missing and additional joints reduce the score, while fixed attachments and moving joints are evaluated separately.</td></tr>
                   <tr><th scope="row">Optional SimReady score</th><td>The 51 optional requirements are scored separately as 100 times the fraction passed. Unmeasured requirements retain score bounds and measurement coverage.</td></tr>
                   <tr><th scope="row">Shape</th><td>Bidirectional surface agreement after unit and up-axis normalisation and whole-object translation and yaw alignment. Physical scale and relative part transforms are preserved, with no scale fitting or independent part fitting. The same alignment defines the shared reference and reconstruction capture cameras.</td></tr>
-                  <tr><th scope="row">Rigid parts</th><td>Surface agreement for corresponding bodies, combined with body count, joint inventory and enabled/kinematic state checks.</td></tr>
-                  <tr><th scope="row">Joints</th><td>Joint types, connectivity, frames, axes, enabled states and motion limits.</td></tr>
-                  <tr><th scope="row">Materials</th><td>Supported material values and textures at corresponding reference surface samples.</td></tr>
                 </tbody>
               </table>
             </div>
-            <p class="has-text-left table-note">Each fidelity component records its eligible reference coverage. <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/evaluation.md">Scoring documentation</a></p>
+            <p class="has-text-left table-note"><a href="https://github.com/hcltech-robotics/simreadybench/blob/main/docs/evaluation.md">Scoring documentation</a></p>
           </div>
         </div>
       </div>
@@ -387,8 +357,8 @@ simready-bench benchmark nvidia-25 \
 
     <section class="section hero is-light" id="reference-sets">
       <div class="container is-max-desktop content">
-        <h2 class="title is-3">Public reference sets</h2>
-        <p>NV25 and NV100 contain 25 and 100 NVIDIA SimReady reference assets, respectively. The packaged <a href="https://github.com/hcltech-robotics/simreadybench/blob/main/src/simready_bench/resources/benchmarks/nvidia-25.json"><code>nvidia-25</code> manifest</a> defines the 25 assets in NV25. Its standard protocol uses four reconstructions per asset for each model, harness and skill configuration.</p>
+        <h2 class="title is-3">Reference objects</h2>
+        <p>NV100 contains 100 NVIDIA SimReady reference objects, including workshop tools, medical equipment, appliances and articulated mechanisms. <a href="https://huggingface.co/datasets/hcltech-robotics/simreadybench/viewer/references/nv100">Browse the reference objects</a>.</p>
       </div>
     </section>
 
@@ -419,6 +389,7 @@ simready-bench benchmark nvidia-25 \
       </div>
     </div>
   </footer>
-</body>
-</html>
 
+
+
+</body></html>

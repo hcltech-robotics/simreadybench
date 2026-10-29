@@ -10,8 +10,9 @@ export function paretoFrontier(points) {
 /** Each axis uses its available mean; coverage remains attached to that mean. */
 export function availableScore(run, metric, scoreName) {
   if (!metric || !Number.isFinite(metric.value) || metric.value < 0) return null;
-  const score = run.scores?.[scoreName];
+  const paired = metric.paired_scores?.[scoreName];
+  const score = metric.paired_scores ? paired : run.scores?.[scoreName];
   if (!score || !Number.isFinite(score.value)) return null;
   if (scoreName !== "cumulative" && (score.value < 0 || score.value > 100)) return null;
-  return { ...score, x_value: metric.value };
+  return { ...score, x_value: paired ? paired.x_value : metric.value };
 }

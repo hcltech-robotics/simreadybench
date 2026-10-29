@@ -1,5 +1,5 @@
-const manifestURL = new URL("assets/explorer/manifest.json", document.baseURI);
-const deltaManifestURL = new URL("assets/explorer/delta-manifest.json", document.baseURI);
+const manifestURL = new URL("assets/explorer/manifest.json?v=nv100-20261029", document.baseURI);
+const deltaManifestURL = new URL("assets/explorer/delta-manifest.json?v=nv100-20261029", document.baseURI);
 const root = document.getElementById("explorer");
 const byId = (id) => document.getElementById(`explorer-${id}`);
 const measured = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
@@ -96,7 +96,7 @@ function renderReadout(variant) {
       `Input ${tokenPart(usage.input_tokens)} · output ${tokenPart(usage.output_tokens)}`),
     metric(timeLabel(usage.elapsed_seconds), `Model requests: ${timeLabel(usage.model_request_seconds)}`),
   );
-  byId("trial-label").textContent = `Trial ${variant.repetition + 1} · fidelity scores / 100`;
+  byId("trial-label").textContent = "Fidelity (%)";
   const provenance = [];
   if (Number.isInteger(variant.max_output_tokens) && variant.max_output_tokens > 0) {
     provenance.push(`Output limit: ${number(variant.max_output_tokens)} tokens/request`);
@@ -109,6 +109,13 @@ function renderReadout(variant) {
   byId("candidate-title").title = variant.model;
   byId("result-source").href = safeURL(variant.source_url);
   byId("readout").hidden = false;
+  const render = byId("candidate-render");
+  render.hidden = !variant.render_url;
+  if (variant.render_url) render.src = safeURL(variant.render_url);
+  else render.removeAttribute("src");
+  byId("render-message").hidden = Boolean(variant.render_url);
+  byId("package").href = safeURL(variant.download_url);
+
 }
 
 const state = { data: null, deltaData: null, object: null, variant: null, viewer: null, mode: "swipe", pair: null };
@@ -209,10 +216,9 @@ function selectObject(id) {
   byId("object").value = object.id;
   byId("reference-title").textContent = object.label;
   byId("reference-source").href = safeURL(object.reference.source_url);
+  byId("reference-observation").src = safeURL(object.reference.observation_url);
   const options = object.variants.map((variant) => {
-    const label = [variant.label, variant.harness || "Harness unrecorded", `${variant.reasoning || "default"} reasoning`];
-    if (variant.orichalcum_pin) label.push(`Orichalcum …${variant.orichalcum_pin.slice(-8)}`);
-    return new Option(label.join(" · "), variant.id);
+    return new Option(variant.label, variant.id);
   });
   byId("variant").replaceChildren(...options);
   const next = object.variants.find((variant) => previousRun && variant.run_id === previousRun)

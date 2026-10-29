@@ -1,29 +1,24 @@
 import "./vendor/d3-7.9.0/d3.min.js";
-import { availableScore, paretoFrontier } from "./pareto-math.js?v=available-20261024";
+import { availableScore, paretoFrontier } from "./pareto-math.js?v=nv100-20261029";
 
 const d3 = globalThis.d3;
 const root = document.getElementById("pareto-root");
 const scoreTypes = [
-  { id: "cumulative", label: "Cumulative score", colour: "#394955" },
   { id: "formal", label: "Formal fidelity", colour: "#0072b2" },
   { id: "visual", label: "Visual fidelity", colour: "#d55e00" },
   { id: "kinematic", label: "Kinematic fidelity", colour: "#009e73" },
 ];
 const axes = {
   cost_usd_per_asset: {
-    label: "Inference cost", unit: "USD / asset", divisor: 1,
+    label: "Inference cost", unit: "$ / asset", divisor: 1,
     tick: d3.format("$,.2f"), format: (value) => `USD ${number(value, 4)}`,
-  },
-  time_seconds_per_asset: {
-    label: "Inference time", unit: "min / asset", divisor: 60,
-    tick: d3.format("~g"), format: (value) => `${number(value / 60, 2)} min`,
   },
   tokens_per_asset: {
     label: "Tokens", unit: "tokens / asset", divisor: 1,
     tick: d3.format("~s"), format: (value) => number(value, 0),
   },
   elapsed_seconds_per_asset: {
-    label: "Elapsed time", unit: "min / asset", divisor: 60,
+    label: "Trial time", unit: "min / asset", divisor: 60,
     tick: d3.format("~g"), format: (value) => `${number(value / 60, 2)} min`,
   },
 };
@@ -38,6 +33,7 @@ function publicLabel(value) {
 }
 
 function configLabel(run) {
+  if (run.label) return run.label;
   const parts = [run.model, run.harness, run.reasoning || "default reasoning"];
   if (run.orichalcum_pin) parts.push(`Orichalcum …${run.orichalcum_pin.slice(-8)}`);
   return parts.map(publicLabel).filter(Boolean).join(" · ");
@@ -63,7 +59,7 @@ function metricCoverage(metric) {
   if (!metric) return "Not measured";
   const parts = [];
   if (Number.isInteger(metric.measured_attempts) && Number.isInteger(metric.total_attempts)) {
-    parts.push(`${metric.measured_attempts}/${metric.total_attempts} reconstructions`);
+    parts.push(`${metric.measured_attempts}/${metric.total_attempts} executions`);
   }
   if (Number.isInteger(metric.measured_assets) && Number.isInteger(metric.total_assets)) {
     parts.push(`${metric.measured_assets}/${metric.total_assets} assets`);
@@ -155,11 +151,11 @@ async function initialise() {
   const familyName = (run) => run.model_family || run.model;
   const families = [...new Set(runs.map(familyName))];
   const familySymbol = new Map(families.map((family, index) => [family, symbols[index % symbols.length]]));
-  let selectedScore = "cumulative";
+  let selectedScore = "formal";
   let selectedPoint = null;
   let resizeFrame = null;
   xSelect.value = "cost_usd_per_asset";
-  separate.checked = false;
+  separate.checked = true;
   scoreButtons.forEach((button) => {
     const active = button.dataset.paretoScore === selectedScore;
     button.setAttribute("aria-pressed", String(active));
@@ -231,16 +227,14 @@ async function initialise() {
         tooltip.append(detail);
       }
     }
-    if (point.metric.source_description || point.metric.kind) {
-      tooltip.append(element("p", publicLabel(point.metric.source_description || point.metric.kind), "table-note"));
-    }
+
     if (point.run.protocol) tooltip.append(element("p", publicLabel(point.run.protocol), "table-note"));
     if (point.run.evaluator_version) tooltip.append(element("p", `Evaluator: ${point.run.evaluator_version}`, "table-note"));
     tooltip.append(element("p", point.frontier
       ? "On the frontier for this score and evaluator" : "Dominated within this score and evaluator", "table-note"));
     const source = safeSource(point.metric.source_url || point.run.source_url);
     if (source) {
-      const link = element("a", "Trajectory source");
+      const link = element("a", "Results");
       link.href = source;
       tooltip.append(link);
     }
@@ -262,7 +256,7 @@ async function initialise() {
       addDetail(row.firstChild, run.protocol);
       addDetail(row.firstChild, run.evaluator_version);
       for (const scoreType of scoreTypes) {
-        const score = run.scores[scoreType.id];
+        const score = run.metrics[xSelect.value].paired_scores?.[scoreType.id] || run.scores[scoreType.id];
         const cell = element("td", scoreText(score), `metric-value pareto-${scoreType.id}-text`);
         addDetail(cell, scoreCoverage(score));
         if (scoreType.id === "cumulative") addDetail(cell, "Mean z-score");
@@ -272,7 +266,6 @@ async function initialise() {
         const metric = run.metrics[metricId];
         const cell = element("td", Number.isFinite(metric?.value) ? axis.format(metric.value) : "Not measured", "metric-value");
         addDetail(cell, metricCoverage(metric));
-        if (metric?.kind) addDetail(cell, metric.kind);
         if (metric?.reason) addDetail(cell, metric.reason);
         row.append(cell);
       }
@@ -316,7 +309,7 @@ async function initialise() {
         frontiers.push({ scoreId, group, points: frontier });
       }
     }
-    const isSeparate = selectedScore === "all" && separate.checked;
+    const isSeparate = selectedScore === "all";
     separate.disabled = selectedScore !== "all";
     const panels = isSeparate ? activeScores.map((score) => [score]) : [activeScores];
     const width = Math.max(300, Math.round(plot.getBoundingClientRect().width));
@@ -337,7 +330,12 @@ async function initialise() {
       const cumulativeValues = runs.map((run) => run.scores.cumulative?.value).filter(Number.isFinite);
       const [low, high] = cumulativeValues.length ? d3.extent([0, ...cumulativeValues]) : [-1, 1];
       const padding = (high - low || 1) * 0.12;
-      const y = d3.scaleLinear().domain(cumulative ? [low - padding, high + padding] : [0, 100])
+      const plottedY = points.filter(point => panelScores.some(score => score.id === point.scoreId)).map(point => point.y);
+      const range = d3.extent(plottedY);
+      const gap = Math.max(1, (range[1] - range[0]) * .2);
+      const scoreDomain = panelScores.length === 1 && plottedY.length
+        ? [Math.max(0, range[0] - gap), Math.min(101, range[1] + gap)] : [0, 100];
+      const y = d3.scaleLinear().domain(cumulative ? [low - padding, high + padding] : scoreDomain)
         .range([panelHeight - margin.bottom, margin.top]);
       if (cumulative) y.nice();
       panel.append("g").attr("class", "pareto-grid").attr("transform", `translate(${margin.left},0)`)
@@ -389,15 +387,19 @@ async function initialise() {
       markers.append("circle").attr("class", "pareto-hit").attr("r", 12);
       markers.append("path").attr("class", "pareto-symbol")
         .attr("d", (point) => d3.symbol().type(familySymbol.get(familyName(point.run))).size(width < 500 ? 105 : 85)());
+      if (runs.length <= 12) markers.append("text").attr("class", "pareto-point-label")
+        .attr("x", point => point.x > maxX * .75 ? -9 : 9)
+        .attr("y", point => metricId === "elapsed_seconds_per_asset" && point.scoreId === "kinematic" && point.run.label === "Terra high" ? 18 : -9)
+        .attr("text-anchor", point => point.x > maxX * .75 ? "end" : "start")
+        .attr("font-size", 10).attr("fill", "#344552").text(point => point.run.label || point.run.model);
       if (!panelPoints.length) panel.append("text").attr("class", "pareto-empty")
         .attr("x", (width + margin.left - margin.right) / 2).attr("y", panelHeight / 2)
         .attr("text-anchor", "middle").text("No available measurements for this selection");
     });
     const plottedRuns = new Set(points.map((point) => point.run.id)).size;
-    const partialRuns = new Set(points.filter((point) => !point.complete).map((point) => point.run.id)).size;
+
     const missing = runs.length - plottedRuns;
     status.textContent = `${plottedRuns}/${runs.length} configurations · ${points.length} score observations`
-      + (partialRuns ? ` · ${partialRuns} with incomplete measurement coverage` : "")
       + (missing ? ` · ${missing} without measurements for this axis` : "");
     root.dataset.axis = metricId;
     root.dataset.score = selectedScore;
@@ -436,7 +438,7 @@ async function initialise() {
   const provenance = [data.generated_at ? `Measurements captured ${data.generated_at}` : "",
     typeof data.methodology === "string" ? data.methodology : "",
     typeof data.normalisation?.description === "string" ? data.normalisation.description : ""].filter(Boolean).join(". ");
-  document.getElementById("pareto-provenance").textContent = publicLabel(provenance);
+  document.getElementById("pareto-provenance").textContent = "";
   renderChart();
   root.dataset.loadState = "ready";
 }

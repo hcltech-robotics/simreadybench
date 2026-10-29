@@ -60,3 +60,10 @@ test("cumulative means may be negative; invalid fidelity scores are rejected", (
   assert.equal(availableScore(run, { value: 2 }, "formal"), null);
   assert.equal(availableScore(run, { value: 2 }, "visual"), null);
 });
+
+test("matched chart means take precedence while preserving missing scores", () => {
+  const run = {scores: {formal: {value: 99}}};
+  const metric = {value: 2, paired_scores: {formal: {value: 90, x_value: 2, measured_attempts: 250}}};
+  assert.deepEqual(availableScore(run, metric, "formal"), {value: 90, x_value: 2, measured_attempts: 250});
+  assert.equal(availableScore(run, {...metric, paired_scores: {formal: {value: null, x_value: 2}}}, "formal"), null);
+});

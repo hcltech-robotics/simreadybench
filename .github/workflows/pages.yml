@@ -29,30 +29,23 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check published results inputs
+      - name: Check current results and gallery inputs
         run: |
-          python3 - <<'PY'
+          python3 - <<'PYCODE'
           import json
+          from pathlib import Path
           from urllib.request import urlopen
-
-          base = "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/"
-          with urlopen("https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/leaderboard.json", timeout=60) as response:
-              board = json.load(response)
-          if board.get("schema") != "simreadybench-leaderboard/v1" or not isinstance(board.get("entries"), list):
-              raise RuntimeError("Published results leaderboard is unavailable or invalid")
-          with urlopen(base + "viewer-index.json", timeout=60) as response:
-              index = json.load(response)
-          if not index.get("runs") or any(
-              not run.get("viewer_scores", "").startswith("results/viewer/")
-              for run in index["runs"].values()
-          ):
-              raise RuntimeError("Published results viewer inputs are unavailable or invalid")
-          PY
-      - name: Reconstruct trajectory usage for the Pareto chart
-        run: >-
-          python3 scripts/build_pareto_data.py
-          --cache "$RUNNER_TEMP/pareto-cache"
-          --evidence site/assets/pareto-evidence.json
+          data = json.loads(Path("site/assets/pareto.json").read_text())
+          assert data["formal_fidelity_primary"] and data["runs"]
+          gallery = json.loads(Path("site/assets/explorer/manifest.json").read_text())
+          assert all(v["run_id"] in data["job_ids"] for obj in gallery["objects"] for v in obj["variants"])
+          for job in data["job_ids"]:
+              url = f"https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/{data['source_revision']}/results/harbor/{job}/artifact-export-summary.json"
+              with urlopen(url, timeout=60) as response:
+                  summary = json.load(response)
+              assert summary["evaluator_version"] == data["evaluator_version"]
+              assert summary["task_rows"] == sum(r["final_slots"] for r in data["runs"] if r["job_id"] == job)
+          PYCODE
       - name: Install the static rendering browser
         run: |
           python -m pip install playwright==1.56.0
@@ -93,9 +86,6 @@ jobs:
                   count = page.locator("#leaderboard-body tr").count()
                   captured = datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC")
                   table.evaluate("(el, stamp) => el.dataset.snapshotAt = stamp", captured)
-                  page.locator("#leaderboard-status").evaluate(
-                      "(el, stamp) => { el.hidden = false; el.textContent += ' Snapshot: ' + stamp + '.'; }", captured
-                  )
                   html = page.content()
                   Path("site/index.html").write_text(html, encoding="utf-8")
                   # Verify the published results remain visible without JavaScript.

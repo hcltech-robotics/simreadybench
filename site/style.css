@@ -204,3 +204,11 @@ pre:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px
   .publication-subtitle { font-size: 1.25rem !important; }
   .measures-table { min-width: 520px; }
 }
+
+/* Current reconstruction views. */
+.explorer-render-pair {display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;}
+.explorer-render-pair figure {margin:0;text-align:center;background:#f5f6f8;border-radius:8px;padding:.5rem;}
+.explorer-render-pair img {width:100%;height:auto;max-height:320px;object-fit:contain;}
+.explorer-render-pair figcaption {font-size:.85rem;color:#52616b;}
+@media(max-width:540px){.explorer-render-pair img{max-height:220px;}}
+.pareto-point-label {stroke:none;pointer-events:none;font-weight:500;}

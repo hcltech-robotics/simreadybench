@@ -154,7 +154,7 @@ Formal fidelity is `95 x passed/46`, with five additional points when all 46 man
 
 Fidelity evaluation normalises units and the up-axis, then aligns the reconstruction with one whole-object yaw and translation. Object scale and relative part transforms are preserved, with no scale fitting or independent part fitting. Reference and reconstruction captures share the same aligned cameras. The [scoring guide](docs/evaluation.md) gives the diagrams, formulas and full measurement definitions.
 
-The [leaderboard](https://huggingface.co/datasets/hcltech-robotics/simreadybench) reports complete NV25 sets with 95% confidence intervals, token and elapsed-time efficiency and strict pass rates. Tables and plots update automatically when a complete set is published. The dataset viewer opens with the NV100 reference assets. The `results` config shows historical NV25 scores and paired images, with further subsets for models, harnesses, skills, protocols and assets. The [statistics guide](docs/leaderboard.md) defines the intervals and efficiency denominators.
+The [results](https://huggingface.co/datasets/hcltech-robotics/simreadybench) compare model configurations on NV100. Formal fidelity is the primary score; visual and kinematic fidelity are shown separately. The [project page](https://hcltech-robotics.github.io/simreadybench/#pareto) includes interactive quality–cost and quality–time comparisons, along with examples from the published reconstructions.
 
 ## Authors and citation
 

@@ -1,1311 +1,821 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-24T11:03:04.766766+00:00",
-  "source_revision": "fec78831d914bd7e411e69199a3a58d644ee6d37",
-  "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/fec78831d914bd7e411e69199a3a58d644ee6d37/leaderboard.json",
-  "source_sha256": "03c929139543b8e22f8c880ece26b90e58b2db8417b66b5d53ef2053e82bbede",
-  "methodology": "Plot each configuration's available mean score against its available mean resource measurement, following the leaderboard's attempt weighting. Coverage may differ between axes and is reported for each mean. Per asset means one reconstruction, not the sum of four attempts. Kinematic means use eligible measured attempts. Cumulative score is the equal-weight mean of the three z-scores, normalised by population means and standard deviations across all leaderboard configurations in this snapshot; the normalisation is fixed across resource axes. Inference time sums request durations; elapsed reconstruction time is separate. Missing observations remain null and are never zero-filled. Frontiers include partial coverage and compare configurations sharing the reference revision, scoring profile and evaluator. Authoring protocols and output limits remain configuration attributes.",
-  "normalisation": {
-    "method": "mean_z_score",
-    "formula": "mean((subscore - population mean) / population standard deviation)",
-    "basis": "available subscore means across all configurations in this leaderboard snapshot",
-    "ddof": 0,
-    "components": {
-      "formal": {
-        "mean": 85.57217391304349,
-        "standard_deviation": 15.656470630055551,
-        "configuration_count": 5
-      },
-      "visual": {
-        "mean": 25.28392800388988,
-        "standard_deviation": 22.32046822110013,
-        "configuration_count": 5
-      },
-      "kinematic": {
-        "mean": 3.820244625436094,
-        "standard_deviation": 2.673269109609896,
-        "configuration_count": 5
-      }
-    },
-    "missing_components": "All three measured subscore means are required; missing observations are not imputed.",
-    "zero_variance": "A constant component contributes zero for every configuration.",
-    "axis_invariant": true
-  },
+  "reference_set": "nv100-v1",
+  "reference_count": 100,
+  "evaluator_version": "2.2.0",
+  "source_revision": "e586f232e0b1939f84c59956e88eed38c167bd2f",
+  "job_ids": [
+    "dc30f963-ebba-47f8-a052-535ce8a706f4"
+  ],
+  "formal_fidelity_primary": true,
   "runs": [
     {
-      "id": "nv25-gpt-6.1-sol-high-pi-none-turn64-20261020",
-      "label": "gpt-6.1-sol \u00b7 pi \u00b7 high",
-      "model": "gpt-6.1-sol",
-      "model_family": "GPT",
-      "harness": "pi",
+      "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-unspecified",
+      "label": "Sol low",
+      "model": "Sol",
+      "model_family": "Sol",
+      "requested_model": "openai/gpt-6.1-sol",
+      "reasoning": null,
+      "harness": "Codex",
+      "evaluator_version": "2.2.0",
+      "job_id": "dc30f963-ebba-47f8-a052-535ce8a706f4",
+      "frontier_group": "nv100-v1:2.2.0",
+      "reference_count": 100,
+      "final_slots": 300,
+      "execution_count": 303,
+      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4",
+      "scores": {
+        "formal": {
+          "value": 97.69239130434782,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
+        },
+        "visual": {
+          "value": 51.16534437171281,
+          "measured_attempts": 297,
+          "eligible_attempts": 300,
+          "complete": false
+        },
+        "kinematic": {
+          "value": 2.438710345248361,
+          "measured_attempts": 298,
+          "eligible_attempts": 300,
+          "complete": false
+        }
+      },
+      "metrics": {
+        "cost_usd_per_asset": {
+          "value": 0.20723826033333334,
+          "unit": "Inference cost ($/asset)",
+          "denominator": 300,
+          "measured_attempts": 302,
+          "total_attempts": 303,
+          "unknown_execution_count": 1,
+          "sum_recorded": 62.1714781,
+          "complete": false,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 97.69239130434782,
+              "x_value": 0.20723826033333334,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
+              "complete": true,
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
+            },
+            "visual": {
+              "value": 50.94120784135804,
+              "x_value": 0.20723826033333334,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
+            },
+            "kinematic": {
+              "value": 2.4469214911919583,
+              "x_value": 0.20723826033333334,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          },
+          "kind": "harbor_reported_unverified_basis"
+        },
+        "elapsed_seconds_per_asset": {
+          "value": 351.35501172333335,
+          "unit": "Trial time (min/asset)",
+          "denominator": 300,
+          "measured_attempts": 303,
+          "total_attempts": 303,
+          "unknown_execution_count": 0,
+          "sum_recorded": 105406.503517,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 97.69239130434782,
+              "x_value": 351.35501172333335,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
+              "complete": true,
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
+            },
+            "visual": {
+              "value": 50.94120784135804,
+              "x_value": 351.35501172333335,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
+            },
+            "kinematic": {
+              "value": 2.4469214911919583,
+              "x_value": 351.35501172333335,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          },
+          "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
+        },
+        "tokens_per_asset": {
+          "value": 478511.38333333336,
+          "unit": "Tokens/asset",
+          "denominator": 300,
+          "measured_attempts": 302,
+          "total_attempts": 303,
+          "unknown_execution_count": 1,
+          "sum_recorded": 143553415.0,
+          "complete": false,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 97.69239130434782,
+              "x_value": 478511.38333333336,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
+              "complete": true,
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
+            },
+            "visual": {
+              "value": 50.94120784135804,
+              "x_value": 478511.38333333336,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
+            },
+            "kinematic": {
+              "value": 2.4469214911919583,
+              "x_value": 478511.38333333336,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-medium",
+      "label": "Sol medium",
+      "model": "Sol",
+      "model_family": "Sol",
+      "requested_model": "openai/gpt-6.1-sol",
+      "reasoning": "medium",
+      "harness": "Codex",
+      "evaluator_version": "2.2.0",
+      "job_id": "dc30f963-ebba-47f8-a052-535ce8a706f4",
+      "frontier_group": "nv100-v1:2.2.0",
+      "reference_count": 100,
+      "final_slots": 300,
+      "execution_count": 302,
+      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4",
+      "scores": {
+        "formal": {
+          "value": 99.97644927536231,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
+        },
+        "visual": {
+          "value": 53.65528916857613,
+          "measured_attempts": 295,
+          "eligible_attempts": 300,
+          "complete": false
+        },
+        "kinematic": {
+          "value": 3.142825677790428,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
+        }
+      },
+      "metrics": {
+        "cost_usd_per_asset": {
+          "value": 0.414478093,
+          "unit": "Inference cost ($/asset)",
+          "denominator": 300,
+          "measured_attempts": 302,
+          "total_attempts": 302,
+          "unknown_execution_count": 0,
+          "sum_recorded": 124.3434279,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 99.97644927536231,
+              "x_value": 0.414478093,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
+              "complete": true,
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": false
+            },
+            "visual": {
+              "value": 52.851778001925794,
+              "x_value": 0.414478093,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": false
+            },
+            "kinematic": {
+              "value": 3.174571391707503,
+              "x_value": 0.414478093,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          },
+          "kind": "harbor_reported_unverified_basis"
+        },
+        "elapsed_seconds_per_asset": {
+          "value": 559.2767091,
+          "unit": "Trial time (min/asset)",
+          "denominator": 300,
+          "measured_attempts": 302,
+          "total_attempts": 302,
+          "unknown_execution_count": 0,
+          "sum_recorded": 167783.01273,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 99.97644927536231,
+              "x_value": 559.2767091,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
+              "complete": true,
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": false
+            },
+            "visual": {
+              "value": 52.851778001925794,
+              "x_value": 559.2767091,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": false
+            },
+            "kinematic": {
+              "value": 3.174571391707503,
+              "x_value": 559.2767091,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          },
+          "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
+        },
+        "tokens_per_asset": {
+          "value": 1064313.18,
+          "unit": "Tokens/asset",
+          "denominator": 300,
+          "measured_attempts": 302,
+          "total_attempts": 302,
+          "unknown_execution_count": 0,
+          "sum_recorded": 319293954.0,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 99.97644927536231,
+              "x_value": 1064313.18,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
+              "complete": true,
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
+            },
+            "visual": {
+              "value": 52.851778001925794,
+              "x_value": 1064313.18,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
+            },
+            "kinematic": {
+              "value": 3.174571391707503,
+              "x_value": 1064313.18,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-high",
+      "label": "Sol high",
+      "model": "Sol",
+      "model_family": "Sol",
+      "requested_model": "openai/gpt-6.1-sol",
       "reasoning": "high",
-      "orichalcum_pin": null,
-      "protocol_id": "authoring-64-native-output-v1",
-      "protocol": "64 turns \u00b7 native output limit",
-      "frontier_group": "f37f7b00843f7ebfe7362fb235f4f48419c47a99ecc24de4d88aeb9e6a523bed",
+      "harness": "Codex",
+      "evaluator_version": "2.2.0",
+      "job_id": "dc30f963-ebba-47f8-a052-535ce8a706f4",
+      "frontier_group": "nv100-v1:2.2.0",
+      "reference_count": 100,
+      "final_slots": 300,
+      "execution_count": 306,
+      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4",
       "scores": {
         "formal": {
           "value": 100.0,
-          "status": "measured",
-          "complete": true,
-          "lower": 100.0,
-          "upper": 100.0,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
         },
         "visual": {
-          "value": 44.87017456682413,
-          "status": "measured",
-          "complete": true,
-          "lower": 44.87017456682413,
-          "upper": 44.87017456682413,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
+          "value": 56.86104470170295,
+          "measured_attempts": 282,
+          "eligible_attempts": 300,
+          "complete": false
         },
         "kinematic": {
-          "value": 7.039733988192418,
-          "status": "measured",
-          "complete": true,
-          "lower": 7.039733988192418,
-          "upper": 7.039733988192418,
-          "coverage": 1.0,
-          "measured_attempts": 55,
-          "eligible_attempts": 55,
-          "measured_assets": 16,
-          "eligible_assets": 16
-        },
-        "cumulative": {
-          "value": 1.0011177020889106,
-          "status": "measured",
-          "complete": true,
-          "components": {
-            "formal": 0.9215248077213251,
-            "visual": 0.8775015993803775,
-            "kinematic": 1.2043266991650294
-          },
-          "unit": "mean z-score"
+          "value": 3.6766977151345324,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
         }
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.45535650309278347,
-          "complete": false,
-          "measured_attempts": 97,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "pricing-derived inference cost",
-          "source_description": "97 attempts: SHA-256-verified trajectory matched to retained provider request proofs",
-          "scores": {
-            "formal": {
-              "value": 100.0,
-              "x_value": 0.45535650309278347,
-              "complete": false,
-              "measured_attempts": 97,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "96ea0a0f4f80e6a26f19fc531579ddf95a0ec03dc199c2f5b36c6abe53de19d4",
-              "reference_cohort_sha256": "76077f98902101fb8d7f276a8479d2ce9169d23f2d4e4ace07ba249e4cb12573"
-            },
-            "visual": {
-              "value": 45.035158896026715,
-              "x_value": 0.45535650309278347,
-              "complete": false,
-              "measured_attempts": 97,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "96ea0a0f4f80e6a26f19fc531579ddf95a0ec03dc199c2f5b36c6abe53de19d4",
-              "reference_cohort_sha256": "76077f98902101fb8d7f276a8479d2ce9169d23f2d4e4ace07ba249e4cb12573"
-            },
-            "kinematic": {
-              "value": 7.170099432418203,
-              "x_value": 0.4951604851851852,
-              "complete": false,
-              "measured_attempts": 54,
-              "eligible_attempts": 55,
-              "measured_assets": 16,
-              "eligible_assets": 16,
-              "cohort_sha256": "320d4536916bdaf7d2cf2df476b71792abc333c0957720ff03c1472989b36b37",
-              "reference_cohort_sha256": "4d88d03d11d723d5acadca01bf88865ff5ba2f4426678de3cb73bf5b285a7963"
-            }
-          }
-        },
-        "time_seconds_per_asset": {
-          "value": 523.1639625989552,
+          "value": 0.714481805,
+          "unit": "Inference cost ($/asset)",
+          "denominator": 300,
+          "measured_attempts": 306,
+          "total_attempts": 306,
+          "unknown_execution_count": 0,
+          "sum_recorded": 214.3445415,
           "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "sum of recorded inference request durations",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
+          "includes_retries": true,
+          "paired_scores": {
             "formal": {
               "value": 100.0,
-              "x_value": 523.1639625989552,
+              "x_value": 0.714481805,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "2671f6e32064644bacf70be3333053ac00f40df6bb47f6ee60da2db28959b5f0",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": false
             },
             "visual": {
-              "value": 44.87017456682413,
-              "x_value": 523.1639625989552,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "2671f6e32064644bacf70be3333053ac00f40df6bb47f6ee60da2db28959b5f0",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "value": 56.78820294305866,
+              "x_value": 0.714481805,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
             },
             "kinematic": {
-              "value": 7.039733988192418,
-              "x_value": 560.9534796339883,
-              "complete": true,
-              "measured_attempts": 55,
-              "eligible_attempts": 55,
-              "measured_assets": 16,
-              "eligible_assets": 16,
-              "cohort_sha256": "7e3049c08a175cee80c99dcbb10837db67b289505e9dcfbb225a02ec2599474e",
-              "reference_cohort_sha256": "c49fa05fd3850f24c7eddb896aef7ddd424d89fbf673a67dac20d6e01a58a593"
+              "value": 3.713836075893467,
+              "x_value": 0.714481805,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
             }
-          }
-        },
-        "tokens_per_asset": {
-          "value": 971775.9587628866,
-          "complete": false,
-          "measured_attempts": 97,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "input and output tokens, including cached input once",
-          "source_description": "97 attempts: SHA-256-verified trajectory matched to retained provider request proofs",
-          "scores": {
-            "formal": {
-              "value": 100.0,
-              "x_value": 971775.9587628866,
-              "complete": false,
-              "measured_attempts": 97,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "96ea0a0f4f80e6a26f19fc531579ddf95a0ec03dc199c2f5b36c6abe53de19d4",
-              "reference_cohort_sha256": "76077f98902101fb8d7f276a8479d2ce9169d23f2d4e4ace07ba249e4cb12573"
-            },
-            "visual": {
-              "value": 45.035158896026715,
-              "x_value": 971775.9587628866,
-              "complete": false,
-              "measured_attempts": 97,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "96ea0a0f4f80e6a26f19fc531579ddf95a0ec03dc199c2f5b36c6abe53de19d4",
-              "reference_cohort_sha256": "76077f98902101fb8d7f276a8479d2ce9169d23f2d4e4ace07ba249e4cb12573"
-            },
-            "kinematic": {
-              "value": 7.170099432418203,
-              "x_value": 1049855.4074074074,
-              "complete": false,
-              "measured_attempts": 54,
-              "eligible_attempts": 55,
-              "measured_assets": 16,
-              "eligible_assets": 16,
-              "cohort_sha256": "320d4536916bdaf7d2cf2df476b71792abc333c0957720ff03c1472989b36b37",
-              "reference_cohort_sha256": "4d88d03d11d723d5acadca01bf88865ff5ba2f4426678de3cb73bf5b285a7963"
-            }
-          }
+          },
+          "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
-          "value": 618.5340745433548,
+          "value": 863.2201472466667,
+          "unit": "Trial time (min/asset)",
+          "denominator": 300,
+          "measured_attempts": 306,
+          "total_attempts": 306,
+          "unknown_execution_count": 0,
+          "sum_recorded": 258966.044174,
           "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "elapsed reconstruction time, including tool execution",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
+          "includes_retries": true,
+          "paired_scores": {
             "formal": {
               "value": 100.0,
-              "x_value": 618.5340745433548,
+              "x_value": 863.2201472466667,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "2671f6e32064644bacf70be3333053ac00f40df6bb47f6ee60da2db28959b5f0",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": false
             },
             "visual": {
-              "value": 44.87017456682413,
-              "x_value": 618.5340745433548,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "2671f6e32064644bacf70be3333053ac00f40df6bb47f6ee60da2db28959b5f0",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "value": 56.78820294305866,
+              "x_value": 863.2201472466667,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
             },
             "kinematic": {
-              "value": 7.039733988192418,
-              "x_value": 646.0335382744183,
+              "value": 3.713836075893467,
+              "x_value": 863.2201472466667,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          },
+          "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
+        },
+        "tokens_per_asset": {
+          "value": 1990603.8366666667,
+          "unit": "Tokens/asset",
+          "denominator": 300,
+          "measured_attempts": 306,
+          "total_attempts": 306,
+          "unknown_execution_count": 0,
+          "sum_recorded": 597181151.0,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 100.0,
+              "x_value": 1990603.8366666667,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 55,
-              "eligible_attempts": 55,
-              "measured_assets": 16,
-              "eligible_assets": 16,
-              "cohort_sha256": "7e3049c08a175cee80c99dcbb10837db67b289505e9dcfbb225a02ec2599474e",
-              "reference_cohort_sha256": "c49fa05fd3850f24c7eddb896aef7ddd424d89fbf673a67dac20d6e01a58a593"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": false
+            },
+            "visual": {
+              "value": 56.78820294305866,
+              "x_value": 1990603.8366666667,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
+            },
+            "kinematic": {
+              "value": 3.713836075893467,
+              "x_value": 1990603.8366666667,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
             }
           }
         }
-      },
-      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/fec78831d914bd7e411e69199a3a58d644ee6d37/runs/nv25-gpt-6.1-sol-high-pi-none-turn64-20261020/results.json",
-      "source_results_sha256": "98db2594352a17d493e2312753a1e04e73455c84184f7f8d850ac65fb275863e",
-      "evaluator_version": "source-usd-fidelity-v7",
-      "reference_revision": "f4860aa0c75607adb50a78bf96e77510bffc040f",
-      "completed_attempts": 100,
-      "reference_count": 25,
-      "provenance": {
-        "verified_public_trajectories": 100,
-        "private_native_usage_attempts": 0,
-        "private_source_results_sha256": null,
-        "missing_usage_is_zero": false
       }
     },
     {
-      "id": "nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021",
-      "label": "zai-org/GLM-5.3-Flash:baseten \u00b7 pi \u00b7 low",
-      "model": "zai-org/GLM-5.3-Flash:baseten",
-      "model_family": "GLM",
-      "harness": "pi",
+      "id": "harbor-evaluator-2.2.0-gpt-6.1-terra-low",
+      "label": "Terra low",
+      "model": "Terra",
+      "model_family": "Terra",
+      "requested_model": "openai/gpt-6.1-terra",
       "reasoning": "low",
-      "orichalcum_pin": null,
-      "protocol_id": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
-      "protocol": "64 turns \u00b7 4,096-token output limit",
-      "frontier_group": "f37f7b00843f7ebfe7362fb235f4f48419c47a99ecc24de4d88aeb9e6a523bed",
+      "harness": "Codex",
+      "evaluator_version": "2.2.0",
+      "job_id": "dc30f963-ebba-47f8-a052-535ce8a706f4",
+      "frontier_group": "nv100-v1:2.2.0",
+      "reference_count": 100,
+      "final_slots": 300,
+      "execution_count": 300,
+      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4",
       "scores": {
         "formal": {
-          "value": 89.45217391304348,
-          "status": "measured",
-          "complete": true,
-          "lower": 89.45217391304348,
-          "upper": 89.45217391304348,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
+          "value": 91.12789855072464,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
         },
         "visual": {
-          "value": 11.202572472915314,
-          "status": "measured",
-          "complete": true,
-          "lower": 11.202572472915314,
-          "upper": 11.202572472915314,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
+          "value": 47.80628554215278,
+          "measured_attempts": 295,
+          "eligible_attempts": 300,
+          "complete": false
         },
         "kinematic": {
-          "value": 1.6230014836982969,
-          "status": "measured",
-          "complete": true,
-          "lower": 1.6230014836982969,
-          "upper": 1.6230014836982969,
-          "coverage": 1.0,
-          "measured_attempts": 63,
-          "eligible_attempts": 63,
-          "measured_assets": 17,
-          "eligible_assets": 17
-        },
-        "cumulative": {
-          "value": -0.40166071894907507,
-          "status": "measured",
-          "complete": true,
-          "components": {
-            "formal": 0.2478208589713446,
-            "visual": -0.630871870226409,
-            "kinematic": -0.8219311455921607
-          },
-          "unit": "mean z-score"
+          "value": 0.86649541310952,
+          "measured_attempts": 299,
+          "eligible_attempts": 300,
+          "complete": false
         }
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.188493249,
+          "value": 0.09692058916666667,
+          "unit": "Inference cost ($/asset)",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 29.07617675,
           "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "pricing-derived inference cost",
-          "source_description": "100 attempts: SHA-256-verified trajectory matched to retained provider request proofs",
-          "scores": {
+          "includes_retries": true,
+          "paired_scores": {
             "formal": {
-              "value": 89.45217391304348,
-              "x_value": 0.188493249,
+              "value": 91.12789855072464,
+              "x_value": 0.09692058916666667,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
             },
             "visual": {
-              "value": 11.202572472915314,
-              "x_value": 0.188493249,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "value": 47.38321192129304,
+              "x_value": 0.09692058916666667,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
             },
             "kinematic": {
-              "value": 1.6230014836982969,
-              "x_value": 0.21553185873015873,
-              "complete": true,
-              "measured_attempts": 63,
-              "eligible_attempts": 63,
-              "measured_assets": 17,
-              "eligible_assets": 17,
-              "cohort_sha256": "d90e0620f109135b4f653a727da6d857d2d4ec823e2cf9787002216be53dd9da",
-              "reference_cohort_sha256": "d3ebafbf3aa74b7de0997fcce85416c422289585c256ed79509b430c16967b80"
+              "value": 0.8723303990563855,
+              "x_value": 0.09692058916666667,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
             }
-          }
-        },
-        "time_seconds_per_asset": {
-          "value": 670.6889903639047,
-          "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "sum of recorded inference request durations",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
-            "formal": {
-              "value": 89.45217391304348,
-              "x_value": 670.6889903639047,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "visual": {
-              "value": 11.202572472915314,
-              "x_value": 670.6889903639047,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "kinematic": {
-              "value": 1.6230014836982969,
-              "x_value": 729.8968938536154,
-              "complete": true,
-              "measured_attempts": 63,
-              "eligible_attempts": 63,
-              "measured_assets": 17,
-              "eligible_assets": 17,
-              "cohort_sha256": "d90e0620f109135b4f653a727da6d857d2d4ec823e2cf9787002216be53dd9da",
-              "reference_cohort_sha256": "d3ebafbf3aa74b7de0997fcce85416c422289585c256ed79509b430c16967b80"
-            }
-          }
-        },
-        "tokens_per_asset": {
-          "value": 1207815.07,
-          "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "input and output tokens, including cached input once",
-          "source_description": "100 attempts: SHA-256-verified trajectory matched to retained provider request proofs",
-          "scores": {
-            "formal": {
-              "value": 89.45217391304348,
-              "x_value": 1207815.07,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "visual": {
-              "value": 11.202572472915314,
-              "x_value": 1207815.07,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "kinematic": {
-              "value": 1.6230014836982969,
-              "x_value": 1378977.2063492064,
-              "complete": true,
-              "measured_attempts": 63,
-              "eligible_attempts": 63,
-              "measured_assets": 17,
-              "eligible_assets": 17,
-              "cohort_sha256": "d90e0620f109135b4f653a727da6d857d2d4ec823e2cf9787002216be53dd9da",
-              "reference_cohort_sha256": "d3ebafbf3aa74b7de0997fcce85416c422289585c256ed79509b430c16967b80"
-            }
-          }
-        },
-        "elapsed_seconds_per_asset": {
-          "value": 716.4637755229743,
-          "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "elapsed reconstruction time, including tool execution",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
-            "formal": {
-              "value": 89.45217391304348,
-              "x_value": 716.4637755229743,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "visual": {
-              "value": 11.202572472915314,
-              "x_value": 716.4637755229743,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "kinematic": {
-              "value": 1.6230014836982969,
-              "x_value": 774.6574262544672,
-              "complete": true,
-              "measured_attempts": 63,
-              "eligible_attempts": 63,
-              "measured_assets": 17,
-              "eligible_assets": 17,
-              "cohort_sha256": "d90e0620f109135b4f653a727da6d857d2d4ec823e2cf9787002216be53dd9da",
-              "reference_cohort_sha256": "d3ebafbf3aa74b7de0997fcce85416c422289585c256ed79509b430c16967b80"
-            }
-          }
-        }
-      },
-      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/fec78831d914bd7e411e69199a3a58d644ee6d37/runs/nv25-glm53-flash-low-turn64-output4096-bounded-v1-continue-length-v1-local-20261021/results.json",
-      "source_results_sha256": "70c6613bcb35b314a2d33e5217235e96c7fd4ff4bea9d79baa68e9b778fc29f7",
-      "evaluator_version": "source-usd-fidelity-v7",
-      "reference_revision": "f4860aa0c75607adb50a78bf96e77510bffc040f",
-      "completed_attempts": 100,
-      "reference_count": 25,
-      "provenance": {
-        "verified_public_trajectories": 100,
-        "private_native_usage_attempts": 0,
-        "private_source_results_sha256": null,
-        "missing_usage_is_zero": false
-      }
-    },
-    {
-      "id": "nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022",
-      "label": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten \u00b7 pi \u00b7 off",
-      "model": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4:baseten",
-      "model_family": "Nemotron",
-      "harness": "pi",
-      "reasoning": "off",
-      "orichalcum_pin": null,
-      "protocol_id": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
-      "protocol": "64 turns \u00b7 4,096-token output limit",
-      "frontier_group": "f37f7b00843f7ebfe7362fb235f4f48419c47a99ecc24de4d88aeb9e6a523bed",
-      "scores": {
-        "formal": {
-          "value": 57.83695652173913,
-          "status": "measured",
-          "complete": true,
-          "lower": 57.83695652173913,
-          "upper": 57.83695652173913,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
-        },
-        "visual": {
-          "value": 5.2713586266503425,
-          "status": "measured",
-          "complete": true,
-          "lower": 5.2713586266503425,
-          "upper": 5.2713586266503425,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
-        },
-        "kinematic": {
-          "value": 0.0028052767426892376,
-          "status": "measured",
-          "complete": true,
-          "lower": 0.0028052767426892376,
-          "upper": 0.0028052767426892376,
-          "coverage": 1.0,
-          "measured_attempts": 63,
-          "eligible_attempts": 63,
-          "measured_assets": 21,
-          "eligible_assets": 21
-        },
-        "cumulative": {
-          "value": -1.3653639159240811,
-          "status": "measured",
-          "complete": true,
-          "components": {
-            "formal": -1.7714859272345433,
-            "visual": -0.8966016832174303,
-            "kinematic": -1.4280041373202697
           },
-          "unit": "mean z-score"
-        }
-      },
-      "metrics": {
-        "cost_usd_per_asset": {
-          "value": null,
-          "complete": false,
-          "measured_attempts": 0,
-          "total_attempts": 100,
-          "measured_assets": 0,
-          "total_assets": 25,
-          "kind": "pricing-derived inference cost",
-          "source_description": "Unavailable in retained evidence",
-          "scores": {
-            "formal": {
-              "value": null,
-              "x_value": null,
-              "complete": false,
-              "measured_attempts": 0,
-              "eligible_attempts": 100,
-              "measured_assets": 0,
-              "eligible_assets": 25,
-              "cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-              "reference_cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-            },
-            "visual": {
-              "value": null,
-              "x_value": null,
-              "complete": false,
-              "measured_attempts": 0,
-              "eligible_attempts": 100,
-              "measured_assets": 0,
-              "eligible_assets": 25,
-              "cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-              "reference_cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-            },
-            "kinematic": {
-              "value": null,
-              "x_value": null,
-              "complete": false,
-              "measured_attempts": 0,
-              "eligible_attempts": 63,
-              "measured_assets": 0,
-              "eligible_assets": 21,
-              "cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-              "reference_cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-            }
-          }
-        },
-        "time_seconds_per_asset": {
-          "value": 2800.1731243735007,
-          "complete": false,
-          "measured_attempts": 95,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "sum of recorded inference request durations",
-          "source_description": "95 attempts: complete retained provider request duration records",
-          "scores": {
-            "formal": {
-              "value": 56.51144164759725,
-              "x_value": 2800.1731243735007,
-              "complete": false,
-              "measured_attempts": 95,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "c4b458ead9a219424459941d0e585bfad36473badef4b97c78abcd76fd09859b",
-              "reference_cohort_sha256": "883e809a7fd9dcb876ffd146ba85fdc1b703d9548316857d421ed6a3f8b54ac5"
-            },
-            "visual": {
-              "value": 4.764440030917957,
-              "x_value": 2800.1731243735007,
-              "complete": false,
-              "measured_attempts": 95,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "c4b458ead9a219424459941d0e585bfad36473badef4b97c78abcd76fd09859b",
-              "reference_cohort_sha256": "883e809a7fd9dcb876ffd146ba85fdc1b703d9548316857d421ed6a3f8b54ac5"
-            },
-            "kinematic": {
-              "value": 0.000635186956615955,
-              "x_value": 2812.331260273973,
-              "complete": false,
-              "measured_attempts": 59,
-              "eligible_attempts": 63,
-              "measured_assets": 21,
-              "eligible_assets": 21,
-              "cohort_sha256": "df25b1c6787d54a097a54c9fc9a198446cce2c128194d580fbda67030043f73f",
-              "reference_cohort_sha256": "3711838911401d3d7ff5d16a846613ac740a99b47120e8c8976de3a0e6bf800c"
-            }
-          }
-        },
-        "tokens_per_asset": {
-          "value": 2762437.5,
-          "complete": false,
-          "measured_attempts": 2,
-          "total_attempts": 100,
-          "measured_assets": 2,
-          "total_assets": 25,
-          "kind": "input and output tokens, including cached input once",
-          "source_description": "2 attempts: published provider input and output usage",
-          "scores": {
-            "formal": {
-              "value": 81.57608695652173,
-              "x_value": 2762437.5,
-              "complete": false,
-              "measured_attempts": 2,
-              "eligible_attempts": 100,
-              "measured_assets": 2,
-              "eligible_assets": 25,
-              "cohort_sha256": "f9e0339d6604ce6968a3e05e4800e1351e99319a4d51e8429c6764b6b3e62c09",
-              "reference_cohort_sha256": "7a910013715160b833e16e94a67010af20022e5d715c0dcc7556321015cefead"
-            },
-            "visual": {
-              "value": 15.50562349634887,
-              "x_value": 2762437.5,
-              "complete": false,
-              "measured_attempts": 2,
-              "eligible_attempts": 100,
-              "measured_assets": 2,
-              "eligible_assets": 25,
-              "cohort_sha256": "f9e0339d6604ce6968a3e05e4800e1351e99319a4d51e8429c6764b6b3e62c09",
-              "reference_cohort_sha256": "7a910013715160b833e16e94a67010af20022e5d715c0dcc7556321015cefead"
-            },
-            "kinematic": {
-              "value": 0.013477358583760729,
-              "x_value": 2955091.0,
-              "complete": false,
-              "measured_attempts": 1,
-              "eligible_attempts": 63,
-              "measured_assets": 1,
-              "eligible_assets": 21,
-              "cohort_sha256": "b4043134e9961b7036aabdba8bfa4d9d89b690f4d71100c1b1fccdf6f0407605",
-              "reference_cohort_sha256": "7be5471f670a62b63e874e6ed3677f69210725ef1e3e21c0144b5330f7f5c077"
-            }
-          }
+          "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
-          "value": 2840.6725999656423,
+          "value": 263.7662889233333,
+          "unit": "Trial time (min/asset)",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 79129.886677,
           "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "elapsed reconstruction time, including tool execution",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
+          "includes_retries": true,
+          "paired_scores": {
             "formal": {
-              "value": 57.83695652173913,
-              "x_value": 2840.6725999656423,
+              "value": 91.12789855072464,
+              "x_value": 263.7662889233333,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
             },
             "visual": {
-              "value": 5.2713586266503425,
-              "x_value": 2840.6725999656423,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "value": 47.38321192129304,
+              "x_value": 263.7662889233333,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
             },
             "kinematic": {
-              "value": 0.0028052767426892376,
-              "x_value": 2868.8532480761955,
-              "complete": true,
-              "measured_attempts": 63,
-              "eligible_attempts": 63,
-              "measured_assets": 21,
-              "eligible_assets": 21,
-              "cohort_sha256": "9031aef874ee8739c77d8a73ab2d59085bf58d8e0b2f1d49bf09876685eb34a1",
-              "reference_cohort_sha256": "5d5d3d6e3fef6469c54098a2a955beb220d4bd652faecdc6929c5db3cd73365f"
+              "value": 0.8723303990563855,
+              "x_value": 263.7662889233333,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
             }
-          }
-        }
-      },
-      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/fec78831d914bd7e411e69199a3a58d644ee6d37/runs/nv25-nemotron35-vl-nvfp4-off-pi-turn64-output4096-local-20261022/results.json",
-      "source_results_sha256": "8a2352070136cc11db3477b9f0a6f1252407ca76025a43b41d8320413be76d7a",
-      "evaluator_version": "source-usd-fidelity-v7",
-      "reference_revision": "f4860aa0c75607adb50a78bf96e77510bffc040f",
-      "completed_attempts": 100,
-      "reference_count": 25,
-      "provenance": {
-        "verified_public_trajectories": 0,
-        "private_native_usage_attempts": 0,
-        "private_source_results_sha256": "aae89b6b64068f0611affd676544b2dc72a59cd97b2820ce2b0ccb4d0d32a432",
-        "missing_usage_is_zero": false
-      }
-    },
-    {
-      "id": "nv25-sonnet55-low-pi-none-turn64-output4096-local-20261022-capture-complete-poles-v7",
-      "label": "claude-sonnet-5-5 \u00b7 pi \u00b7 low",
-      "model": "claude-sonnet-5-5",
-      "model_family": "Claude",
-      "harness": "pi",
-      "reasoning": "low",
-      "orichalcum_pin": null,
-      "protocol_id": "authoring-64-bounded-output-4096-v1-tools-bounded-v1-continue-length-v1",
-      "protocol": "64 turns \u00b7 4,096-token output limit",
-      "frontier_group": "f37f7b00843f7ebfe7362fb235f4f48419c47a99ecc24de4d88aeb9e6a523bed",
-      "scores": {
-        "formal": {
-          "value": 80.57173913043478,
-          "status": "measured",
-          "complete": true,
-          "lower": null,
-          "upper": null,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
-        },
-        "visual": {
-          "value": 6.04841477345976,
-          "status": "measured",
-          "complete": true,
-          "lower": null,
-          "upper": null,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
-        },
-        "kinematic": {
-          "value": 4.203086541660535,
-          "status": "measured",
-          "complete": true,
-          "lower": null,
-          "upper": null,
-          "coverage": 1.0,
-          "measured_attempts": 56,
-          "eligible_attempts": 56,
-          "measured_assets": 15,
-          "eligible_assets": 15
-        },
-        "cumulative": {
-          "value": -0.3459871591308981,
-          "status": "measured",
-          "complete": true,
-          "components": {
-            "formal": -0.3193845471794536,
-            "visual": -0.8617880700301027,
-            "kinematic": 0.1432111398168619
           },
-          "unit": "mean z-score"
-        }
-      },
-      "metrics": {
-        "cost_usd_per_asset": {
-          "value": 0.57731428,
-          "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "pricing-derived inference cost",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
-            "formal": {
-              "value": 80.57173913043478,
-              "x_value": 0.57731428,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "visual": {
-              "value": 6.04841477345976,
-              "x_value": 0.57731428,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "kinematic": {
-              "value": 4.203086541660535,
-              "x_value": 0.7043017321428572,
-              "complete": true,
-              "measured_attempts": 56,
-              "eligible_attempts": 56,
-              "measured_assets": 15,
-              "eligible_assets": 15,
-              "cohort_sha256": "2e7e9f3701cb1a079ccf1b4e67d63424d7b062c55f5946cec84bb0fc28f21d01",
-              "reference_cohort_sha256": "9fd4d63769d0b46acd2c08fd7a32bd4d52421358f7bc199da93082b62e397fc5"
-            }
-          }
-        },
-        "time_seconds_per_asset": {
-          "value": 46.55502481864649,
-          "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "sum of recorded inference request durations",
-          "source_description": "100 attempts: complete retained provider request duration records",
-          "scores": {
-            "formal": {
-              "value": 80.57173913043478,
-              "x_value": 46.55502481864649,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "visual": {
-              "value": 6.04841477345976,
-              "x_value": 46.55502481864649,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "kinematic": {
-              "value": 4.203086541660535,
-              "x_value": 54.79194633474357,
-              "complete": true,
-              "measured_attempts": 56,
-              "eligible_attempts": 56,
-              "measured_assets": 15,
-              "eligible_assets": 15,
-              "cohort_sha256": "2e7e9f3701cb1a079ccf1b4e67d63424d7b062c55f5946cec84bb0fc28f21d01",
-              "reference_cohort_sha256": "9fd4d63769d0b46acd2c08fd7a32bd4d52421358f7bc199da93082b62e397fc5"
-            }
-          }
+          "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
         },
         "tokens_per_asset": {
-          "value": 179154.57,
+          "value": 359012.8933333333,
+          "unit": "Tokens/asset",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 107703868.0,
           "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "input and output tokens, including cached input once",
-          "source_description": "100 attempts: retained native Anthropic usage; cache reads and writes counted once",
-          "scores": {
+          "includes_retries": true,
+          "paired_scores": {
             "formal": {
-              "value": 80.57173913043478,
-              "x_value": 179154.57,
+              "value": 91.12789855072464,
+              "x_value": 359012.8933333333,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
             },
             "visual": {
-              "value": 6.04841477345976,
-              "x_value": 179154.57,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "value": 47.38321192129304,
+              "x_value": 359012.8933333333,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
             },
             "kinematic": {
-              "value": 4.203086541660535,
-              "x_value": 215792.0357142857,
-              "complete": true,
-              "measured_attempts": 56,
-              "eligible_attempts": 56,
-              "measured_assets": 15,
-              "eligible_assets": 15,
-              "cohort_sha256": "2e7e9f3701cb1a079ccf1b4e67d63424d7b062c55f5946cec84bb0fc28f21d01",
-              "reference_cohort_sha256": "9fd4d63769d0b46acd2c08fd7a32bd4d52421358f7bc199da93082b62e397fc5"
-            }
-          }
-        },
-        "elapsed_seconds_per_asset": {
-          "value": 68.63406844372861,
-          "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "elapsed reconstruction time, including tool execution",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
-            "formal": {
-              "value": 80.57173913043478,
-              "x_value": 68.63406844372861,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "visual": {
-              "value": 6.04841477345976,
-              "x_value": 68.63406844372861,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "7cd66a932bac474d25e44745275106e7ac4e22b174fe27afaa80bc39e3349e8a",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
-            },
-            "kinematic": {
-              "value": 4.203086541660535,
-              "x_value": 77.77208145849416,
-              "complete": true,
-              "measured_attempts": 56,
-              "eligible_attempts": 56,
-              "measured_assets": 15,
-              "eligible_assets": 15,
-              "cohort_sha256": "2e7e9f3701cb1a079ccf1b4e67d63424d7b062c55f5946cec84bb0fc28f21d01",
-              "reference_cohort_sha256": "9fd4d63769d0b46acd2c08fd7a32bd4d52421358f7bc199da93082b62e397fc5"
+              "value": 0.8723303990563855,
+              "x_value": 359012.8933333333,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
             }
           }
         }
-      },
-      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/fec78831d914bd7e411e69199a3a58d644ee6d37/runs/nv25-sonnet55-low-pi-none-turn64-output4096-local-20261022-capture-complete-poles-v7/results.json",
-      "source_results_sha256": "175c3be82f5cf02982e9a6b050f2fde150503598cabc8c033d0f3abb82e58b23",
-      "evaluator_version": "source-usd-fidelity-v7",
-      "reference_revision": "f4860aa0c75607adb50a78bf96e77510bffc040f",
-      "completed_attempts": 100,
-      "reference_count": 25,
-      "provenance": {
-        "verified_public_trajectories": 0,
-        "private_native_usage_attempts": 0,
-        "private_source_results_sha256": "263a886fcf7ef46fb2b907a8608998b98c1cb971452c7e3ec4c01056ab5f21f6",
-        "missing_usage_is_zero": false
       }
     },
     {
-      "id": "gpt61-sol-high-codex-orichalcum-full-20261023",
-      "label": "gpt-6.1-sol \u00b7 codex \u00b7 high \u00b7 Orichalcum \u20261073112a",
-      "model": "gpt-6.1-sol",
-      "model_family": "GPT",
-      "harness": "codex",
+      "id": "harbor-evaluator-2.2.0-gpt-6.1-terra-high",
+      "label": "Terra high",
+      "model": "Terra",
+      "model_family": "Terra",
+      "requested_model": "openai/gpt-6.1-terra",
       "reasoning": "high",
-      "orichalcum_pin": "6ed0572b09045087bb3548ed18867ece1073112a",
-      "protocol_id": "authoring-64-native-output-v1",
-      "protocol": "64 turns \u00b7 native output limit",
-      "frontier_group": "b8c84be41eea325054c46bd4860befa21a4e146ca7b583f1fab7d5e39f6094b7",
+      "harness": "Codex",
+      "evaluator_version": "2.2.0",
+      "job_id": "dc30f963-ebba-47f8-a052-535ce8a706f4",
+      "frontier_group": "nv100-v1:2.2.0",
+      "reference_count": 100,
+      "final_slots": 300,
+      "execution_count": 300,
+      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4",
       "scores": {
         "formal": {
           "value": 100.0,
-          "status": "measured",
-          "complete": true,
-          "lower": 100.0,
-          "upper": 100.0,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
         },
         "visual": {
-          "value": 59.02711957959985,
-          "status": "measured",
-          "complete": true,
-          "lower": 59.02711957959985,
-          "upper": 59.02711957959985,
-          "coverage": 1.0,
-          "measured_attempts": 100,
-          "eligible_attempts": 100,
-          "measured_assets": 25,
-          "eligible_assets": 25
+          "value": 54.0317300289362,
+          "measured_attempts": 289,
+          "eligible_attempts": 300,
+          "complete": false
         },
         "kinematic": {
-          "value": 6.232595836886533,
-          "status": "measured",
-          "complete": true,
-          "lower": 6.232595836886533,
-          "upper": 6.232595836886533,
-          "coverage": 1.0,
-          "measured_attempts": 58,
-          "eligible_attempts": 58,
-          "measured_assets": 17,
-          "eligible_assets": 17
-        },
-        "cumulative": {
-          "value": 1.111894091915143,
-          "status": "measured",
-          "complete": true,
-          "components": {
-            "formal": 0.9215248077213251,
-            "visual": 1.5117600240935645,
-            "kinematic": 0.9023974439305393
-          },
-          "unit": "mean z-score"
+          "value": 2.786428247049474,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true
         }
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": null,
-          "complete": false,
-          "measured_attempts": 0,
-          "total_attempts": 100,
-          "measured_assets": 0,
-          "total_assets": 25,
-          "kind": "pricing-derived inference cost",
-          "source_description": "Unavailable in retained evidence",
-          "scores": {
-            "formal": {
-              "value": null,
-              "x_value": null,
-              "complete": false,
-              "measured_attempts": 0,
-              "eligible_attempts": 100,
-              "measured_assets": 0,
-              "eligible_assets": 25,
-              "cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-              "reference_cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-            },
-            "visual": {
-              "value": null,
-              "x_value": null,
-              "complete": false,
-              "measured_attempts": 0,
-              "eligible_attempts": 100,
-              "measured_assets": 0,
-              "eligible_assets": 25,
-              "cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-              "reference_cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-            },
-            "kinematic": {
-              "value": null,
-              "x_value": null,
-              "complete": false,
-              "measured_attempts": 0,
-              "eligible_attempts": 58,
-              "measured_assets": 0,
-              "eligible_assets": 17,
-              "cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-              "reference_cohort_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-            }
-          }
-        },
-        "time_seconds_per_asset": {
-          "value": 581.2341867654608,
+          "value": 0.27350602183333333,
+          "unit": "Inference cost ($/asset)",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 82.05180655,
           "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "sum of recorded inference request durations",
-          "source_description": "100 attempts: complete retained provider request duration records",
-          "scores": {
+          "includes_retries": true,
+          "paired_scores": {
             "formal": {
               "value": 100.0,
-              "x_value": 581.2341867654608,
+              "x_value": 0.27350602183333333,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "3e9aa47037ece94f4a371f9ee69c40aff98e6997577ab91f4c230585b134de62",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
             },
             "visual": {
-              "value": 59.02711957959985,
-              "x_value": 581.2341867654608,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "3e9aa47037ece94f4a371f9ee69c40aff98e6997577ab91f4c230585b134de62",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "value": 54.18337030721294,
+              "x_value": 0.27350602183333333,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
             },
             "kinematic": {
-              "value": 6.232595836886533,
-              "x_value": 632.6569156617926,
-              "complete": true,
-              "measured_attempts": 58,
-              "eligible_attempts": 58,
-              "measured_assets": 17,
-              "eligible_assets": 17,
-              "cohort_sha256": "487a47629142f3d5eaa01ff8087d7b0fa05d6c5a139b74f3e2fdbe6d9308c2d3",
-              "reference_cohort_sha256": "22d6108c20a5248ca4c05dcf53f2f689c67629aedce63d5d64ad73e44eab9547"
+              "value": 2.814573986918661,
+              "x_value": 0.27350602183333333,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
             }
-          }
-        },
-        "tokens_per_asset": {
-          "value": 1676747.247311828,
-          "complete": false,
-          "measured_attempts": 93,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "input and output tokens, including cached input once",
-          "source_description": "93 attempts: retained native Codex token_usage_record events matched to provider requests",
-          "scores": {
-            "formal": {
-              "value": 100.0,
-              "x_value": 1676747.247311828,
-              "complete": false,
-              "measured_attempts": 93,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "fc3b38f04adc7c28ae4ba3ebcbdb32574e668cc80dff75094023c71c51003d6d",
-              "reference_cohort_sha256": "550f93c80b9ec95d95fa60290aae84018461bbdfdfe2c01b69654318d48344e9"
-            },
-            "visual": {
-              "value": 58.16087231507965,
-              "x_value": 1676747.247311828,
-              "complete": false,
-              "measured_attempts": 93,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "fc3b38f04adc7c28ae4ba3ebcbdb32574e668cc80dff75094023c71c51003d6d",
-              "reference_cohort_sha256": "550f93c80b9ec95d95fa60290aae84018461bbdfdfe2c01b69654318d48344e9"
-            },
-            "kinematic": {
-              "value": 4.717727270333619,
-              "x_value": 1805838.826923077,
-              "complete": false,
-              "measured_attempts": 52,
-              "eligible_attempts": 58,
-              "measured_assets": 17,
-              "eligible_assets": 17,
-              "cohort_sha256": "59e513248c295d64c939f4fb373e1844e71f9728802729f4a65b5fec6f19c1a3",
-              "reference_cohort_sha256": "8dced2cfda1342528429e49e80b7a9989d195860aac50e3b8c12d76924cc55b4"
-            }
-          }
+          },
+          "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
-          "value": 618.7087925990182,
+          "value": 465.41184811000005,
+          "unit": "Trial time (min/asset)",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 139623.554433,
           "complete": true,
-          "measured_attempts": 100,
-          "total_attempts": 100,
-          "measured_assets": 25,
-          "total_assets": 25,
-          "kind": "elapsed reconstruction time, including tool execution",
-          "source_description": "100 attempts: published per-attempt measurement",
-          "scores": {
+          "includes_retries": true,
+          "paired_scores": {
             "formal": {
               "value": 100.0,
-              "x_value": 618.7087925990182,
+              "x_value": 465.41184811000005,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "3e9aa47037ece94f4a371f9ee69c40aff98e6997577ab91f4c230585b134de62",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
             },
             "visual": {
-              "value": 59.02711957959985,
-              "x_value": 618.7087925990182,
-              "complete": true,
-              "measured_attempts": 100,
-              "eligible_attempts": 100,
-              "measured_assets": 25,
-              "eligible_assets": 25,
-              "cohort_sha256": "3e9aa47037ece94f4a371f9ee69c40aff98e6997577ab91f4c230585b134de62",
-              "reference_cohort_sha256": "d552d3ba81fd3f7d3652c292a6f375fa5af118bb5b4d66ea2d8f785f38fbba31"
+              "value": 54.18337030721294,
+              "x_value": 465.41184811000005,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
             },
             "kinematic": {
-              "value": 6.232595836886533,
-              "x_value": 669.6469660197256,
+              "value": 2.814573986918661,
+              "x_value": 465.41184811000005,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": true
+            }
+          },
+          "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
+        },
+        "tokens_per_asset": {
+          "value": 1653681.07,
+          "unit": "Tokens/asset",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 496104321.0,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 100.0,
+              "x_value": 1653681.07,
+              "measured_attempts": 300,
+              "eligible_attempts": 300,
               "complete": true,
-              "measured_attempts": 58,
-              "eligible_attempts": 58,
-              "measured_assets": 17,
-              "eligible_assets": 17,
-              "cohort_sha256": "487a47629142f3d5eaa01ff8087d7b0fa05d6c5a139b74f3e2fdbe6d9308c2d3",
-              "reference_cohort_sha256": "22d6108c20a5248ca4c05dcf53f2f689c67629aedce63d5d64ad73e44eab9547"
+              "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
+              "frontier": true
+            },
+            "visual": {
+              "value": 54.18337030721294,
+              "x_value": 1653681.07,
+              "measured_attempts": 265,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
+              "frontier": true
+            },
+            "kinematic": {
+              "value": 2.814573986918661,
+              "x_value": 1653681.07,
+              "measured_attempts": 297,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
+              "frontier": false
             }
           }
         }
-      },
-      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/fec78831d914bd7e411e69199a3a58d644ee6d37/runs/gpt61-sol-high-codex-orichalcum-full-20261023/results.json",
-      "source_results_sha256": "1fdd15037d174dbe7b166db621820e52e8bf9632f936c57df4c202645e400b72",
-      "evaluator_version": "source-usd-fidelity-v4",
-      "reference_revision": "f4860aa0c75607adb50a78bf96e77510bffc040f",
-      "completed_attempts": 100,
-      "reference_count": 25,
-      "provenance": {
-        "verified_public_trajectories": 0,
-        "private_native_usage_attempts": 99,
-        "private_source_results_sha256": "932eff88fd84c6c46edfc095d7012ad06ccba5d2f6ad91f96aad4a5fed5b2abd",
-        "missing_usage_is_zero": false
       }
     }
-  ]
+  ],
+  "methodology": "Each Pareto panel uses the same object/repetition pairs across configurations.",
+  "aggregation": {
+    "scores": "means over available final scores",
+    "pareto_scores": "common measured object/repetition slots across configurations, separately per fidelity metric",
+    "resources": "sum available execution measurements including retries, divided by intended reconstruction slots",
+    "missing": "null; never imputed as zero",
+    "hosted_compute": "job-level only; not allocated to configurations"
+  }
 }
