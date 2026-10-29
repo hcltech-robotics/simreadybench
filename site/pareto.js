@@ -102,6 +102,7 @@ function makePoints(runs, metricId, scoreIds) {
       points.push({
         id: `${run.id}:${scoreId}`, run, metric, score, scoreId,
         x: score.x_value / axes[metricId].divisor, rawX: score.x_value, y: score.value,
+        resourceIncomplete: metric.complete !== true,
         complete,
         group: run.frontier_group || run.id,
       });
@@ -128,7 +129,7 @@ async function initialise() {
 
   let data;
   try {
-    const response = await fetch("assets/pareto.json", { credentials: "omit", cache: "no-store" });
+    const response = await fetch("assets/leaderboard.json", { credentials: "omit", cache: "no-store" });
     if (!response.ok) throw new Error("Measurements unavailable");
     data = await response.json();
     if (!Array.isArray(data.runs) || !data.runs.every((run) => typeof run.id === "string"
@@ -214,7 +215,7 @@ async function initialise() {
     const measurement = element("p", `${scoreType.label}: ${number(point.y)}${cumulative ? "" : " / 100"}`, "pareto-tooltip-score");
     measurement.style.color = scoreType.colour;
     tooltip.append(measurement);
-    tooltip.append(element("p", `${axes[xSelect.value].label}: ${axes[xSelect.value].format(point.rawX)} per asset`));
+    tooltip.append(element("p", `${axes[xSelect.value].label}: ${point.resourceIncomplete ? "≥ " : ""}${axes[xSelect.value].format(point.rawX)} per asset`));
     tooltip.append(element("p", metricCoverage(point.metric), "table-note"));
     const measuredScoreCoverage = scoreCoverage(point.score);
     if (measuredScoreCoverage) tooltip.append(element("p", `Score coverage: ${measuredScoreCoverage}`, "table-note"));
@@ -230,7 +231,7 @@ async function initialise() {
 
     if (point.run.protocol) tooltip.append(element("p", publicLabel(point.run.protocol), "table-note"));
     if (point.run.evaluator_version) tooltip.append(element("p", `Evaluator: ${point.run.evaluator_version}`, "table-note"));
-    tooltip.append(element("p", point.frontier
+    tooltip.append(element("p", point.resourceIncomplete ? "Provisional frontier position: resource total is incomplete." : point.frontier
       ? "On the frontier for this score and evaluator" : "Dominated within this score and evaluator", "table-note"));
     const source = safeSource(point.metric.source_url || point.run.source_url);
     if (source) {
@@ -351,13 +352,14 @@ async function initialise() {
         .forEach((frontier) => {
           const colour = scoreTypes.find((score) => score.id === frontier.scoreId).colour;
           const attained = [...frontier.points, { ...frontier.points.at(-1), x: x.domain()[1] }];
-          panel.append("path").attr("class", "pareto-frontier-area")
+          if (!frontier.points.some(point => point.resourceIncomplete)) panel.append("path").attr("class", "pareto-frontier-area")
             .attr("data-score", frontier.scoreId).attr("data-frontier-group", frontier.group)
             .attr("data-frontier-points", frontier.points.length).attr("fill", colour)
             .attr("d", d3.area().curve(d3.curveStepAfter).x((point) => x(point.x))
               .y0(y(y.domain()[0])).y1((point) => y(point.y))(attained));
           panel.append("path").attr("class", "pareto-frontier").attr("data-score", frontier.scoreId)
             .attr("stroke", colour)
+            .attr("stroke-dasharray", frontier.points.some(point => point.resourceIncomplete) ? "5,3" : null)
             .attr("d", d3.line().curve(d3.curveStepAfter).x((point) => x(point.x)).y((point) => y(point.y))(attained));
         });
       const panelPoints = points.filter((point) => panelIds.has(point.scoreId));
@@ -365,12 +367,12 @@ async function initialise() {
         .attr("class", "pareto-point").attr("data-run-id", (point) => point.run.id)
         .attr("data-family", (point) => familyName(point.run))
         .attr("data-score", (point) => point.scoreId).attr("data-point-id", (point) => point.id)
-        .attr("data-frontier", (point) => String(Boolean(point.frontier))).attr("data-complete", (point) => String(point.complete))
+        .attr("data-frontier", (point) => String(Boolean(point.frontier))).attr("data-frontier-provisional", point => String(point.resourceIncomplete)).attr("data-complete", (point) => String(point.complete))
         .attr("transform", (point) => `translate(${x(point.x)},${y(point.y)})`)
-        .attr("fill", (point) => scoreTypes.find((score) => score.id === point.scoreId).colour)
+        .attr("fill", (point) => point.resourceIncomplete ? "white" : scoreTypes.find((score) => score.id === point.scoreId).colour)
         .attr("stroke", (point) => scoreTypes.find((score) => score.id === point.scoreId).colour)
         .attr("tabindex", isSnapshot ? null : 0).attr("role", isSnapshot ? "img" : "button")
-        .attr("aria-label", (point) => `${configLabel(point.run)}. ${scoreTypes.find((score) => score.id === point.scoreId).label}: ${number(point.y)}${point.scoreId === "cumulative" ? " mean z-score" : " / 100"}. ${axes[metricId].label}: ${axes[metricId].format(point.rawX)} per asset. ${metricCoverage(point.metric)}. ${point.frontier ? "On frontier." : "Dominated."}`)
+        .attr("aria-label", (point) => `${configLabel(point.run)}. ${scoreTypes.find((score) => score.id === point.scoreId).label}: ${number(point.y)}${point.scoreId === "cumulative" ? " mean z-score" : " / 100"}. ${axes[metricId].label}: ${point.resourceIncomplete ? "at least " : ""}${axes[metricId].format(point.rawX)} per asset. ${metricCoverage(point.metric)}. ${point.resourceIncomplete ? "Provisional frontier position." : point.frontier ? "On frontier." : "Dominated."}`)
         .on("pointerdown", (event) => { event.currentTarget._pointerFocus = true; })
         .on("pointercancel blur", (event) => { event.currentTarget._pointerFocus = false; })
         .on("pointerenter", (event, point) => { if (event.pointerType !== "touch") showTooltip(event, point); })

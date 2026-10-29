@@ -131,9 +131,9 @@ def test_explicit_root_card_composition_defaults_to_tasks_and_names_history():
 
 def test_project_results_and_gallery_use_same_current_dataset():
     root = Path(__file__).parents[2]
-    data = json.loads((root / 'site/assets/pareto.json').read_text())
+    data = json.loads((root / 'site/assets/leaderboard.json').read_text())
     gallery = json.loads((root / 'site/assets/explorer/manifest.json').read_text())
-    assert 'assets/pareto.json' in (root / 'site/app.js').read_text()
+    assert 'assets/leaderboard.json' in (root / 'site/app.js').read_text()
     assert all(variant['run_id'] in data['job_ids'] for obj in gallery['objects'] for variant in obj['variants'])
     assert all(variant['trial_id'] in variant['download_url'] for obj in gallery['objects'] for variant in obj['variants'])
     assert 'artifact-export-summary.json' in (root / '.github/workflows/pages.yml').read_text()

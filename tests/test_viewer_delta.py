@@ -94,15 +94,40 @@ def test_invalid_points_counts_and_escaping_paths_are_rejected(tmp_path):
         builder.safe_path(tmp_path, "../outside.glb")
 
 
-def test_published_clouds_keep_hashes_counts_frames_and_actual_surface_distances():
+def test_published_clouds_keep_hashes_counts_and_frames():
     site = ROOT / "site"
     source_bytes = (site / "assets/explorer/manifest.json").read_bytes()
     source = json.loads(source_bytes)
     manifest = json.loads((site / "assets/explorer/delta-manifest.json").read_text())
     assert manifest["source_manifest_sha256"] == hashlib.sha256(source_bytes).hexdigest()
     assert manifest["samples_per_direction"] == 12_000
-    assert len(manifest["pairs"]) == 20
-    assert sum(p["src"] is not None for p in manifest["pairs"].values()) == 19
+    variants = [(obj, variant) for obj in source['objects'] for variant in obj['variants']]
+    assert len(manifest['pairs']) == len(variants)
+    assert sum(p['src'] is not None for p in manifest['pairs'].values()) == sum(v.get('src') is not None for _,v in variants)
+    if any(str(obj['reference']['src']).startswith('https://') for obj in source['objects']):
+        # Hosted geometry is not vendored into a source checkout. Check the
+        # content-addressed joins here; distance math is exercised above.
+        receipt_bytes = (site / 'assets/explorer/geometry-provenance.json').read_bytes()
+        receipts = json.loads(receipt_bytes)
+        assert manifest['source_geometry_provenance_sha256'] == hashlib.sha256(receipt_bytes).hexdigest()
+        prefix = 'https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/'
+        for obj,variant in variants:
+            pair = manifest['pairs'][f"{obj['id']}/{variant['id']}"]
+            assert obj['reference']['src'].startswith(prefix)
+            assert variant['run_id'] == source['job_id']
+            assert pair['source_reference_sha256'] == obj['reference']['sha256']
+            assert pair['source_candidate_sha256'] == variant['sha256']
+            if variant.get('src') is None:
+                assert pair['src'] is None
+                continue
+            assert variant['src'].startswith(prefix) and pair['src'].startswith(prefix)
+            assert pair['point_count'] == 24_000 and pair['reference_point_count'] == 12_000
+            assert 0 <= pair['p95_distance_m'] <= pair['max_distance_m']
+            for identity,item in [(f"{obj['id']}/reference",obj['reference']),(f"{obj['id']}/{variant['id']}",variant)]:
+                assert receipts[identity]['glb_sha256'] == item['sha256']
+                assert receipts[identity]['coordinates'] == 'metres/Y-up'
+            assert pair['alignment_status'] == ('recorded' if receipts[f"{obj['id']}/{variant['id']}"]['alignment_m_z_up'] else 'authored')
+        return
     for obj in source["objects"]:
         reference = builder.load_mesh(site, obj["reference"])
         previous_reference_points = None

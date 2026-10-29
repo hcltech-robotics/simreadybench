@@ -44,3 +44,97 @@ def test_unknown_usage_remains_counted_as_unknown():
     assert r['scores']['formal']['value'] == 0
     assert r['metrics']['cost_usd_per_asset']['value'] is None
     assert r['metrics']['cost_usd_per_asset']['unknown_execution_count'] == 1
+
+
+def three_rows(condition='low', scores=(100,100,100)):
+    result=[]
+    for repetition,score in enumerate(scores):
+        r=row(condition,'asset',score,1)
+        r['id']=condition+str(repetition)
+        r['harbor_trial_id']=r['id']
+        r['repetition']=repetition
+        result.append(r)
+    return result
+
+
+def test_pass_rates_are_assetwise_at_least_one_and_all_three_not_cubed_mean():
+    rows=[];evidence={}
+    for count in range(4):
+        for repetition,r in enumerate(three_rows()):
+            r['reference_id']=f'asset-{count}';r['harbor_trial_id']=f'{count}-{repetition}'
+            rows.append(r);evidence[r['harbor_trial_id']]={'success':repetition<count}
+    values=module.pass_summary(rows,evidence)
+    assert values['pass_at_1']['value']==50
+    assert values['pass_at_3']['value']==75
+    assert values['pass_all_3']['value']==25
+    assert values['successes_per_asset']=={'0':1,'1':1,'2':1,'3':1}
+
+
+def test_pass_rates_reject_duplicate_and_incomplete_scored_repetitions():
+    rows=three_rows();evidence={r['harbor_trial_id']:{'success':True} for r in rows}
+    with pytest.raises(ValueError,match='three'):
+        module.pass_summary(rows[:2],evidence)
+    with pytest.raises(ValueError,match='Duplicate'):
+        module.pass_summary(rows+[rows[0]],evidence)
+
+
+def test_missing_binary_flag_stays_unknown_without_becoming_a_failure():
+    rows=three_rows();evidence={rows[0]['harbor_trial_id']:{'success':True},rows[2]['harbor_trial_id']:{'success':False}}
+    values=module.pass_summary(rows,evidence)
+    assert values['pass_at_1']['value'] is None
+    assert values['pass_at_3']['value']==100
+    assert values['pass_all_3']['value']==0
+    assert module.formal_pass_from_report({'scores':{'formal':{'score_percent':100}}}) is None
+
+
+def test_explicit_mandatory_flag_is_authoritative_and_complete_profile_required():
+    evidence={'all_scored_mandatory_pass':False,'applicable_count':46,'profile_mandatory_count':46,'unknown_count':0}
+    assert module.formal_pass_from_report({'scores':{'formal':{'score_percent':100,'evidence':evidence}}}) is False
+    evidence={**evidence,'all_scored_mandatory_pass':True}
+    assert module.formal_pass_from_report({'formal_report':{'simready':evidence}}) is True
+    with pytest.raises(ValueError,match='46'):
+        module.formal_pass_from_report({'formal_report':{'simready':{**evidence,'applicable_count':45}}})
+
+
+def test_retry_counts_do_not_add_pass_samples_and_cached_input_is_not_added_twice():
+    rows=three_rows(scores=(50,50,50))
+    for r in rows:r.update(input_tokens=100,output_tokens=20,cached_input_tokens=80,total_tokens=120)
+    evidence={r['harbor_trial_id']:{'success':False} for r in rows}
+    retry={**rows[0],'id':'retry','is_final_attempt':False,'parent_final_result_id':rows[0]['id']}
+    data=module.build(rows+[retry],evaluator='2.2.0',revision='test',formal_success=evidence)['runs'][0]
+    assert data['pass_rates']['final_attempts']==3
+    assert data['pass_rates']['pass_at_3']['value']==0
+    assert data['tokens_per_asset']['total']['value']==160
+    assert data['tokens_per_asset']['input']['value']+data['tokens_per_asset']['output']['value']==160
+    assert data['tokens_per_asset']['cached_input']['value']==pytest.approx(320/3)
+
+
+def test_cost_per_point_uses_ratio_of_condition_means_and_zero_rules():
+    rows=three_rows(scores=(50,100,100))
+    for r,cost in zip(rows,[2,8,20]):r['inference_cost_usd']=cost
+    run=module.build(rows,evaluator='2.2.0',revision='test')['runs'][0]
+    assert run['cost_per_point']['formal']['value']==pytest.approx(0.12)
+    assert module.cost_per_point({'value':1},0)['status']=='infinite'
+    assert module.cost_per_point({'value':0},0)['status']=='undefined'
+    assert module.cost_per_point({'value':None},100)['status']=='unknown'
+    assert module.cost_per_point({'value':0},100)['value']==0
+    assert module.cost_per_point({'value':1,'partial':True},100)['status']=='partial_lower_bound'
+
+
+def test_time_storage_unit_is_seconds_while_display_uses_minutes_once():
+    rows=[row('low','a',90,1),row('low','b',100,1)]
+    rows[0]['elapsed_seconds']=120
+    rows[1]['elapsed_seconds']=60
+    run=module.build(rows,evaluator='2.2.0',revision='test')['runs'][0]
+    metric=run['metrics']['elapsed_seconds_per_asset']
+    assert metric['unit']=='seconds/asset'
+    assert metric['value']==90
+    assert metric['value']/module.AXES['elapsed_seconds_per_asset'][2]==1.5
+    assert run['trial_seconds_per_asset']['value']==90
+
+
+def test_incomplete_cost_frontier_is_explicitly_provisional():
+    rows=[row('low','a',90,1),row('low','b',100,None)]
+    run=module.build(rows,evaluator='2.2.0',revision='test')['runs'][0]
+    assert run['metrics']['cost_usd_per_asset']['paired_scores']['formal']['frontier_provisional'] is True
+    assert run['metrics']['elapsed_seconds_per_asset']['paired_scores']['formal']['frontier_provisional'] is False

@@ -35,8 +35,10 @@ jobs:
           import json
           from pathlib import Path
           from urllib.request import urlopen
-          data = json.loads(Path("site/assets/pareto.json").read_text())
+          data = json.loads(Path("site/assets/leaderboard.json").read_text())
           assert data["formal_fidelity_primary"] and data["runs"]
+          assert all(r["metrics"]["elapsed_seconds_per_asset"]["unit"] == "seconds/asset" and r["metrics"]["elapsed_seconds_per_asset"]["value"] == r["trial_seconds_per_asset"]["value"] for r in data["runs"])
+          assert all(r["pass_rates"] and r["pass_rates"]["k"] == 3 and r["pass_rates"]["final_attempts"] == r["final_slots"] and r["pass_rates"]["assets"] == r["reference_count"] for r in data["runs"])
           gallery = json.loads(Path("site/assets/explorer/manifest.json").read_text())
           assert all(v["run_id"] in data["job_ids"] for obj in gallery["objects"] for v in obj["variants"])
           for job in data["job_ids"]:

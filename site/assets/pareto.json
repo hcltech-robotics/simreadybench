@@ -47,7 +47,7 @@
       "metrics": {
         "cost_usd_per_asset": {
           "value": 0.20723826033333334,
-          "unit": "Inference cost ($/asset)",
+          "unit": "USD/asset",
           "denominator": 300,
           "measured_attempts": 302,
           "total_attempts": 303,
@@ -63,7 +63,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": true
             },
             "visual": {
               "value": 50.94120784135804,
@@ -72,7 +73,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": true
             },
             "kinematic": {
               "value": 2.4469214911919583,
@@ -81,14 +83,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": true
             }
           },
           "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
           "value": 351.35501172333335,
-          "unit": "Trial time (min/asset)",
+          "unit": "seconds/asset",
           "denominator": 300,
           "measured_attempts": 303,
           "total_attempts": 303,
@@ -104,7 +107,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 50.94120784135804,
@@ -113,7 +117,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 2.4469214911919583,
@@ -122,14 +127,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
         },
         "tokens_per_asset": {
           "value": 478511.38333333336,
-          "unit": "Tokens/asset",
+          "unit": "tokens/asset",
           "denominator": 300,
           "measured_attempts": 302,
           "total_attempts": 303,
@@ -145,7 +151,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": true
             },
             "visual": {
               "value": 50.94120784135804,
@@ -154,7 +161,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": true
             },
             "kinematic": {
               "value": 2.4469214911919583,
@@ -163,7 +171,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": true
             }
           }
         }
@@ -207,7 +216,7 @@
       "metrics": {
         "cost_usd_per_asset": {
           "value": 0.414478093,
-          "unit": "Inference cost ($/asset)",
+          "unit": "USD/asset",
           "denominator": 300,
           "measured_attempts": 302,
           "total_attempts": 302,
@@ -223,7 +232,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 52.851778001925794,
@@ -232,7 +242,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 3.174571391707503,
@@ -241,14 +252,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
           "value": 559.2767091,
-          "unit": "Trial time (min/asset)",
+          "unit": "seconds/asset",
           "denominator": 300,
           "measured_attempts": 302,
           "total_attempts": 302,
@@ -264,7 +276,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 52.851778001925794,
@@ -273,7 +286,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 3.174571391707503,
@@ -282,14 +296,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
         },
         "tokens_per_asset": {
           "value": 1064313.18,
-          "unit": "Tokens/asset",
+          "unit": "tokens/asset",
           "denominator": 300,
           "measured_attempts": 302,
           "total_attempts": 302,
@@ -305,7 +320,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 52.851778001925794,
@@ -314,7 +330,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 3.174571391707503,
@@ -323,7 +340,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           }
         }
@@ -367,7 +385,7 @@
       "metrics": {
         "cost_usd_per_asset": {
           "value": 0.714481805,
-          "unit": "Inference cost ($/asset)",
+          "unit": "USD/asset",
           "denominator": 300,
           "measured_attempts": 306,
           "total_attempts": 306,
@@ -383,7 +401,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 56.78820294305866,
@@ -392,7 +411,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 3.713836075893467,
@@ -401,14 +421,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
           "value": 863.2201472466667,
-          "unit": "Trial time (min/asset)",
+          "unit": "seconds/asset",
           "denominator": 300,
           "measured_attempts": 306,
           "total_attempts": 306,
@@ -424,7 +445,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 56.78820294305866,
@@ -433,7 +455,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 3.713836075893467,
@@ -442,14 +465,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
         },
         "tokens_per_asset": {
           "value": 1990603.8366666667,
-          "unit": "Tokens/asset",
+          "unit": "tokens/asset",
           "denominator": 300,
           "measured_attempts": 306,
           "total_attempts": 306,
@@ -465,7 +489,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 56.78820294305866,
@@ -474,7 +499,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 3.713836075893467,
@@ -483,7 +509,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           }
         }
@@ -527,7 +554,7 @@
       "metrics": {
         "cost_usd_per_asset": {
           "value": 0.09692058916666667,
-          "unit": "Inference cost ($/asset)",
+          "unit": "USD/asset",
           "denominator": 300,
           "measured_attempts": 300,
           "total_attempts": 300,
@@ -543,7 +570,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 47.38321192129304,
@@ -552,7 +580,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 0.8723303990563855,
@@ -561,14 +590,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
           "value": 263.7662889233333,
-          "unit": "Trial time (min/asset)",
+          "unit": "seconds/asset",
           "denominator": 300,
           "measured_attempts": 300,
           "total_attempts": 300,
@@ -584,7 +614,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 47.38321192129304,
@@ -593,7 +624,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 0.8723303990563855,
@@ -602,14 +634,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
         },
         "tokens_per_asset": {
           "value": 359012.8933333333,
-          "unit": "Tokens/asset",
+          "unit": "tokens/asset",
           "denominator": 300,
           "measured_attempts": 300,
           "total_attempts": 300,
@@ -625,7 +658,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 47.38321192129304,
@@ -634,7 +668,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 0.8723303990563855,
@@ -643,7 +678,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           }
         }
@@ -687,7 +723,7 @@
       "metrics": {
         "cost_usd_per_asset": {
           "value": 0.27350602183333333,
-          "unit": "Inference cost ($/asset)",
+          "unit": "USD/asset",
           "denominator": 300,
           "measured_attempts": 300,
           "total_attempts": 300,
@@ -703,7 +739,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 54.18337030721294,
@@ -712,7 +749,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 2.814573986918661,
@@ -721,14 +759,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "kind": "harbor_reported_unverified_basis"
         },
         "elapsed_seconds_per_asset": {
           "value": 465.41184811000005,
-          "unit": "Trial time (min/asset)",
+          "unit": "seconds/asset",
           "denominator": 300,
           "measured_attempts": 300,
           "total_attempts": 300,
@@ -744,7 +783,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 54.18337030721294,
@@ -753,7 +793,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 2.814573986918661,
@@ -762,14 +803,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             }
           },
           "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
         },
         "tokens_per_asset": {
           "value": 1653681.07,
-          "unit": "Tokens/asset",
+          "unit": "tokens/asset",
           "denominator": 300,
           "measured_attempts": 300,
           "total_attempts": 300,
@@ -785,7 +827,8 @@
               "eligible_attempts": 300,
               "complete": true,
               "cohort_sha256": "d628e538565207e680e60d79cc9eefe6b65311f174d5add7df0c788869f4f316",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "visual": {
               "value": 54.18337030721294,
@@ -794,7 +837,8 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "fc61126a9e411bb19f4e501eedce3828658c629e77c49186166dcaf0b45f93d7",
-              "frontier": true
+              "frontier": true,
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 2.814573986918661,
@@ -803,14 +847,15 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "be27965d9938710f54f0cf9d3a9665c03204da8e8865b61a15214c1540e1882e",
-              "frontier": false
+              "frontier": false,
+              "frontier_provisional": false
             }
           }
         }
       }
     }
   ],
-  "methodology": "Each Pareto panel uses the same object/repetition pairs across configurations.",
+  "methodology": "Scores use the same object/repetition pairs across configurations.",
   "aggregation": {
     "scores": "means over available final scores",
     "pareto_scores": "common measured object/repetition slots across configurations, separately per fidelity metric",

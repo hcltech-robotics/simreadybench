@@ -333,128 +333,77 @@ def test_missing_optional_results_do_not_claim_measured_coverage():
     assert entry["optional"]["reported_attempts"] == 0
 
 
-@pytest.mark.skipif(
-    shutil.which("node") is None, reason="Node.js is required for the site renderer"
-)
+
+def run_site_renderer_assertions(assertions):
+    """Execute the actual current table renderer with a minimal DOM."""
+    script = r"""
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+function element(tag) {
+ return {tag,textContent:'',children:[],hidden:false,dataset:{},value:'',attributes:{},
+  classList:{add(){},toggle(){}},addEventListener(){},
+  setAttribute(k,v){this.attributes[k]=v;},
+  append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;}};
+}
+const nodes=new Map();
+const context=vm.createContext({URL,Option:function(text,value){return {textContent:text,value};},
+ document:{querySelectorAll:()=>[],createElement:element,getElementById(id){if(!nodes.has(id))nodes.set(id,element('div'));return nodes.get(id);}},
+ fetch:()=>new Promise(()=>{})});
+const root=process.argv[1];
+const maths=fs.readFileSync(root+'/site/leaderboard-math.js','utf8').replace(/\bexport\s+/g,'');
+const app=fs.readFileSync(root+'/site/app.js','utf8').replace(/^import[^\n]*\n/,'');
+vm.runInContext(maths+'\n'+app,context);
+vm.runInContext(`
+ const empty=()=>({value:null,partial:false});
+ const fixture={id:'fixture',label:'Example configuration',model:'Example',
+  scores:{formal:{value:100,measured_attempts:300,eligible_attempts:300},visual:{value:0,measured_attempts:300,eligible_attempts:300},kinematic:{value:null,status:'unknown',measured_attempts:0,eligible_attempts:300}},
+  tokens_per_asset:{total:empty(),input:empty(),output:empty(),cached_input:empty()},
+  inference_cost_per_asset:empty(),trial_seconds_per_asset:empty(),
+  cost_per_point:{formal:{value:null,status:'unknown'},visual:{value:null,status:'unknown'},kinematic:{value:null,status:'unknown'}},
+  pass_rates:null,source_url:'https://example.org/results'};
+ rows=[fixture];render();`,context);
+const cells=()=>nodes.get('leaderboard-body').children[0].children;
+const text=node=>[node.textContent,...node.children.map(text)].join(' ').trim();
+""" + assertions
+    subprocess.run([shutil.which('node'),'-e',script,str(Path(__file__).parents[1])],text=True,capture_output=True,check=True)
+
+
+@pytest.mark.skipif(shutil.which('node') is None,reason='Node.js is required for the site renderer')
 def test_site_renders_zero_scores_unknown_eligibility_and_not_applicable_results():
-    manifest, result = run()
-    for row in result["results"]:
-        row["fidelity"]["components"]["shape"].update(score_percent=0, earned=0)
-        del row["fidelity"]["components"]["materials"]
-    entry = leaderboard_entry(
-        result, manifest=manifest, results_url="https://example.org/results"
-    )
-    script = r"""
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const inputEntry = JSON.parse(fs.readFileSync(0, 'utf8'));
-function element(tag) {
-  return { tag, textContent: '', children: [], hidden: false, dataset: {},
-    append(...children) { this.children.push(...children); },
-    replaceChildren(...children) { this.children = children; } };
-}
-const nodes = new Map();
-const context = vm.createContext({ inputEntry, URL,
-  document: { querySelectorAll: () => [], createElement: element,
-    getElementById(id) { if (!nodes.has(id)) nodes.set(id, element('div')); return nodes.get(id); } },
-  fetch: () => new Promise(() => {}) });
-vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);
-assert.equal(vm.runInContext('isCompleteEntry(inputEntry)', context), true);
-assert.equal(inputEntry.reference_set, 'NV25');
-vm.runInContext('leaderboardEntries = [inputEntry]; renderLeaderboard();', context);
-const cells = nodes.get('leaderboard-body').children[0].children;
-const text = (node) => [node.textContent, ...node.children.map(text)].join(' ');
-assert.equal(cells.length, 13);
-assert.match(text(cells[4]), /4,000\/4,600 credit/);
-assert.match(text(cells[5]), /64\.71.*95% CI \[64\.71, 64\.71\]/);
-assert.match(text(cells[6]), /^0\.00.*0\/100 credit.*100\/100 measured/);
-assert.match(text(cells[7]), /^Not measured.*Reference coverage not measured.*100 with eligibility not measured/);
-assert.match(text(vm.runInContext('metricCell(inputEntry.fidelity.joints)', context)), /^N\/A.*No eligible reference criteria/);
-assert.match(text(vm.runInContext('metricCell({score:50,confidence_interval:{level:0.95,lower:40,upper:60}})', context)), /95% CI \[40\.00, 60\.00\]/);
-for (const index of [8, 9, 10, 11]) assert.match(text(cells[index]), /^Not measured/);
-delete inputEntry.usage;
-assert.equal(vm.runInContext('isCompleteEntry(inputEntry)', context), true);
-vm.runInContext('renderLeaderboard();', context);
-const legacyCells = nodes.get('leaderboard-body').children[0].children;
-for (const index of [8, 9, 10, 11]) assert.match(text(legacyCells[index]), /^Not measured/);
-inputEntry.completed_attempts = 99;
-assert.equal(vm.runInContext('isCompleteEntry(inputEntry)', context), false);
-"""
-    subprocess.run(
-        [
-            shutil.which("node"),
-            "-e",
-            script,
-            str(Path(__file__).parents[1] / "site" / "app.js"),
-        ],
-        input=json.dumps(entry),
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+    run_site_renderer_assertions(r"""
+assert.equal(cells().length,13);
+assert.equal(text(cells()[2]),'100.00');
+assert.equal(text(cells()[3]),'0.00');
+assert.equal(text(cells()[4]),'—');
+for(const index of [5,6,7,9,10,11])assert.equal(text(cells()[index]),'—');
+vm.runInContext("fixture.scores.kinematic.status='not_applicable';render();",context);
+assert.equal(text(cells()[4]),'N/A');
+vm.runInContext("fixture.scores.formal.value=0;render();",context);
+assert.equal(text(cells()[2]),'0.00');
+""")
 
 
-@pytest.mark.skipif(
-    shutil.which("node") is None, reason="Node.js is required for the site renderer"
-)
+@pytest.mark.skipif(shutil.which('node') is None,reason='Node.js is required for the site renderer')
 def test_site_usage_cells_show_units_zero_and_incomplete_measurements():
-    manifest, result = run()
-    for row in result["results"]:
-        add_usage(row, 0)
-        row["elapsed_seconds"] = 120
-        row["statistics"]["model_request_seconds"] = 30
-        row["statistics"]["input_tokens"] = 1000
-        row["statistics"]["output_tokens"] = 200
-        row["inference_cost_usd"] = 0.025
-    del result["results"][0]["compute_cost_usd"]
-    del result["results"][0]["statistics"]["compute_cost_usd"]
-    entry = leaderboard_entry(
-        result, manifest=manifest, results_url="https://example.org/results"
-    )
-    script = r"""
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const inputEntry = JSON.parse(fs.readFileSync(0, 'utf8'));
-function element(tag) {
-  return { tag, textContent: '', children: [], hidden: false, dataset: {},
-    append(...children) { this.children.push(...children); },
-    replaceChildren(...children) { this.children = children; } };
-}
-const nodes = new Map();
-const context = vm.createContext({ inputEntry, URL,
-  document: { createElement: element,
-    getElementById(id) { if (!nodes.has(id)) nodes.set(id, element('div')); return nodes.get(id); } },
-  fetch: () => new Promise(() => {}) });
-vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);
-vm.runInContext('leaderboardEntries = [inputEntry]; renderLeaderboard();', context);
-const cells = nodes.get('leaderboard-body').children[0].children;
-const text = (node) => [node.textContent, ...node.children.map(text)].join(' ');
-assert.equal(cells.length, 13);
-assert.match(text(cells[8]), /^0 model requests.*Validation calls: 1.*Model request errors: 0/);
-assert.match(text(cells[9]), /^2 min elapsed time.*Model request time: 30 s/);
-assert.match(text(cells[10]), /^1,200 tokens.*Input tokens: 1,000.*Output tokens: 200/);
-assert.match(text(cells[11]), /^Not measured.*total cost: 99\/100 reconstructions measured.*Inference: USD 0\.025.*Compute: Not measured.*Compute: 99\/100 reconstructions measured/);
-assert.match(text(cells[12]), /View/);
-inputEntry.usage.inference_calls_used = { mean: 12, measured_attempts: 99, total_attempts: 100 };
-vm.runInContext('renderLeaderboard();', context);
-assert.match(text(nodes.get('leaderboard-body').children[0].children[8]), /^Not measured.*99\/100 reconstructions measured/);
-assert.equal(vm.runInContext('usageCost(0)', context), 'USD 0.00');
-assert.equal(vm.runInContext('usageCost(0.00001)', context), '<USD 0.0001');
-"""
-    subprocess.run(
-        [
-            shutil.which("node"),
-            "-e",
-            script,
-            str(Path(__file__).parents[1] / "site" / "app.js"),
-        ],
-        input=json.dumps(entry),
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+    run_site_renderer_assertions(r"""
+vm.runInContext(`
+fixture.tokens_per_asset={total:{value:1200},input:{value:1000},output:{value:200},cached_input:{value:800}};
+fixture.inference_cost_per_asset={value:0};fixture.trial_seconds_per_asset={value:120};
+fixture.cost_per_point.formal={value:0,status:'known'};render();`,context);
+assert.match(text(cells()[8]),/1\.2K.*In 1K.*Out 200.*Cached input 800/i);
+assert.equal(text(cells()[9]),'$0.0000');
+assert.equal(text(cells()[10]),'$0.000000');
+assert.equal(text(cells()[11]),'2.00');
+assert.match(cells()[10].title,/0–100 scale/);
+vm.runInContext("fixture.inference_cost_per_asset={value:0.025,partial:true};fixture.trial_seconds_per_asset={value:null};render();",context);
+assert.equal(text(cells()[9]),'≥ $0.0250');
+assert.match(cells()[9].title,/Lower bound/);
+assert.equal(text(cells()[11]),'—');
+vm.runInContext("fixture.inference_cost_per_asset={value:null};render();",context);
+assert.equal(text(cells()[9]),'—');
+const html=fs.readFileSync(root+'/site/index.html','utf8');
+assert.match(html,/Trial time[\s\S]*min \/ asset/);
+assert.match(html,/Inference[\s\S]*\$ \/ asset/);
+""")
 
 
 @pytest.mark.parametrize(

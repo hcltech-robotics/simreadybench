@@ -37,7 +37,7 @@ def check(url, output, payload=None):
                 page.route(original+'**',route_render)
         page.goto(url,wait_until='domcontentloaded');page.wait_for_function("document.querySelector('#pareto-root').dataset.loadState === 'ready'")
         page.wait_for_function("document.querySelector('#leaderboard-table-region').dataset.loadState === 'ready'")
-        data=page.evaluate("async () => (await fetch('assets/pareto.json')).json()")
+        data=page.evaluate("async () => (await fetch('assets/leaderboard.json')).json()")
         assert page.locator('#leaderboard-body tr').count()==len(data['runs'])
         assert page.locator('[data-pareto-score="cumulative"]').count()==0
         assert page.locator('[data-pareto-score="formal"]').get_attribute('aria-pressed')=='true'
