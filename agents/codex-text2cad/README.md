@@ -53,7 +53,7 @@ It pins codex-acp 1.12.0 and sets
 comparing results.
 
 `examples/hosted-agent.json` pins the published, locally tested implementation at
-`8cfca5e17977ba4049f6c6e1135952ad1258f166`, with explicit low reasoning. Merge that agent entry into the
+`cb68fc11a27a5c6d046946ec6de9ed876915d8a2`, with explicit low reasoning. Merge that agent entry into the
 existing job, select the existing appropriate hosted secret, and
 preserve the canonical task reference and limits. Do not use local `import_path`
 in the hosted source form. No credential is included in this package.
@@ -65,7 +65,7 @@ only when provided and reads the injected `HOSTED_INFERENCE_TOKEN`. It neither
 creates credentials nor reads browser sessions. The hosted configuration is a
 template, not an executed launch or a verified remote dry run.
 
-That example identifies the published 0.1.2 cost/accounting/retention/thumbnail
+That example identifies the published 0.1.3 validation-loop/cost/accounting/retention/thumbnail
 revision. It is an agent configuration fragment; retain the canonical task and
 the approved execution limits in the complete job configuration.
 

@@ -5,7 +5,7 @@
       "source": {
         "type": "github",
         "repo": "hcltech-robotics/simreadybench",
-        "ref": "8cfca5e17977ba4049f6c6e1135952ad1258f166",
+        "ref": "cb68fc11a27a5c6d046946ec6de9ed876915d8a2",
         "path": "agents/codex-text2cad",
         "manifest": "harbor-agent.json"
       },
