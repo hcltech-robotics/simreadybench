@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-10-29",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "policy": "openai-standard-global-30m",
+  "sources": [
+    "https://developers.openai.com/api/docs/pricing",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-sol"
+  ],
+  "long_context_threshold": 272000,
+  "long_context_input_multiplier": "2",
+  "long_context_output_multiplier": "1.5",
+  "regional_multiplier": "1.1",
+  "tiers": {"default": "1", "standard": "1", "priority": "2", "fast": "2", "flex": "0.5", "batch": "0.5", "ultrafast": "6"},
+  "models": {
+    "gpt-6.1-terra": {"input": "1", "cached": "0.05", "output": "5", "write_30m": "1.25", "write_12h": "2.50", "tiers": ["default", "standard", "priority", "fast", "flex", "batch"]},
+    "gpt-6.1-sol": {"input": "2", "cached": "0.10", "output": "10", "write_30m": "2.50", "write_12h": "5", "tiers": ["default", "standard", "priority", "fast", "flex", "batch", "ultrafast"]}
+  }
+}

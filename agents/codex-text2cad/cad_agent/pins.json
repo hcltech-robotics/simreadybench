@@ -33,13 +33,15 @@
     "node.json": "1cecffa1de6318d62a2ffd249182a3e500a8fe3b3cc1bc82080fd2354e6c926e",
     "native.py": "09c5add05ef1199722566902d375e782942ab132d3b5e09d64c1036c53299ff6",
     "workflow.py": "aae171a9d349633fdbf3a0953e16df660802ca2384a951f7ec8466247a39fab9",
-    "__init__.py": "f5ff4a1e50ece696ee85fb3f1a917875c19f60c7636b2cc6e1e691551207f185",
+    "__init__.py": "67e080be156e88cdaaad37f41d7da7f9380f351933781e645d86dac3cb5fc84b",
     "prepare.py": "190d7feb2899d031023a529868967be8dd9b4569e44de62d64c4fc6d8c361a3a",
-    "acp.py": "a30afdfbcf321c3a37f272dc231ffcd0c158d27a8577cdd5a3db4629a8c3b5ac",
+    "acp.py": "59a8ab77bd25861970abd97a5b82bb6d41fbd7068018b98dd3fb84fe73e4dd02",
     "usd_export.py": "52ccdbd7c043710351696ff8ea29d785cf665af6831b12c508edf2161e24855e",
     "thumbnail.py": "673a6b6ca2b029d08464a34c597493f91d56bd26d928c4535ce8111c0296a663",
-    "accounting.py": "4608cdfcd0cc2bc44fdb7fcb6fa32ab71f2d69ad0265ef4776c5e589db24623c"
+    "accounting.py": "2fbe89a69a9f37354daf43f65e3a14a0c990c6a663f88696e5cfb1c3d9c1ae0c",
+    "pricing.py": "ddd2ac0ac7cf5c037274ca9450972c1fc9a778c3500a4c4e4dedf95d042686c6",
+    "pricing.json": "b5db9b3439b972bb433dd8f9ab904937012b676b59e01d3e8913870e54c61c08"
   },
   "node_version": "24.19.0",
-  "agent_version": "0.1.1"
+  "agent_version": "0.1.2"
 }

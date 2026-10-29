@@ -16,8 +16,9 @@ a dollar reservation bound including in-flight requests. Do not present it as on
 The agent normalizes observed cumulative tokens after responses. That repairs
 accounting, not request admission. A cancellation after observing a token total
 can overshoot by the active response and other in-flight work. Native usage does
-not include a provider dollar bill, so costs remain unavailable unless calculated
-separately with an explicit verified pricing basis. Child-session usage is retained
+not include a provider dollar bill. Version 0.1.2 reports a labeled API token cost
+estimate using pinned official prices and an explicit pricing policy. It is not
+billed spend or request admission control. Child-session usage is retained
 but not summed into root-session totals, avoiding fork/resume double counting.
 
 Consequently the present self-service configuration cannot **guarantee** either
@@ -38,8 +39,9 @@ Sources: https://developers.openai.com/api/docs/models/gpt-6.1-sol and
 https://developers.openai.com/api/docs/models/gpt-6.1-terra . Longer context,
 cache writes, service tier and regional processing can change prices. Any dollar
 derivation must state those selections and account for reasoning output. Do not
-use this short-context table as a worst-case admission price. No dollar estimate
-is inserted into ACP or ATIF metrics by this package.
+use this short-context table as a worst-case admission price. Version 0.1.2 emits
+estimated cumulative USD in ACP with `billed:false` provenance; it does not claim
+invoice reconciliation or enforce either spending ceiling.
 
 The parent verified Harbor pricing at https://hub.harborframework.com/pricing :
 $0.1561032 per physical core-hour plus $0.0264132 per GiB-hour, billed per second.

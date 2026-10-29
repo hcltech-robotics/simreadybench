@@ -33,9 +33,15 @@ def _usage(raw):
     result = {k: raw[k] for k in names}
     if result["cached_input_tokens"] > result["input_tokens"]:
         raise ValueError("Cached input exceeds inclusive input")
-    for key in ("reasoning_output_tokens", "total_tokens"):
-        if type(raw.get(key)) is int and raw[key] >= 0:
+    for key in ("reasoning_output_tokens", "total_tokens", "cache_write_input_tokens"):
+        if key in raw:
+            if type(raw[key]) is not int or raw[key] < 0:
+                raise ValueError("Invalid native optional counter")
             result[key] = raw[key]
+    if result.get("cache_write_input_tokens", 0) + result["cached_input_tokens"] > result["input_tokens"]:
+        raise ValueError("Input cache subsets exceed inclusive input")
+    if result.get("reasoning_output_tokens", 0) > result["output_tokens"]:
+        raise ValueError("Reasoning output exceeds inclusive output")
     return result
 
 
@@ -45,6 +51,7 @@ def native_snapshot(root, session_id, model, effort):
     snapshots = []
     for path in _session_files(root):
         session, turns, previous, latest, last = None, [], None, None, None
+        context, requests, raw_responses, pricing_error, window, raw_error = {}, [], {}, None, None, None
         reset = False
         with path.open() as handle:
             for line in handle:
@@ -56,8 +63,23 @@ def native_snapshot(root, session_id, model, effort):
                 if event.get("type") == "session_meta":
                     session = payload.get("id")
                 elif event.get("type") == "turn_context":
+                    context = {k: payload[k] for k in ("model", "effort", "reasoning_effort", "service_tier",
+                        "regional_processing", "prompt_cache_retention") if k in payload}
                     turns.append({"model": payload.get("model"),
                                   "effort": payload.get("effort", payload.get("reasoning_effort"))})
+                elif event.get("type") == "event_msg" and payload.get("type") == "raw_response_completed":
+                    try:
+                        usage = _usage(payload.get("token_usage"))
+                        metadata = (payload.get("usage_metadata") or {}).get("metadata") or {}
+                        request = {"usage": usage, "context": {**context, **{
+                            k: metadata[k] for k in ("service_tier", "regional_processing", "prompt_cache_retention") if k in metadata}},
+                            "evidence": "native_raw_response_completed"}
+                        rid = payload["response_id"]
+                        if rid in raw_responses and raw_responses[rid] != request:
+                            raw_error = "conflicting_duplicate_response_id"
+                        raw_responses[rid] = request
+                    except (ValueError, KeyError, TypeError):
+                        raw_error = "invalid_response_usage"
                 elif event.get("type") == "event_msg" and payload.get("type") == "token_count":
                     info = payload.get("info") or {}
                     try:
@@ -66,6 +88,18 @@ def native_snapshot(root, session_id, model, effort):
                         continue
                     if previous and any(counters[k] < previous[k] for k in ("input_tokens", "cached_input_tokens", "output_tokens")):
                         reset = True
+                    delta = {k: counters[k] - (previous or {}).get(k, 0)
+                             for k in ("input_tokens", "cached_input_tokens", "output_tokens")}
+                    if any(delta.values()):
+                        try:
+                            request_usage = _usage(info.get("last_token_usage"))
+                            if any(request_usage[k] != delta[k] for k in delta):
+                                raise ValueError("Request checkpoint is incomplete")
+                            requests.append({"usage": request_usage, "context": dict(context),
+                                             "evidence": "native_cumulative_delta_reconciled_with_last_usage"})
+                        except ValueError:
+                            pricing_error = "missing_or_unreconciled_request_checkpoints"
+                    window = info.get("model_context_window") or window
                     previous, latest, last = counters, counters, info.get("last_token_usage")
         if session != session_id:
             continue
@@ -74,22 +108,36 @@ def native_snapshot(root, session_id, model, effort):
         if not turns or any(t != {"model": model, "effort": effort} for t in turns):
             return {"status": "unverified", "reason": "native_model_or_reasoning_mismatch", "turns": turns}
         if latest:
+            required = ("input_tokens", "cached_input_tokens", "output_tokens")
+            raw_complete = raw_responses and all(sum(r["usage"][k] for r in raw_responses.values()) == latest[k] for k in required)
+            if raw_complete and raw_error is None:
+                requests, pricing_error = list(raw_responses.values()), None
+            elif raw_responses:
+                pricing_error = raw_error or "incomplete_raw_response_coverage"
+            elif raw_error:
+                pricing_error = raw_error
+            complete = pricing_error is None and all(sum(r["usage"][k] for r in requests) == latest[k] for k in required)
             snapshots.append({"status": "verified", "basis": "native_session_cumulative",
                 "scope": "selected_root_session_only", "input_semantics": "inclusive_of_cached_input",
                 "totals": latest, "last_usage": last, "turns": turns,
-                "native_file": str(path.relative_to(root)), "native_sha256": _digest(path.read_bytes())})
+                "native_file": str(path.relative_to(root)), "native_sha256": _digest(path.read_bytes()),
+                "requests": requests, "requests_complete": complete,
+                "pricing_usage_error": pricing_error, "model_context_window": window})
     if len(snapshots) > 1:
         return {"status": "unverified", "reason": "ambiguous_multiple_rollouts_for_session"}
     return snapshots[0] if snapshots else failure
 
 
 class AccountingBridge:
-    def __init__(self, codex_home, logs, model, effort):
+    def __init__(self, codex_home, logs, model, effort, pricing_policy=None):
         self.home, self.logs = Path(codex_home), Path(logs)
         if self.home.name != ".codex-text2cad":
             raise ValueError("Expected task-specific .codex-text2cad home")
         self.model, self.effort = model, effort
         self.pending, self.receipts, self.sessions = {}, {}, {}
+        self.pricing_policy = pricing_policy
+        self.costs, self.updates, self.notifications = {}, {}, []
+        self.upstream_cost_sessions = set()
         self.lock = threading.RLock()
         self.logs.mkdir(parents=True, exist_ok=True)
 
@@ -114,6 +162,20 @@ class AccountingBridge:
 
     def response(self, message):
         with self.lock:
+            if message.get("method") == "session/update":
+                params = message.get("params") or {}
+                update = params.get("update") or {}
+                if update.get("sessionUpdate") == "usage_update":
+                    sid = params.get("sessionId")
+                    message = copy.deepcopy(message)
+                    update = message["params"]["update"]
+                    if update.get("cost") is not None:
+                        self.costs[sid] = copy.deepcopy(update["cost"])
+                        self.upstream_cost_sessions.add(sid)
+                    elif sid in self.costs:
+                        update["cost"] = copy.deepcopy(self.costs[sid])
+                    self.updates[sid] = copy.deepcopy(update)
+                return message
             if "result" not in message and "error" not in message:
                 return message  # Server→client request IDs have a separate namespace.
             request = self.pending.pop(message.get("id"), None)
@@ -132,9 +194,19 @@ class AccountingBridge:
                 snapshot = native_snapshot(self.home / "sessions", sid, self.model, self.effort)
                 # Give Codex's journal writer time to finish the just-completed response.
                 deadline = time.monotonic() + 1
-                while snapshot.get("reason") == "missing_native_session_usage" and time.monotonic() < deadline:
+                def current_checkpoint(value):
+                    upstream, last = payload.get("usage") or {}, value.get("last_usage") or {}
+                    if not upstream:
+                        return True
+                    return (isinstance(upstream.get("inputTokens"), (int, float)) and
+                            upstream["inputTokens"] + (upstream.get("cachedReadTokens") or 0) == last.get("input_tokens") and
+                            upstream.get("outputTokens") == last.get("output_tokens"))
+                while (snapshot.get("reason") == "missing_native_session_usage" or
+                       (snapshot.get("status") == "verified" and not current_checkpoint(snapshot))) and time.monotonic() < deadline:
                     time.sleep(0.05)
                     snapshot = native_snapshot(self.home / "sessions", sid, self.model, self.effort)
+                if snapshot.get("status") == "verified" and not current_checkpoint(snapshot):
+                    snapshot = {"status": "unverified", "reason": "native_checkpoint_does_not_match_final_response"}
                 snapshot["upstream_usage"] = copy.deepcopy(payload.get("usage"))
                 self.sessions[sid] = snapshot
                 if snapshot["status"] == "verified":
@@ -146,10 +218,11 @@ class AccountingBridge:
                         usage["thoughtTokens"] = total["reasoning_output_tokens"]
                     payload["usage"] = usage
                 payload.setdefault("_meta", {})["cad_agent_accounting"] = snapshot
+                self._price_session(sid, snapshot)
             self.save()
             return result
 
-    def save(self):
+    def _seen_sessions(self):
         seen = set()
         for path in _session_files(self.home / "sessions"):
             try:
@@ -159,16 +232,67 @@ class AccountingBridge:
                     seen.add(header["payload"]["id"])
             except (OSError, ValueError, KeyError):
                 continue
+        return seen
+
+    def _price_session(self, sid, snapshot):
+        if self.pricing_policy is None:
+            return
+        from .pricing import estimate_cost
+        if self._seen_sessions() - {sid}:
+            estimate = {"status": "unavailable", "reason": "additional_native_sessions_require_reconciliation", "billed": False}
+        else:
+            estimate = estimate_cost(snapshot, self.model, self.pricing_policy)
+        snapshot["cost_estimate"] = estimate
+        if sid in self.upstream_cost_sessions:
+            estimate["harbor_cost_source"] = "upstream_reported"
+            return
+        update = copy.deepcopy(self.updates.get(sid) or {})
+        if not update:
+            window = snapshot.get("model_context_window")
+            last = snapshot.get("last_usage") or {}
+            if type(window) is not int or window <= 0 or not last:
+                estimate["harbor_reporting"] = "missing_observed_context_window"
+                return
+            update = {"sessionUpdate": "usage_update", "size": window,
+                      "used": last.get("total_tokens", last["input_tokens"] + last["output_tokens"])}
+        if estimate["status"] == "estimated":
+            provenance = {k: estimate[k] for k in ("status", "billed", "policy", "pricing_checked_at",
+                                                   "sources", "pricing_sha256", "request_count", "assumptions")}
+            cost = {"amount": estimate["amount_usd"], "currency": "USD", "_meta": provenance}
+            self.costs[sid] = cost
+            update["cost"] = copy.deepcopy(cost)
+        else:
+            # A newly unreconciled call invalidates a formerly complete estimate.
+            if sid not in self.costs:
+                return
+            self.costs.pop(sid, None)
+            update["cost"] = None
+            update.setdefault("_meta", {})["cad_agent_cost_unavailable"] = estimate["reason"]
+        self.updates[sid] = copy.deepcopy(update)
+        self.notifications.append({"jsonrpc": "2.0", "method": "session/update",
+                                   "params": {"sessionId": sid, "update": update}})
+
+    def drain_notifications(self):
+        with self.lock:
+            result, self.notifications = self.notifications, []
+            return result
+
+    def save(self):
+        seen = self._seen_sessions()
         (self.logs / "accounting.json").write_text(json.dumps({"sessions": self.sessions,
-            "session_reasoning_receipts": self.receipts, "pricing": "not_derived",
+            "session_reasoning_receipts": self.receipts, "pricing": self.pricing_policy or "not_derived",
             "other_native_session_ids": sorted(seen - self.sessions.keys()),
             "note": "Root-session cumulative totals; subagent sessions are retained but not summed."}, indent=2) + "\n")
+        if self.pricing_policy:
+            (self.logs / "cost-estimate.json").write_text(json.dumps({"billed": False,
+                "sessions": {sid: value.get("cost_estimate") for sid, value in self.sessions.items()}}, indent=2) + "\n")
 
     def finalize(self):
         with self.lock:
             for sid, previous in self.sessions.items():
                 snapshot = native_snapshot(self.home / "sessions", sid, self.model, self.effort)
                 snapshot["upstream_usage"] = previous.get("upstream_usage")
+                snapshot["cost_estimate"] = previous.get("cost_estimate")
                 self.sessions[sid] = snapshot
             self.save()
 

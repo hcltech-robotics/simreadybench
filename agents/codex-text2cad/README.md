@@ -140,8 +140,50 @@ This leaves `trajectory.upstream.json`, records provenance in ATIF `extra`, fill
 cumulative input/output/cache totals and is idempotent. It does not alter USD,
 scores, benchmark inputs or dollar cost. The hosted detail page is outside this
 package; its cache field can remain incomplete until Harbor's converter changes.
-No derived pricing is inserted. See BUDGET.md for verified rates and the remaining
-strict-cap limitations; accounting correction is not a spending guard.
+Version 0.1.2 adds the explicitly estimated USD reporting described below. See
+BUDGET.md for the remaining strict-cap limitations; accounting is not a spending guard.
+
+## Estimated inference cost (0.1.2)
+
+The wrapper emits a cumulative USD `session/update` -> `usage_update.cost` before
+the final prompt response, which is the field Harbor 0.24.0 actually ingests into
+AgentContext and ATIF cost metrics. Later context-only usage updates carry the
+last valid cumulative cost forward. Existing upstream cost reports are preserved.
+
+`env.CAD_AGENT_PRICING_POLICY=openai-standard-global-30m` declares the estimate
+basis (also the wrapper default). The pinned pricing.json records official OpenAI
+Terra/Sol rates and the 2026-10-29 check date. Observed per-request service tiers,
+regional processing and cache retention override policy defaults. Absent evidence
+uses Standard/global pricing and 30-minute retention for writes. Omitted write
+counters use the pinned Codex protocol's zero default. All such assumptions are
+recorded in cost-estimate.json, accounting.json and ACP cost `_meta`.
+
+The displayed amount is an **API token cost estimate, not an OpenAI invoice**.
+Contract discounts, unobserved billing selections and other charges may differ.
+It is not a spending cap and cannot price other attempts or unrelated sessions.
+Harbor may show this value without an estimate label; the `billed:false` provenance
+and pricing assumptions are retained in the archived reports and ACP messages.
+
+Pricing uses complete per-request usage reconciled against cumulative native
+totals. Raw response IDs are deduplicated where available; otherwise cumulative
+deltas must match each request's last_token_usage. A rollout's aggregate input
+does not trigger long-context prices: only a request above 272,000 input tokens
+gets the appropriate rate adjustment. Cached reads and writes are subtracted
+from inclusive input before normal-input pricing. Reasoning output is a subset
+of output and is not added again. Duplicate checkpoints and repeated prompt
+receipts do not double count.
+
+Unknown models/policies/tiers, incomplete request coverage, conflicting response
+IDs, counter inconsistencies or additional unreconciled sessions leave cost
+unavailable with a reason; they are never converted to $0. A newly invalidated
+estimate is explicitly cleared rather than passed off as a complete total.
+The final native checkpoint must match the adapter's final response before usage
+is treated as complete. cost-estimate.json preserves the per-request rate basis.
+
+For a restart, use the newly published immutable source ref and this policy with
+the desired Terra/Sol model and explicit low reasoning. The published agent
+example is updated after the tested implementation commit is available. This
+does not backfill, stop, restart or otherwise alter existing jobs.
 
 ## Local verification without inference
 

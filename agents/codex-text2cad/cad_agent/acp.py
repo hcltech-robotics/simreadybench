@@ -107,7 +107,8 @@ def install_toolchain(prefix):
 def proxy(command, env, prefix, logs):
     bridge = AccountingBridge(Path(env["CODEX_HOME"]), logs,
                               env.get("HARBOR_ACP_REQUESTED_MODEL", "").removeprefix("openai/"),
-                              json.loads(env["CODEX_CONFIG"])["model_reasoning_effort"])
+                              json.loads(env["CODEX_CONFIG"])["model_reasoning_effort"],
+                              pricing_policy=env.get("CAD_AGENT_PRICING_POLICY", "openai-standard-global-30m"))
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
     errors = []
     output_lock = threading.Lock()
@@ -142,7 +143,10 @@ def proxy(command, env, prefix, logs):
     thread.start()
     try:
         for line in process.stdout:
-            emit(bridge.response(json.loads(line)))
+            message = bridge.response(json.loads(line))
+            for notification in bridge.drain_notifications():
+                emit(notification)
+            emit(message)
         code = process.wait()
         if errors:
             raise RuntimeError("ACP input forwarding failed: " + errors[0])
