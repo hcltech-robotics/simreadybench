@@ -38,6 +38,16 @@ def test_static_multicomponent(tmp_path):
     assert receipt["source_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     assert all(Path(p["step_path"]).exists() for p in receipt["parts"])
     assert json.loads((tmp_path / "evidence" / "generation.json").read_text())["kind"] == "cad_generation"
+    thumbnail = asset.parent / ".thumbs/256x256/asset.usd.png"
+    from PIL import Image
+    with Image.open(thumbnail) as image:
+        assert image.size == (256, 256) and image.format == "PNG"
+        assert len(image.getcolors(65536)) > 2
+    assert stage.GetDefaultPrim().GetAssetInfoByKey("previews:thumbnail").path == ".thumbs/256x256/asset.usd.png"
+    from pxr import Sdf, UsdUtils
+    _, assets, unresolved = UsdUtils.ComputeAllDependencies(Sdf.AssetPath(str(asset)))
+    assert not unresolved
+    assert any(str(p).endswith("asset.usd.png") for p in assets)
 
 
 def test_hinge_local_frames_and_physics(tmp_path):
@@ -80,3 +90,27 @@ def test_rejects_bad_inputs(tmp_path):
     with pytest.raises(ValueError, match="rigid"):
         export_asset([Part("a", bd.Box(1, 1, 1)), Part("b", bd.Box(1, 1, 1))],
                      tmp_path / "submission/asset.usd", hinges=[Hinge("h", "a", "b", (0, 0, 0))], **kwargs)
+
+
+@pytest.mark.parametrize("articulated", [False, True])
+def test_real_simready_sr002_thumbnail_rule(tmp_path, articulated):
+    pytest.importorskip("simready.foundation.tier_core")
+    from simready.foundation.tier_core.capabilities.core.sim_ready.validation import ThumbnailExists
+    from cad_agent.thumbnail import generate_thumbnail
+    source = tmp_path / "reconstruct.py"
+    source.write_text("# local fixture")
+    asset = tmp_path / "submission/asset.usd"
+    parts = [Part("base", bd.Box(100, 60, 10), rigid=articulated, kinematic=articulated),
+             Part("lid", bd.Box(80, 40, 4), translation_mm=(0, 0, 20), rigid=articulated)]
+    hinges = [Hinge("hinge", "base", "lid", (0, 20, 5))] if articulated else []
+    export_asset(parts, asset, source=source, evidence_dir=tmp_path / "evidence", hinges=hinges)
+    stage = Usd.Stage.Open(str(asset))
+    checker = ThumbnailExists(); checker.CheckStage(stage)
+    assert not checker.GetIssues()
+    thumbnail = asset.parent / ".thumbs/256x256/asset.usd.png"
+    thumbnail.unlink()
+    checker = ThumbnailExists(); checker.CheckStage(stage)
+    assert len(checker.GetIssues()) == 1  # Actual SDK rule fails when its dependency is absent.
+    generate_thumbnail(stage, asset)
+    checker = ThumbnailExists(); checker.CheckStage(stage)
+    assert not checker.GetIssues()

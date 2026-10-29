@@ -1,7 +1,8 @@
 """Hosted ACP transport around the same pinned Codex CAD workflow.
 
-Only session/prompt content is extended; all MCP, image, model-selection,
-permissions, cancellation, usage and response messages pass through unchanged.
+The selected skill, legacy model IDs and usage envelopes have explicit adapters.
+Original usage is retained in _meta. MCP, images, permissions and cancellation
+are forwarded; no provider price is invented.
 """
 
 import hashlib
@@ -16,6 +17,7 @@ import threading
 import urllib.request
 
 from .prepare import install, configure_trial
+from .accounting import AccountingBridge, retain_evidence
 from .workflow import PACKAGE, bundle_identity, render_instruction, verify_generation
 
 
@@ -103,14 +105,24 @@ def install_toolchain(prefix):
 
 
 def proxy(command, env, prefix, logs):
+    bridge = AccountingBridge(Path(env["CODEX_HOME"]), logs,
+                              env.get("HARBOR_ACP_REQUESTED_MODEL", "").removeprefix("openai/"),
+                              json.loads(env["CODEX_CONFIG"])["model_reasoning_effort"])
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
     errors = []
+    output_lock = threading.Lock()
+
+    def emit(message):
+        with output_lock:
+            sys.stdout.buffer.write(json.dumps(message).encode() + b"\n")
+            sys.stdout.buffer.flush()
 
     def forward_input():
+        message = None
         try:
             for raw in sys.stdin.buffer:
                 message = json.loads(raw)
-                transformed = transform_request(message, prefix)
+                transformed = bridge.request(transform_request(message, prefix))
                 if message.get("method") == "session/prompt":
                     with (logs / "workflow-applied.jsonl").open("a") as f:
                         f.write(json.dumps({"request_id": message.get("id"), "session_id": message["params"].get("sessionId"),
@@ -120,6 +132,9 @@ def proxy(command, env, prefix, logs):
                 process.stdin.flush()
         except (ValueError, OSError, KeyError) as exc:
             errors.append(str(exc))
+            if isinstance(message, dict) and "id" in message:
+                emit({"jsonrpc": "2.0", "id": message["id"], "error": {
+                    "code": -32000, "message": "CAD agent compatibility check failed: " + str(exc)}})
         finally:
             process.stdin.close()
 
@@ -127,8 +142,7 @@ def proxy(command, env, prefix, logs):
     thread.start()
     try:
         for line in process.stdout:
-            sys.stdout.buffer.write(line)
-            sys.stdout.buffer.flush()
+            emit(bridge.response(json.loads(line)))
         code = process.wait()
         if errors:
             raise RuntimeError("ACP input forwarding failed: " + errors[0])
@@ -137,6 +151,7 @@ def proxy(command, env, prefix, logs):
         if process.poll() is None:
             process.terminate()
             process.wait(timeout=15)
+        bridge.finalize()
 
 
 def main():
@@ -152,11 +167,28 @@ def main():
     (logs / "transport.json").write_text(json.dumps({"transport": "acp", "codex": actual,
         "adapter": "1.12.0", "requested_model": os.environ.get("HARBOR_ACP_REQUESTED_MODEL"),
         "reasoning_effort": json.loads(env["CODEX_CONFIG"])["model_reasoning_effort"]}, indent=2) + "\n")
+    stop_retention = threading.Event()
+
+    def retain():
+        try:
+            retain_evidence(Path(env["CODEX_HOME"]), Path("/output/authoring"), logs)
+        except (OSError, ValueError, TypeError):
+            (logs / "retention-error.json").write_text('{"status":"incomplete"}\n')
+
+    def watch_evidence():
+        while not stop_retention.wait(2):
+            retain()
+
+    watcher = threading.Thread(target=watch_evidence, daemon=True)
+    watcher.start()
     try:
         code = proxy([str(prefix / "toolchain/node_modules/.bin/codex-acp")], env, prefix, logs)
     finally:
+        stop_retention.set()
+        watcher.join(timeout=10)
         result = verify_generation("/output/authoring/cad-evidence/generation.json", "/output/submission/asset.usd")
         (logs / "use.json").write_text(json.dumps(result, indent=2) + "\n")
+        retain()
     raise SystemExit(code)
 
 

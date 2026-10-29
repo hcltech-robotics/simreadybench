@@ -53,3 +53,38 @@ skill/runtime/code files, including all 13 skill files. The published manifest
 and resolved hosted agent example passed the installed Harbor 0.24.0
 `AcpSourceManifest` and `HostedAgentConfig` schemas. This is public-source and
 local-schema validation; an authenticated hosted service dry run remains pending.
+
+## Local 0.1.1 readiness revision
+
+The accounting/retention/thumbnail fix is local and has not been pushed or used in
+a model/hosted run. The final package suite passed **26 tests**. Added evidence:
+
+- Multi-call native cumulative input/cache/output is normalized once, with raw ACP
+  counters preserved in metadata; repeated checkpoints do not double count.
+- Both model choices require a matching actual ACP `[low]` receipt; native turn
+  model/effort mismatches, missing data and reset counters remain unverified.
+- Additional native sessions are flagged for reconciliation rather than summed
+  through potentially inherited fork usage. The ATIF normalizer refuses those
+  cases. Bidirectional JSON-RPC request ID collisions are tested.
+- The stdio integration fixture creates a native multi-call journal and verifies
+  corrected response totals through the actual wrapper. Real pinned ACP
+  initialization still passes without credentials or inference.
+- Retention tests exclude other Codex homes, auth/config files, symlinks and
+  unreferenced authoring files, and verify known-secret/credential-field redaction.
+- The explicit post-download ATIF normalizer keeps an unchanged upstream backup,
+  records its accounting basis, fills cache totals and is idempotent. Dollar cost
+  remains untouched; the hosted detail page still depends on Harbor's converter.
+- Static and articulated exports produce their own 256×256 PNG from authored USD
+  geometry/materials. The PNG is linked with a relative USD asset metadata path
+  and appears in `UsdUtils.ComputeAllDependencies` with no unresolved dependency.
+- The actual `simready-foundation-tier-core==2026.8.0` / NVIDIA validator rule
+  **com.nvidia.simready.SR.002** passes for both examples. Removing the PNG makes
+  the real check fail; regenerating it makes it pass. This checks that specific
+  rule, not full SimReady conformance or the private pilot's unavailable report.
+
+The validator environment was installed from the canonical 2.2.0 verifier's
+hash-locked requirements. No verifier policy or benchmark task was modified.
+Supporting records are `fix-tests.log`, `thumbnail-sdk.json`, `fixed/static`,
+`fixed/hinge`, `fix-build.log` and `fix-install.log` under the validation directory.
+See BUDGET.md for the separately documented spending-cap blocker: observed
+accounting does not establish hard admission bounds for the proposed sweep.

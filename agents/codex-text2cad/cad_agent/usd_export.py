@@ -160,6 +160,8 @@ def export_asset(parts, output, *, source, evidence_dir, hinges=(), tolerance_mm
             getattr(joint, f"CreateBody{i}Rel")().SetTargets([f"/Asset/{name}"])
             getattr(joint, f"CreateLocalPos{i}Attr")().Set(Gf.Vec3f(inverse.Transform(offset)))
             getattr(joint, f"CreateLocalRot{i}Attr")().Set(Gf.Quatf(inverse))
+    from .thumbnail import generate_thumbnail
+    thumbnail = generate_thumbnail(stage, output)
     stage.GetRootLayer().Export(str(output))
     reopened = Usd.Stage.Open(str(output))
     if not reopened or not reopened.GetDefaultPrim():
@@ -168,6 +170,7 @@ def export_asset(parts, output, *, source, evidence_dir, hinges=(), tolerance_mm
     receipt = {"kind": "cad_generation", "agent": AGENT_ID, "version": VERSION,
                "bundle": bundle_identity(), "source_path": str(source), "source_sha256": sha256(source),
                "asset_path": str(output), "asset_sha256": sha256(output),
-               "parts": records, "hinges": [h.name for h in hinges], "meters_per_unit": 1.0}
+               "parts": records, "hinges": [h.name for h in hinges], "meters_per_unit": 1.0,
+               "thumbnail_path": str(thumbnail), "thumbnail_sha256": sha256(thumbnail)}
     (evidence / "generation.json").write_text(json.dumps(receipt, indent=2) + "\n")
     return receipt

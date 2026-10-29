@@ -18,18 +18,47 @@ def test_proxy_transforms_actual_stdio_without_a_model(tmp_path):
 import os,sys
 from pathlib import Path
 from cad_agent.acp import proxy
-raise SystemExit(proxy([sys.executable, '-c', 'import sys; [print(x.strip(), flush=True) for x in sys.stdin]'],
+raise SystemExit(proxy([sys.executable, sys.argv[2]],
                        dict(os.environ), '/fixture/agent', Path(sys.argv[1])))
 """
-    request = {"jsonrpc": "2.0", "id": 1, "method": "session/prompt", "params": {
+    server = tmp_path / "fixture_acp.py"
+    server.write_text('''import sys,json,os
+from pathlib import Path
+for raw in sys.stdin:
+ r=json.loads(raw)
+ if r['method']=='session/new':
+  result={'sessionId':'s','models':{'currentModelId':'gpt-6.1-terra[low]'}}
+ else:
+  path=Path(os.environ['CODEX_HOME'])/'sessions/rollout-fixture.jsonl'
+  path.parent.mkdir(parents=True,exist_ok=True)
+  events=[{'type':'session_meta','payload':{'id':'s'}},
+          {'type':'turn_context','payload':{'model':'gpt-6.1-terra','effort':'low'}}]
+  for inp,cached,out in [(1000,600,100),(3000,2100,300)]:
+   events.append({'type':'event_msg','payload':{'type':'token_count','info':{'total_token_usage':{
+       'input_tokens':inp,'cached_input_tokens':cached,'output_tokens':out}}}})
+  path.write_text(''.join(json.dumps(e)+'\\n' for e in events))
+  result={'receivedPrompt':r['params']['prompt'],'usage':{'inputTokens':500,'cachedReadTokens':1500,'outputTokens':200}}
+ print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}),flush=True)
+''')
+    request = {"jsonrpc": "2.0", "id": 2, "method": "session/prompt", "params": {
         "sessionId": "s", "prompt": [{"type": "text", "text": "original request"}]}}
-    env = dict(os.environ, PYTHONPATH=str(root))
-    result = subprocess.run([sys.executable, "-c", code, str(tmp_path)],
-                            input=json.dumps(request)+"\n", capture_output=True, text=True,
-                            env=env, check=True, timeout=30)
-    message = json.loads(result.stdout)
-    assert message["params"]["prompt"][-1]["text"] == "original request"
-    assert "<selected-cad-skill>" in message["params"]["prompt"][0]["text"]
+    env = child_environment(tmp_path, dict(os.environ, PYTHONPATH=str(root),
+        HARBOR_ACP_REQUESTED_MODEL="openai/gpt-6.1-terra", CAD_AGENT_REASONING_EFFORT="low"))
+    env['CODEX_HOME'] = str(tmp_path / ".codex-text2cad")
+    process = subprocess.Popen([sys.executable, "-c", code, str(tmp_path), str(server)],
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, env=env)
+    process.stdin.write(json.dumps({'jsonrpc':'2.0','id':1,'method':'session/new','params':{}})+'\n')
+    process.stdin.flush()
+    assert json.loads(process.stdout.readline())['result']['sessionId']=='s'
+    stdout, stderr = process.communicate(json.dumps(request)+'\n',timeout=30)
+    assert process.returncode == 0, stderr
+    message = json.loads(stdout)
+    assert message["result"]["receivedPrompt"][-1]["text"] == "original request"
+    assert "<selected-cad-skill>" in message["result"]["receivedPrompt"][0]["text"]
+    assert message["result"]["usage"]["inputTokens"] == 3000
+    assert message["result"]["usage"]["cachedReadTokens"] == 2100
+    assert message["result"]["_meta"]["cad_agent_accounting"]["upstream_usage"]["inputTokens"] == 500
     assert json.loads((tmp_path / "workflow-applied.jsonl").read_text())["session_id"] == "s"
 
 

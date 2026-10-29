@@ -42,6 +42,11 @@ def verify_generation(receipt_path, asset_path):
         if Path(data["source_path"]).name == "smoke.py" or not data["parts"]:
             raise ValueError("preflight is not reconstruction evidence")
         files.extend((Path(p["step_path"]), p["step_sha256"]) for p in data["parts"])
+        if "thumbnail_path" in data:
+            thumbnail = Path(data["thumbnail_path"]).resolve()
+            if not thumbnail.is_relative_to(asset_path.parent):
+                raise ValueError("thumbnail is outside submitted assets")
+            files.append((thumbnail, data["thumbnail_sha256"]))
         for path, expected in files:
             if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
                 raise ValueError(f"changed generation artifact: {path.name}")

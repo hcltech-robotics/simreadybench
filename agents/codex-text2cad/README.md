@@ -44,8 +44,10 @@ trajectory conversion, model identity and usage/cost extraction are preserved.
 
 `harbor-agent.json` and `uv.lock` implement Harbor's supported GitHub source/ACP
 route. The stdio wrapper reuses the same preparation, skill and USD exporter. It
-extends only `session/prompt`, preserving original text/image blocks, task MCP
-servers, cancellation and all server responses. It pins codex-acp 1.12.0 and sets
+injects the skill into `session/prompt`, preserving original text/image blocks,
+task MCP servers and cancellation. Version 0.1.1 also normalizes legacy model IDs
+to `model[effort]` and cumulative usage with explicit original-counter metadata.
+It pins codex-acp 1.12.0 and sets
 `CODEX_PATH` to the separately pinned CLI 0.164.0 rather than the adapter's bundled
 0.154.0. ACP is a different transport from native `codex exec`; record that when
 comparing results.
@@ -62,6 +64,10 @@ mode uses the normal provider endpoint. The wrapper honors `HOSTED_INFERENCE_URL
 only when provided and reads the injected `HOSTED_INFERENCE_TOKEN`. It neither
 creates credentials nor reads browser sessions. The hosted configuration is a
 template, not an executed launch or a verified remote dry run.
+
+That example still identifies the previous published 0.1.0 implementation. The
+0.1.1 accounting/retention/thumbnail revision is local pending publication; replace
+the source ref with its approved immutable commit before evaluating that revision.
 
 Official source contract:
 https://docs.harborframework.com/hosted-harbor/custom-agents
@@ -90,6 +96,52 @@ chain. The smoke receipt never counts as reconstruction use. Artifact hashes are
 not tamper-proof attestation: inspect native execution/tool events alongside the
 generation receipt before reporting skill use. A changed final USD invalidates the
 chain. Benchmark F/V/K scores remain separate and unchanged.
+
+The exporter now renders a 256×256 preview from the authored meshes, transforms
+and material colors using a CPU-only orthographic renderer. It saves the actual
+SR.002 dependency at `.thumbs/256x256/asset.usd.png` and links it through the
+default prim's `assetInfo.previews.thumbnail` asset path. It uses no observation
+or ground-truth image. The real NVIDIA 2026.8.0 SR.002 rule is tested to fail when
+the PNG is removed and pass after generation on both static and hinged exports.
+
+## Usage, low reasoning receipts and safe retention (0.1.1)
+
+Before forwarding a prompt, the wrapper requires an actual matching ACP session
+receipt for the configured `model[effort]`; environment settings alone do not
+qualify. It converts Harbor's undecorated legacy model request to that explicit
+ID. Native `turn_context` records must also match the selected model and effort
+before native cumulative usage is marked verified.
+
+The final native `total_token_usage` checkpoint is used once per root session;
+checkpoints and repeated prompt receipts are never summed. Corrected ACP
+`inputTokens` includes cached input; `cachedReadTokens` is its cached subset, and
+`outputTokens` includes reasoning output as reported by Codex. Original ACP usage
+remains under `_meta.cad_agent_accounting.upstream_usage`. Missing/ambiguous/reset
+or mismatched records remain unverified, with upstream numbers preserved. Other
+native sessions are retained but not summed, avoiding fork/resume double counting.
+
+The agent periodically copies only native `rollout-*.jsonl` from this task's
+`.codex-text2cad/sessions`, plus receipt-linked reconstruction `.py`, STEP files
+and generation.json. It never scans `.codex/sessions` or copies auth/config homes.
+Symlinks and references outside authoring are excluded. Known injected secrets,
+credential JSON fields and viewer tokens are redacted; retention.json records
+original/retained hashes. Files over 128 MiB are explicitly skipped. A hard kill
+can lose changes since the last two-second snapshot; retention status must be
+checked. No sandbox can make model-generated content a tamper-proof attestation.
+
+Harbor 0.24.0 still omits cache totals from its primary ATIF converter. After
+downloading a completed trial, explicitly normalize it using the saved receipt:
+
+```sh
+python -m cad_agent.accounting path/to/trajectory.json path/to/cad/accounting.json
+```
+
+This leaves `trajectory.upstream.json`, records provenance in ATIF `extra`, fills
+cumulative input/output/cache totals and is idempotent. It does not alter USD,
+scores, benchmark inputs or dollar cost. The hosted detail page is outside this
+package; its cache field can remain incomplete until Harbor's converter changes.
+No derived pricing is inserted. See BUDGET.md for verified rates and the remaining
+strict-cap limitations; accounting correction is not a spending guard.
 
 ## Local verification without inference
 
