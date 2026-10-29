@@ -4,12 +4,12 @@
     "source": {
       "type": "github",
       "repo": "hcltech-robotics/simreadybench",
-      "ref": "15716cc553a94d3e5c75a91c71cff2b9ec41c309",
+      "ref": "8d6a88938955c844fb2f87c71a7e2613475856c3",
       "path": "agents/codex-text2cad",
       "manifest": "harbor-agent.json"
     },
     "model_name": "openai/gpt-6.1-terra",
-    "env": {"CAD_AGENT_REASONING_EFFORT": "medium"},
+    "env": {"CAD_AGENT_REASONING_EFFORT": "low"},
     "secrets": ["OPENAI_API_KEY"]
   }]
 }

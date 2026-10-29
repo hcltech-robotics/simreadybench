@@ -53,7 +53,7 @@ It pins codex-acp 1.12.0 and sets
 comparing results.
 
 `examples/hosted-agent.json` pins the published, locally tested implementation at
-`15716cc553a94d3e5c75a91c71cff2b9ec41c309`. Merge that agent entry into the
+`8d6a88938955c844fb2f87c71a7e2613475856c3`, with explicit low reasoning. Merge that agent entry into the
 existing job, select the existing appropriate hosted secret, and
 preserve the canonical task reference and limits. Do not use local `import_path`
 in the hosted source form. No credential is included in this package.
@@ -65,9 +65,9 @@ only when provided and reads the injected `HOSTED_INFERENCE_TOKEN`. It neither
 creates credentials nor reads browser sessions. The hosted configuration is a
 template, not an executed launch or a verified remote dry run.
 
-That example still identifies the previous published 0.1.0 implementation. The
-0.1.1 accounting/retention/thumbnail revision is local pending publication; replace
-the source ref with its approved immutable commit before evaluating that revision.
+That example identifies the published 0.1.1 accounting/retention/thumbnail
+revision. It is an agent configuration fragment; retain the canonical task and
+the approved execution limits in the complete job configuration.
 
 Official source contract:
 https://docs.harborframework.com/hosted-harbor/custom-agents

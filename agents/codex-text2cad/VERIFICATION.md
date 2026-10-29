@@ -56,8 +56,10 @@ local-schema validation; an authenticated hosted service dry run remains pending
 
 ## Local 0.1.1 readiness revision
 
-The accounting/retention/thumbnail fix is local and has not been pushed or used in
-a model/hosted run. The final package suite passed **26 tests**. Added evidence:
+The accounting/retention/thumbnail fix was tested locally and then published,
+after explicit approval, at `8d6a88938955c844fb2f87c71a7e2613475856c3`. The hosted
+example pins that revision with low reasoning. No model/hosted run was launched
+by this implementation thread. The final package suite passed **26 tests**. Added evidence:
 
 - Multi-call native cumulative input/cache/output is normalized once, with raw ACP
   counters preserved in metadata; repeated checkpoints do not double count.
