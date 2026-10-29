@@ -41,6 +41,15 @@ CAD_AGENT_TEST_PREFIX=/workspace/codex-text2cad-runtime \
 These checks establish local functionality and structural articulation, not a
 physics simulation, benchmark score or observed model compliance. Native commands
 and generation receipts must be audited together on a future authorized run.
-Hosted repository/access validation is pending approved publication; the source
-configuration deliberately retains a commit placeholder. Original benchmark
-tasks, verifier, runner policy and existing pilot runs are unchanged.
+After explicit publication approval, implementation commit
+`15716cc553a94d3e5c75a91c71cff2b9ec41c309` was pushed on the isolated
+`feat/codex-text2cad-agent` branch. The hosted source example now pins that
+immutable implementation commit. Hosted service validation still requires the
+existing authenticated Hub session; no hosted trial has been submitted. Original
+benchmark tasks, verifier, runner policy and existing pilot runs are unchanged.
+
+Anonymous downloads from the immutable GitHub revision matched all 26 pinned
+skill/runtime/code files, including all 13 skill files. The published manifest
+and resolved hosted agent example passed the installed Harbor 0.24.0
+`AcpSourceManifest` and `HostedAgentConfig` schemas. This is public-source and
+local-schema validation; an authenticated hosted service dry run remains pending.

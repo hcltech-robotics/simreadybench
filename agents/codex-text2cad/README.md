@@ -50,9 +50,9 @@ servers, cancellation and all server responses. It pins codex-acp 1.12.0 and set
 0.154.0. ACP is a different transport from native `codex exec`; record that when
 comparing results.
 
-After approved publication, replace the commit placeholder in
-`examples/hosted-agent.json` with the immutable published commit. Merge that agent
-entry into the existing job, select the existing appropriate hosted secret, and
+`examples/hosted-agent.json` pins the published, locally tested implementation at
+`15716cc553a94d3e5c75a91c71cff2b9ec41c309`. Merge that agent entry into the
+existing job, select the existing appropriate hosted secret, and
 preserve the canonical task reference and limits. Do not use local `import_path`
 in the hosted source form. No credential is included in this package.
 
