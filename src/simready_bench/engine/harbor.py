@@ -616,7 +616,7 @@ class BenchmarkDockerEnvironment(DockerEnvironment):
     async def start(self, force_build):
         if force_build or not self.task_env_config.docker_image:
             raise RuntimeError(
-                "Native transport requires an existing Spark-built image"
+                "Native transport requires an existing prebuilt image"
             )
         if self.network_policy.network_mode.value != "no-network":
             raise RuntimeError(

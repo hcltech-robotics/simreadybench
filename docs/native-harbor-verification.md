@@ -1,530 +1,82 @@
-# Native Harbor port: local verification
+# Verify native Harbor packages
 
-The implementation starts at source commit
-`ad38697277f897833ee9a19e329f99063827de1f` on isolated branch
-`feat/native-harbor-nv100`. Nothing in this work publishes a repository, changes
-live HF data, provisions credentials or invokes paid inference.
+Native task verification checks evaluator behavior, role isolation, packaging and
+the Harbor lifecycle. Use the exact evaluator wheel, dependency locks, renderer
+and asset revision declared by the release.
 
-The clean package is under `native/`; it contains its own evaluator, renderer,
-candidate-only feedback service, selective fetcher and allowlisted exporter.
-It does not import the working benchmark harness or private application.
-`native/README.md` documents the asset and camera interfaces.
+## Source and package checks
 
-## Runtime evidence
+Install the test dependencies and native package in Python 3.12. The
+[`Execution and recovery` workflow](../.github/workflows/ci.yml) defines the
+dependency and Blender versions used by CI.
 
-The two opt-in Docker tests in `tests/harbor_native/test_native_runtime.py`
-passed on actual containers in 50.62 seconds:
+```sh
+python -m pip install '.[test,daytona,publish]' './native[validator,fetch]' build
+python -m pytest -q -p no:cacheprovider tests/harbor_native
+python -m build --wheel --sdist native
+```
 
-- Genuine NVIDIA formal validation admits five distinct requests, rejects the
-  sixth, replays an identical request after restart and retains the exhausted
-  ledger. The parsing worker cannot read the controller's ledger. Actor tools
-  contain neither Blender nor the NVIDIA validation SDK.
-- A fresh verifier with `--network=none`, a read-only root, no capabilities and
-  only the declared submission plus frozen fixtures produces formal evidence
-  and geometry/appearance/visual/kinematic scores of 100 for an original neutral
-  articulated fixture. This is an integration fixture, not NV100 qualification.
+The tests cover mandatory and optional requirement accounting, invalid and
+unknown results, reference-scale geometry, appearance, kinematics, feedback
+quotas, selective acquisition and exported task inventories. They also check
+that the native wheel is independent of the benchmark controller and agent
+implementations.
 
-Container build RUN steps on this host cannot reach public package servers
-(`Errno 101: Network unreachable`). For these local runtime checks, the pinned
-public Python base, public dependency wheels and public Debian Blender files
-were preloaded. No private image or host renderer was injected into scoring.
-Production recipes still perform checksum-pinned role-specific HF acquisition
-during trusted setup and run final scoring offline. A cold setup fetch against
-the new benchmark revision remains unverified until that revision exists.
+Container, licensed and paid test tiers require their respective explicit
+selection and opt-in flags. See [execution testing](execution.md#licensed-and-runtime-gates).
+Unit and fixture tests do not establish that every reference workload fits the
+release's resource limits.
 
-A normal Harbor 0.24.0 Oracle trial was attempted with the generated task,
-ordinary Compose sidecar and separate verifier. It was blocked before execution:
-Harbor's daemon-kernel probe returned false for `CONFIG_NFT_FIB_INET`, and Harbor
-rejected `network_mode='allowlist'` as unsupported. The probe's actual
-`/proc/config.gz` output has neither NFT FIB IPv4 nor IPv6 enabled. We did not
-patch Harbor or relax the declared network policy. Full native Harbor lifecycle
-acceptance requires a compatible Docker host.
+## Export validation
 
-## Review and score contract
+Use the [publishing guide](../native/tools/README.md) to prepare a fresh
+export outside the source checkout. Check that:
 
-Independent review findings were corrected with regression coverage: public
-fixture permissions for actor UID 1000, canonical `asset.usd`
-entrypoint consistency between feedback and final scoring, and a known zero
-geometry score becoming an unavailable visual score; the later renderer pass
-also fixed constant fallbacks requiring UVs, valid nested sibling textures being
-rejected, and the measured 335 MiB heat-gun scene exceeding final-worker file
-limits. Only render workers receive the larger bounded 4 GiB file allowance;
-other workers retain 128 MiB. A fully measured zero
-factor now proves visual zero while retaining appearance uncertainty and partial
-measurement coverage in the detailed report.
+- The release contains exactly the declared task roster and dataset files.
+- Every task pins its immutable asset revision and per-file checksums.
+- The actor receives one observation image and its instruction, with no reference
+  USD, comparison images or result files.
+- The verifier receives only the selected task's reference and comparison closure.
+- The candidate entry point, dependency rules, limits and feedback instructions
+  agree across task metadata and runtime instructions.
+- The exported evaluator wheel, role manifests and package digests match the
+  inspected build.
 
-The standard Compose test also passed (51.94 seconds), exercising the actual
-exported feedback definition and actor client with genuine validation in a shared
-offline namespace. The namespace anchor substitutes only for the host-unavailable
-Harbor network controller; this does not claim Harbor's phase policy executed.
-Final scoring now rejects missing/mismatched bridge-code and Blender-binary
-identities as well as recipe/camera changes before candidate work.
+Role acquisition must reject missing, extra or modified files. Final evaluation
+runs offline against the declared submission and frozen verifier inputs.
 
-The corrected renderer traverses effective instance-proxy shaders, translates
-active emission/IOR, shares equivalent UV data without changing numeric values,
-and releases Python geometry after Blender has copied it. A current-version
-barcode-printer probe completes all five RGBs and masks. The 1,931,457-triangle
-locker remains unqualified: it exceeded the original address-space bound, then
-decoder duplication, and finally the 180-second Blender diagnostic window.
-Partial images are not admitted. The user selected replacement of the largest
-reference outliers; no additional locker-specific work gates the release.
-The largest completed real full-five-camera probe is the 305,896-triangle heat
-gun; its current-version evaluation evidence is below.
-Render workers now have a bounded 12 GiB address space within the declared
-16 GiB container. No geometry simplification or score-definition change occurs.
+## Runtime verification
 
-The current heat gun is now qualified through actual five-camera preparation
-and the complete evaluator. Its runtime dependency inventory selects 20 files /
-44,287,839 bytes from 46 originals / 80,853,193 bytes, without changing originals.
-The five-frame render took 115.80s. Full evaluation took 179.40s under the
-unchanged 600s limit: formal 88.8043, geometry/appearance/visual/kinematic 100,
-all measured at coverage 1. Maximum individual process and child RSS was
-1,299,416 KiB; this is not an aggregate process-tree peak. All 46 original file
-hashes were checked again after evaluation. The candidate retained full geometry.
-The source formal result is reported as measured, not inflated to 100.
+Use a Linux Docker/Compose host that supports Harbor 0.24.0 network enforcement.
+Check the exported package with a clean cache and no dependency on the source
+checkout. A lifecycle test should exercise candidate submission, artifact
+transfer, the separate verifier, reward collection and cleanup.
 
-Runtime inventories now walk only reachable authored dependencies and notices,
-retain a referenced archive, exclude unrelated originals, and canonicalize
-relative UDIM tile paths. They do not copy or publish data. Exported recipes
-also pin the same OMP/OpenBLAS/USD thread limits used by these measurements.
-Nominal XYZ dimensions remain public as required by the existing input contract.
-Reference preparation no longer accidentally applies the candidate's 256 MiB
-package bound: trusted references have a separate 2 GiB acquisition bound, while
-candidate and feedback package limits remain unchanged. Reference/compare file
-limits also permit the bounded USDZ expansion. Final formal and feedback workers
-permit candidate archive members up to the declared 256 MiB package limit;
-feedback JSON is still independently capped at 8 MiB. The targeted package, CLI,
-feedback and material-diagnostic SDK checks passed (82 tests). This is a preparation fix, not evidence that an
-asset exceeding the candidate limit is eligible; a faithful bounded candidate
-representation must still be demonstrated.
-The material-property sampler now leaves PNG16 properties unmeasured instead of
-reporting Pillow's truncated 8-bit values. This diagnostic limit is separate from
-the corrected renderer, which streams lossless files, shares content descriptors
-and preserves original encoded PNG16 for native Blender decoding. Nine targeted
-tests pass, including actual native low-bit samples and canonical ICC removal.
-The final bridge's canonical files match all 31 active 8-bit inputs from the
-printer and heat gun exactly. Actual five-RGB/five-mask probes match the previous
-baseline byte for byte (40.58s / 451412 KiB child RSS for the printer, 115.74s /
-1254900 KiB for the heat gun). Their scientific scenes, cameras and Blender
-binary also match. These equivalence results preserve the original receipts;
-they do not claim that new code originally produced historical images.
-Bed/toolbox full-precision render probes now complete: bed 853847 triangles,
-390.16s and 3518760 KiB maximum child RSS; toolbox 742798 triangles, 297.42s and
-3116868 KiB. Each generated five RGBs/five masks at camera hashes matching the
-asset owner's exact frozen rigs. All 47/82 original source hashes stayed equal.
-Bed executed the pre-ICC-clear compiler; a separate 22-file equivalence proof
-records four native PNG16 copies and 18 unchanged canonical PNG8 outputs under
-the final compiler. Toolbox executed the final compiler directly. The bed
-bridge's pixel-buffer estimate peaked at 176 MiB and retained no decoded bank.
-Neither probe establishes candidate/full-grader eligibility: original source
-texture bytes exceed the candidate package allowance and all evaluation phases
-must fit the existing 600s deadline. The original extra outer 180s render-worker
-cap was incompatible with these measured workloads; its correction is below.
-One additional targeted test confirms resource-bound MemoryError is a typed
-unknown with no images, rather than unsupported content or model-quality zero.
+Feedback tests must verify five distinct admissions, rejection of a sixth call,
+same-ID/digest replay, rejection of an ID reused with different bytes, and quota
+persistence across service restart. Candidate parsing must not expose the
+service's control ledger or verifier reference files.
 
-Portable deliverables are saved through Library: corrected neutral wheel/lock
-bundle `libfile_10c62858c51c8191b0d253a305d03ebf` version 2 (ZIP SHA256
-`94e54828a26e8a36622009b1ada957ac429311c60251e8e08e6dd9f460b75510`),
-clean original Oracle fixture `libfile_6f035bcc9dbc81919c715d9ccf15fc14` version 0
-(SHA256 `49b105454eed52e8b7611283d7f178978cf5d259338a38a707f18b4c848f6b54`),
-and real-render evidence `libfile_cb87d231c4a08191b527fe9928faedda` version 0
-(SHA256 `a72404eb196b8169dbfb6f0cf520171fda53d6d746290bb746b6795e071ae1ec`).
-The bundle and Oracle fixture use exact implementation commit
-`55be78b25a72c59762fc4f38450b9b816dfa46b1`, native wheel SHA256
-`2f2cfcc9948b93d5991ea495d1eab0fc089e4b10638d949ddd1c0ea06dc6322d`.
-No working checkout, source binaries or historical results entered those code
-handoffs. The render evidence contains derived images, attribution and receipts.
+Inspect collected rewards, `evaluation_complete`, `exception_info` and the
+verifier report. A successful command exit alone does not establish that Harbor
+collected a complete evaluation. A no-output agent checks startup and known
+invalid-submission handling; it does not measure reconstruction quality.
 
-The first exact portable Oracle trial executed on STC under official Harbor
-0.24.0 from 19:12:40Z to 19:15:45Z. All five feedback calls completed, sixth-call
-rejection and actor isolation assertions passed, candidate artifacts transferred,
-and the separate offline verifier produced complete scores (formal 82.6087;
-G/R/V/K 100). The trial still errored when Harbor read `reward.json`: atomic
-temporary outputs retained mode 0600. Later cleanup copied readable host-owned
-files, so their final ownership does not describe access at the failure point.
-CLI exit zero is not proof of a successful Harbor trial.
+## Reference qualification
 
-The output writer now chmods completed temporary report/reward files to 0644
-before atomic replacement. A restrictive-umask regression reproduced 0600 before
-the fix; 35 contract/CLI tests pass after it. A real network-none, read-only,
-cap-drop Docker process wrote the patched outputs as a different mapped UID;
-the ordinary host collector could read both 0644 files. No score, renderer,
-network, UID or capability policy changed. The original failed trial is preserved in Library
-`libfile_5b6bd07d66ac81919e1516dc1bfde698` version 0, ZIP SHA256
-`1e1abcd26a45a61760c59e133b7a574258d0b6a847e05dd67c7d8b4e1a0211f1`.
+Qualify each reference with the release's geometry, material, camera and resource
+settings. Preserve original asset bytes and the actual rendering identities.
+Reference self-comparison checks geometry, appearance and kinematic agreement;
+formal conformance must still be measured against the profile.
 
-The corrected full standard Harbor trial passed on STC from
-2026-10-25T19:24:38.549424Z to 19:26:17.894890Z, trial
-`nv100-neutral-hinge__XTToxvF`, with `exception_info=null` and collected
-`verifier_result.rewards`: `evaluation_complete=1`, formal credit
-0.826086956521739, visual and kinematic credit 1. Five feedback calls completed
-and the sixth was rejected. The live read-only publication monitor observed
-root-owned reward mode 0644 readable by host UID1000 at 19:26:04.765Z before
-cleanup, followed by normal cleanup ownership change. There was no manual
-chmod/chown or isolation change. The passing clean bundle is Oracle Library
-`libfile_6f035bcc9dbc81919c715d9ccf15fc14` version 1, ZIP SHA256
-`f19cdfa92fac557e6738ab3eeb85c640e664123dd6155b3456c2333fe085d433`,
-implementation commit `e52d48b7bdb64949a4e00e418b06b15d49659fb3`.
-The matching evaluator bundle is Library `libfile_10c62858c51c8191b0d253a305d03ebf`
-version 3, ZIP SHA256
-`1b62fbb732a77126910446e26ce00c346bbb6f90c46994328bc7912ce81d2b22`,
-native wheel SHA256
-`54661461b5231f433b6b677ae340c8bf790b7871172bf210ed91f44f74ce6a45`.
-This is a native lifecycle pass for the original neutral fixture, not published
-NV100 asset-fetch acceptance or whole-cohort eligibility.
-The consolidated STC evidence is Library
-`libfile_5b6bd07d66ac81919e1516dc1bfde698` version 1, 719334 bytes / 77 files,
-SHA256 `40fbb8a86194772be447cbf405b1c9c1b8e2d4933f5b2a5637dfbbbad4d36649`.
-It preserves both original failed and corrected runs, the verified corrected
-bundle, live output-publication trace and host pre/postflight. The reported
-corrected job has one completed trial, zero errors and no exception. The same
-20 service containers and existing Python process remained untouched.
+Large textures, supported-but-expensive geometry and concurrent render workers
+can exhaust a fixed runtime envelope. A package passing the byte limit or a
+render-only probe does not establish full-evaluation eligibility. Measure the
+complete evaluation with candidate headroom. Unsupported reference content and
+unavailable measurements retain unknown scores and bounds. Infrastructure
+failures remain distinct from invalid candidate output.
 
-Existing bed timestamps/logs establish that texture extraction was still active
-at approximately 190.55s, before Blender; comparison RGB/mask render calls total
-69.85s and the separate observation pair adds 17.47s. Subtracting the observation
-pair gives a 372.69s four-view whole-job estimate, not a separately executed
-four-view measurement. Thus the extra 180s whole render-worker cap fails even
-before view count matters. The worker now receives remaining time from the
-existing final deadline, while Blender still has 180s and render address space
-stays 12 GiB. Overall wall time remains 600s; candidate package/geometry/texture
-rules, image recipes and unknown scoring semantics are unchanged. The new
-genuine SDK comparison/dispatch regression reproduced 180 before the change;
-36 contract/CLI tests pass with the corrected allocation. No accepted STC run
-or reference render was repeated for this diagnosis.
-
-The bounded candidate witness copied the full bed geometry unchanged: 853847
-triangles and an identical canonical geometry digest. Only its 22 candidate
-texture copies changed to RGBA8 / at most 2048px LANCZOS; this is explicitly
-lossy authoring, never a source/reference reduction. Candidate preflight passes
-at 107715941 bytes / 41 files. Original reference closure is 452060328 bytes /
-40 files, larger than the 268435456-byte candidate limit. No losslessly optimized
-candidate below that limit has been demonstrated; ordinary archive compression
-does not solve an expanded-byte limit. The 0.70037 visual-point loss is real,
-so this witness does not prove exact-identity/Oracle eligibility.
-
-The diagnostic measured G=100, R=98.6041698722, V=99.2996323620 and K=100,
-all at coverage 1, in 500.272927s. Its interpreter lacked MaterialX, so its
-original formal result remains unknown and its original report/reward are
-preserved. A formal-only check of the actual unchanged frozen candidate in the
-already pinned MaterialX/NVIDIA SDK environment took 15.105728s: formal
-88.8043478261, 43 passes / 3 failures / 0 unknown. Conservative serial phase
-time is 515.378656s, leaving 84.621344s of the existing 600s allowance. This is
-phase-wise feasibility evidence, not a single fully configured invocation or
-an official benchmark result. Peak process-tree RSS was 3760308 KiB (3.59 GiB).
-Library `libfile_35386a031b64819197b603869e9cd85a` version 0 contains the source/
-candidate manifests, geometry digest, integrity checks, both unmodified result
-records, images, candidate-only build recipe and license, but no USD/texture
-binaries. ZIP SHA256:
-`8d305db6cc0605380851642125ac435e8778657f0716ccd5c91e31a27e0c6491`.
-
-Asset-task timeout diagnostics were independently materialized and SHA-verified
-from Library `libfile_3b1ed67bf42c8191b1446d21560cb072` version 0. They show a
-4-CPU quota running two render jobs plus a reference-profile worker: bed and
-toolbox hit the inner Blender 180s limit at total 516.02s / 545.08s. Their scene,
-camera, recipe and binary identities match the successful isolated source probes.
-This establishes distinct contended failures, not a changed material graph or
-new quality score. Isolate these known heavy preparations from other render/
-profile work on a 4-CPU host; let the asset owner's queued isolated retries
-provide that separate host evidence. No retries, limit increases or roster purge
-were performed here for those failures. STC remains the selected Harbor host.
-
-The latest portable evaluator bundle is Library
-`libfile_10c62858c51c8191b0d253a305d03ebf` version 4, filename
-`simreadybench-native-renderer-v1.zip`, 145677 bytes, SHA256
-`b824a2b9cd30d19bbc80564e3b5b0f986e458b0322a8ac013c34dfe68fb7cb5b`.
-It is built from exact commit `2925c7baa37011e1ee311ccea52781dcda0355e3`,
-wheel SHA256 `9a8c2bb14551bc89df6af8ecc763f32bf7bdb10122ae0097e64ce7fa03b90395`.
-The renderer, worker and image recipe retain their prior hashes; only the final
-conversion allocation and accompanying documentation/validation changed since
-version 3. Existing source renders do not need regeneration for this update.
-The accepted STC Oracle artifact remains version 1 at its earlier exact commit;
-it was not rerun merely to refresh package metadata. Whole published NV100
-validation will use STC after the final asset freeze and clean publication.
-
-The inherited defensive 256 MiB candidate limit was explicitly authorized for
-correction to 1 GiB after the completed asset-owner inventory showed exactly
-five required runtime closures above 256 MiB, maximum 503323398 bytes. One
-shared `limits.py` now feeds package inspection, final freezing, formal worker
-file bounds, feedback extraction and public instructions. Reference acquisition
-stays at 2 GiB. The plain-TAR envelope is separately bounded at 1.25 GiB, including
-conservative PAX/header overhead; it does not enlarge candidate or USDZ-expanded
-bytes. Feedback scratch is 2 GiB and a single admission slot is acquired before
-HTTP body reading through evaluation completion. Busy requests get 503,
-Retry-After and connection closure without a quota reservation; health remains
-available. Five-call/replay/restart behavior and private ledger permissions stay
-unchanged, as do score formulas, time, memory, geometry and image guards.
-
-Checks: 139 integration cases passed in the SDK interpreter; two Harbor-schema
-cases were run in the separate Harbor-equipped host interpreter (both pass),
-plus one USDZ/TAR allowance regression and four public-instruction/closure tests.
-The two initially missing-Harbor imports were test-environment issues, not
-evaluator dependencies; the neutral wheel still does not require Harbor.
-The 26 feedback cases include an actual zero-body busy upload rejected before
-allocation, concurrent health, errors releasing the slot, true SDK requests,
-five-call exhaustion and restart/replay. Independent review found no substantive
-defect. No full render, scoring cycle or accepted STC trial was repeated.
-
-A real unchanged-texture bed candidate passed the corrected candidate package
-and dependency gate at 452069304 bytes / 41 files in 3.28s. All 40 original source
-dependencies and all 22 original PNGs remain byte-identical; only the proven
-top-level entrypoint relocation is added. Reapplying the old 256 MiB budget to
-the same package rejects it. Source/reference hashes remain unchanged. This is
-real admission evidence, not full runtime/score/Oracle qualification. The five
-exact retained closure byte counts also pass targeted sparse-size admission
-tests; 1 GiB passes, 1 GiB plus one byte rejects, and compressed USDZ expansion
-cannot spend the TAR-header allowance. Public instructions/role-file hashes must
-be regenerated before the HF freeze; images need no regeneration.
-
-Formal uses `95 * passed / 46`, plus 5 only when all 46 mandatory requirements
-pass; the optional 51 remain diagnostic. Visual uses
-`sqrt(full_3D_geometry * mean(four_foreground_SSIM_percentages))`. Four views have
-equal fixed weight and use the union of reference/candidate opacity-independent
-foreground masks. Kinematics retains the geometric mean of applicable moving
-and fixed constraint recovery groups. There is no overall F/V/K weighting.
-`reward.json` always emits separate known-credit, known, coverage and lower/upper
-fields; standalone `metric.py` aggregates each dimension with its own known
-denominator and explicit unavailable counts and bounds.
-
-## Baseline failures
-
-A broad repository run returned 1866 passed, 9 skipped and 15 failed while some
-new renderer/preparation files were still being edited. Five port failures from
-that intermediate run are superseded by focused final verification; the other
-ten were reproduced in the untouched baseline checkout with the same command
-and interpreter (10 failed, 2 passed, 2.08 seconds):
-
-- `test_benchmark_command.py::test_sequential_execution_keeps_repetitions_budget_identities_and_exported_captures`
-- `test_coordinator_contract.py::test_collection_failure_is_bounded_and_persisted[exception0]`
-- `test_coordinator_contract.py::test_collection_failure_is_bounded_and_persisted[exception1]`
-- `test_coordinator_contract.py::test_saved_dispatch_resumes_its_original_batch`
-- `test_coordinator_contract.py::test_measured_batch_without_delivery_cannot_author_again`
-- `test_coordinator_contract.py::test_failure_before_delivery_retries_the_same_owned_batch`
-- `test_coordinator_contract.py::test_held_data_can_retry_cleanup_without_reauthoring[False]`
-- `test_coordinator_contract.py::test_held_data_can_retry_cleanup_without_reauthoring[True]`
-- `test_orchestration_retries.py::test_unstarted_tail_membership_does_not_consume_transport_retries`
-- `test_publishing.py::test_invalid_submission_is_published_and_does_not_block_later_reconstructions`
-
-Eight coordinator/orchestration cases fail with `KeyError: 'providers'` in
-unchanged route-throttling code. The benchmark case fails its retained-capture
-assertion; the publishing case expects 51 optional unknowns where baseline
-scoring returns zero. These unrelated baseline failures were not changed.
-
-## Release gates
-
-No export is certified publish-ready merely by parsing successfully. The
-separate asset owner must supply the immutable clean HF revision, complete
-roster and five-frame render qualification. All task manifests pin that revision
-and per-file checksums; public packages never fetch `results/`.
-
-Historical migration is additive and local-only: dry-run/apply receipts record
-source/destination hashes, preserve all eleven parquet shards and missing legacy
-references, and provide rollback evidence without deleting source paths.
-Live copy, reader/writer cutover and root benchmark card changes remain pending.
-The optional per-set bucket manifest is only a mirror of a pinned dataset;
-no bucket has been created or copied.
-
-## Accepted STC execution and publication handoff
-
-The corrected 1 GiB fixture completed on STC using official Harbor 0.24.0:
-2026-10-25T20:51:10.997Z to 20:52:47.298Z, trial
-`nv100-neutral-hinge__AEQTHtY`, completed 1 / errors 0, null exception and
-collected rewards. Five feedback calls completed and the sixth was rejected.
-The actor's public 1 GiB contract and the 2 GiB feedback scratch declaration were
-asserted. Frozen images remained byte-identical. This accepted lifecycle evidence
-is Library `libfile_5b6bd07d66ac81919e1516dc1bfde698` version 2, SHA-256
-`2a9e91ea4ac9efa5f066072aa4d6f5c380a283c76a8e573aaf2337549b1a7346`.
-No duplicate smoke is needed for documentation or handoff-tool-only changes.
-
-The original full-texture bed/toolbox renders are preserved in Library
-`libfile_2547d70d2a50819192c96cc56e267bd4` version 0, SHA-256
-`a9d0b972e17cde428e9688996e1b6e66c586406ce9bb42454828ca5a98a78d24`.
-The handoff has ten original RGBs and ten masks, frozen cameras, receipts,
-source metadata, and the bed final-code equivalence proof. These are source
-renders, never the reduced candidate feasibility images. The asset owner has
-reported all 100 assets / 500 frames complete and visually reviewed; the immutable
-HF payload commit and final role manifests remain the publication inputs.
-
-`native/tools/prepare_hub_release.py` prepares only a fresh allowlisted local
-export after the release owner's completed-freeze acknowledgment. It checks the
-exact public ungated HF commit without credentials, uses the accepted runtime,
-validates all 100 task names/schemas, dataset-level and publisher hashes and
-inventory, and finalizes status without claiming published consumption or
-100 task-specific Oracles. Nine focused tests pass, including rejection of
-missing/null/auto/manual gating metadata. Independent review's gating finding
-was corrected. `native/tools/HUB_HANDOFF.md` gives the exact STC commands.
-The helper does not publish or obtain credentials; existing approved Hub login
-stays only on STC. The required order remains full immutable HF freeze, clean Hub
-publication, then consumption of the published content digest on STC.
-
-## Public input packaging correction (1.0.1)
-
-The 1.0.0 exporter omitted the two actor input files from published task folders
-and acquired them only during the image build. A successful no-output trial did
-not establish folder-level completeness. The upstream exporter now acquires
-exactly the pinned actor observation PNG and instruction bytes during export,
-checks their manifest sizes and hashes, and includes them in each task's
-`environment/`. An optional local mirror uses the same checks and exact HF paths.
-Reference USD, dependencies and four comparison views are not acquired by export.
-
-The actor Dockerfile explicitly COPYs just the public pair and invokes the new
-read-only `simready_eval.fetch --verify-only` exact-tree/hash check before making
-`/task` immutable. No actor input network request is needed during build. Root
-task instructions include a pinned observation preview/download and packaged-file
-links; the dataset README includes all 100 pinned observation links. The handoff
-helper's allowlist and hashes include the new files. Task, dataset and wheel
-versions are 1.0.1; all task content digests change.
-
-Regression tests first reproduced the absent inputs, missing transport-integrity
-failure, and missing local-mirror API. The final export/handoff/selective-fetch
-suite passed 116 checks. Tests verify all 100 task public pairs and dataset/task
-publisher hashes, transport role isolation, tampered input rejection without a
-partial package, deterministic exports, and actual generated build-check commands.
-Independent review found no substantive issue.
-
-A genuine Docker build using the existing neutral actor base and no build network
-executed the generated COPY/verify/permission commands with the rebuilt 1.0.1
-wheel. A read-only, network-none, capability-free container as UID 1000 decoded
-the neutral PNG, verified both original file hashes, confirmed exactly two /task
-files and mode 0444. This is focused public-input packaging evidence, not a new
-full Harbor trial. The first readback launch was blocked by local disk exhaustion;
-unused build cache was removed and the check then passed. Existing source and
-images were preserved.
-
-The wheel differs from accepted 1.0.0 only in `__init__.py`, `export.py`, and
-`fetch.py` plus distribution metadata. Renderer, material handling, geometry,
-formal/visual/kinematic scores, budgets and isolation settings are byte-identical.
-No image rerender is required. The sole STC publisher owns republishing and all
-100 pulled-folder checks plus the fresh published-package runtime trial.
-
-## Readable object names (1.0.2)
-
-The authoritative 125-label mapping was consumer-locally materialized from Library
-`libfile_ab643e1eee2c8191989819d46cc11079` version 0 (`object-names.json`, 6723
-bytes, SHA-256 `378b16ae08c5eb5528066e068bd1bbdef183d1eef99cb6fd6e4c10a5e20c4018`).
-The sole STC publisher owns its join to source asset identities and the final
-canonical 100-task input. The exporter now requires explicit readable
-`object_name` and positive finite public `nominal_dimensions_m` (XYZ metres).
-Root Harbor instructions open "Reconstruct this <name> ..." with dimensions,
-stable task ID and exactly one observation. Task description/metadata and the
-dataset index use the same label. Stable IDs alone still drive task paths,
-manifest identities and Hub package names. The actor's frozen instruction file
-remains a byte-identical verified copy and never inherits the transformed root
-instruction's bytes under its old hash. NV25 reference naming remains the HF
-owner's metadata work, with no additional Harbor tasks.
-
-The added name/dimension regression first failed on the old strict task schema.
-The combined packaging/handoff/selective-fetch suite passes 124 tests, including
-all 100 named root instructions and original public instruction preservation.
-Independent review found no substantive issue. The prior real Docker COPY/hash/
-read-only proof remains applicable: only exporter presentation/metadata changed
-since that check. No scoring, renderer, source data, role limits or isolation
-change is required; no rerender or duplicate scoring cycle was run. Final task,
-dataset and wheel versions are 1.0.2, matching the sole publisher's final named
-release. Fresh all-100 published-folder checks and STC runtime evidence are owned
-by the sole publisher, which has already reported the image-only version passing.
-
-## Public documentation cleanup
-
-The exporter now owns one benchmark-facing README generator with purpose,
-observation/comparison counts, Harbor installation/use, submission and feedback,
-separate F/V/K definitions, coverage semantics, licences, pinned data and named
-observation index. The helper retains this generated README instead of replacing
-it with development status. Public release.json contains only the fixture marker
-alongside the canonical release fields; owner/verification status remains in the
-separate local receipt. No ready-for-publication, owner-acknowledgment, handoff,
-audit, unverified-runtime or oracle narrative is emitted in public documentation.
-The regression first failed on the old public status fields; the exporter/helper
-suite now passes 62 checks including all 100 package digests and README inventory
-hashes. Runtime, score definitions, role file bytes and image pixels are unchanged.
-
-The sole publisher reports the manually cleaned named Hub revision 3 at digest
-`a3a6b107d92c6e4e6a07a98871e182a2bc5ce41f60421cf37995db193e1a1d5a`,
-with all 100 fresh task folders/observations/names/hashes verified. Its final new
-no-output trial is still in progress at this checkpoint. HF reference-name/image
-metadata is reported at `9e61d44e2ecc55cb6ce7103d3547318426aeeb6e`; original
-payload bytes remain at the previously verified `631fd67d...` revision. These
-remote operations were performed only by the sole STC publisher. This source fix
-prevents subsequent exports from reintroducing the removed public narration;
-it does not independently publish or claim the pending trial succeeded.
-
-## Setup integrity diagnostics
-
-The exact-tree setup verifier now identifies mismatching relative paths,
-expected/observed SHA-256 and sizes, missing/extra entries, or nonregular/link
-metadata. The two new regressions first reproduced generic hash/size errors;
-the final export/helper/selective-fetch suite passes 126 tests. No integrity,
-permissions, networking, resource, scoring or rendering check was relaxed.
-This supplies source-backed diagnostics for the sole publisher's Compose-only
-inline assertion failure; its root cause is not yet established by this worker.
-
-## Approved Hub dataset destination
-
-The source now fixes the approved dataset identity to
-`hcltech-robotics/simreadybench` through shared `DATASET_NAME`. The manifest,
-public usage command, download/run instructions and local receipt use it. The
-helper explicitly rejects another dataset identity even when all file hashes
-and the inventory have been recomputed consistently. Existing
-`hcltech-robotics/nv100_<id>` task names remain unchanged. The regression first
-reproduced the old `hcltech-robotics/nv100` dataset default. The exporter/helper
-suite passes 63 checks including the explicit destination guard. The handoff
-also documents installing the neutral wheel with the existing STC `uv` into its
-dedicated no-pip environment. No publication is performed by these changes.
-
-## Published release acceptance
-
-The sole STC publisher reports successful public publication and consumption:
-
-- Hub dataset: `hcltech-robotics/simreadybench`, revision 4, content digest
-  `sha256:eeb3fdc558409ce23ce1f04d9c45636fc0464cd606a32a00c0e0a2af8b231c56`.
-- Published runtime source: `300afbdab1c191411828f2fbdc0c9289f48518ed`, wheel
-  SHA-256 `a8251571d91e1fb4db7b493c361db2d400013782e8403d75c94dbe6d6d1f9b0d`.
-  The publisher corrected dataset identity explicitly. The later source-only
-  exporter-default fix `bdd8b7eccadee690a59bb6f0e5c5104276530efe` prevents future
-  target drift; it is not claimed to be the published runtime revision.
-- All 100 freshly anonymous-pulled task folders passed hashes, bundled actor
-  pairs, names, nominal dimensions and role-isolation checks.
-- Formerly failing task `nv100_e7a7d6fbf4f2326f`, trial
-  `nv100_e7a7d6fbf4f2326f__2TTRyj4`, completed from that public digest with
-  completed=1, errors=0, null exception and evaluation_complete=1. This was a
-  no-output (`nop`) consumption test with expected invalid-candidate rewards,
-  not model-quality or task-specific Oracle evidence. The same task also passed
-  before publication using the source-backed exact verifier.
-- Original HF payload remains pinned to
-  `631fd67d899a3cc6bdeb1f3dceb6145337c8ec87`; names/common reference-image schema
-  are published at `9e61d44e2ecc55cb6ce7103d3547318426aeeb6e`. Live first/page
-  images in both NV100/NV25 splits and historical-results joins passed the
-  publisher's checks. Historical data remains preserved.
-- Final evidence: Library `libfile_0a924faacd348191a6695be770ccde3a` version 1,
-  35033097 bytes, SHA-256
-  `9ed27a4d2ba0972caa333b28b0fb86ba170fec697c2815ee85d922d584facbb3`.
-
-The original inline-assert Compose failures remain preserved; their definitive
-root cause is not established. The current published strict source verification
-passes without weakening integrity, permissions, isolation or resource checks.
-Scoring, renderer and feedback modules are byte-identical to the accepted wheel;
-only export/fetch and package version changed. No new inference, runner changes,
-publication, remote writes or duplicate verification were performed by this
-worker while recording these externally supplied final receipts.
-
-## Named linked and runtime public instructions
-
-All primary instruction surfaces now use the reviewed name and nominal
-canonical dimensions, with the complete unchanged frozen public body appended.
-This retains 1 GiB/10000 limits, entrypoint/dependency rules, Blender prohibition
-and feedback instructions. Raw HF instruction bytes are preserved under
-`environment/source-public-instruction.txt`; the original actor role manifest
-stays unchanged. Build verifies that frozen pair first and deletes the temporary
-pair, then installs precisely the one observation and named instruction in
-`/task`. A separate `simready-actor-runtime-v1` local identity records the derived
-wrapper's own size/SHA and original frozen-manifest hash, and is accepted only
-by read-only verification, never by HF acquisition.
-
-The updated allowlist adds exactly the raw brief and local runtime identity.
-130 focused export/acquisition/helper tests pass, including real generated
-COPY/verification command execution, final exact two-file tree, preservation of
-raw CRLF/body bytes, names and all original constraints, and tampered raw input
-rejected before runtime installation. No scoring, renderer, feedback, assets,
-resources, versions or isolation changed. Source artifact delivery is separate
-from the CI fixture-only branch and from sole STC publication ownership.
+The [native evaluator guide](../native/README.md) documents support and scoring;
+the [resource guide](native-harbor-size-policy.md) defines package and runtime
+bounds. Retain the evaluator version, asset and camera checksums, container
+identities and unmodified result reports with each published measurement.

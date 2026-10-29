@@ -1,4 +1,4 @@
-# Leaderboard statistics
+# NV25 leaderboard statistics
 
 Each leaderboard entry contains the complete NV25 reference set with four
 reconstructions per asset. Formal, visual and kinematic fidelity retain their

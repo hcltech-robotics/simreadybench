@@ -99,6 +99,8 @@ jobs:
                       assert check.locator("#leaderboard-table-region").is_visible()
                   assert check.locator("#pareto-table-body tr").count() > 0
                   assert check.locator("#pareto-plot svg").count() == 1
+                  assert check.locator("#explorer-canvas canvas").count() == 0
+                  assert "ready" not in check.locator("#explorer-status").inner_text()
                   assert check.locator('link[rel="canonical"]').get_attribute("href") == "https://hcltech-robotics.github.io/simreadybench/"
                   print(f"Rendered {count} leaderboard entries at {captured}")
                   browser.close()
@@ -106,6 +108,10 @@ jobs:
               server.shutdown()
               server.server_close()
           PY
+      - name: Check visible 3D meshes and compact chart labels
+        run: |
+          node --test tests/test_site_interactions.mjs
+          python scripts/check_site_interactions.py
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:

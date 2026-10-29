@@ -113,7 +113,8 @@ export class ComparisonViewer {
       this.canvas.setAttribute('role', 'application');
       this.canvas.setAttribute('aria-label', '3D object comparison. Drag to rotate, scroll or pinch to zoom. Arrow keys rotate; plus and minus zoom; Home resets.');
       Object.assign(this.canvas.style, { display: 'block', width: '100%', height: '100%', touchAction: 'none' });
-      container.appendChild(this.canvas);
+      // Serialized canvases have no drawing buffer and must never cover the live one.
+      container.replaceChildren(this.canvas);
       this.controls = new OrbitControls(this.camera, this.canvas);
       this.controls.enableDamping = false;
       this.controls.enablePan = true;

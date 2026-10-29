@@ -1,5 +1,6 @@
 import "./vendor/d3-7.9.0/d3.min.js";
 import { availableScore, paretoFrontier } from "./pareto-math.js?v=nv100-20261029";
+import { compactPointLabel, placePointLabels } from "./pareto-labels.js?v=viewer-labels-20261029";
 
 const d3 = globalThis.d3;
 const root = document.getElementById("pareto-root");
@@ -390,17 +391,29 @@ async function initialise() {
       markers.append("circle").attr("class", "pareto-hit").attr("r", 12);
       markers.append("path").attr("class", "pareto-symbol")
         .attr("d", (point) => d3.symbol().type(familySymbol.get(familyName(point.run))).size(width < 500 ? 105 : 85)());
-      if (runs.length <= 12) markers.append("text").attr("class", "pareto-point-label")
-        .attr("x", point => point.x > maxX * .75 ? -9 : 9)
-        .attr("y", point => metricId === "elapsed_seconds_per_asset" && point.scoreId === "kinematic" && point.run.requested_model === "openai/gpt-6.1-terra" && point.run.reasoning_display === "high" ? 18 : -22)
-        .attr("text-anchor", point => point.x > maxX * .75 ? "end" : "start")
-        .attr("font-size", 10).attr("fill", "#344552").each(function(point) {
-          const label = d3.select(this);
-          label.text("");
-          label.append("tspan").text(point.run.model_display_name || point.run.model);
-          label.append("tspan").attr("x", this.getAttribute("x")).attr("dy", "1.1em")
-            .text(`Reasoning: ${point.run.reasoning_display || point.run.reasoning || "default"}`);
+      if (runs.length <= 12) {
+        const labels = markers.append("text").attr("class", "pareto-point-label")
+          .attr("font-size", 10).attr("fill", "#344552").attr("text-anchor", "start")
+          .text(point => compactPointLabel(point.run));
+        const boxes = [];
+        labels.each(function(point) {
+          const box = this.getBBox();
+          boxes.push({ id: point.id, x: x(point.x), y: y(point.y), width: box.width, height: box.height, bearingY: box.y });
         });
+        const positions = new Map(placePointLabels(boxes, { left: margin.left + 2, right: width - margin.right - 2,
+          top: margin.top, bottom: panelHeight - margin.bottom - 3 }).map(box => [box.id, box]));
+        labels.each(function(point) {
+          const box = positions.get(point.id), measured = boxes.find(item => item.id === point.id);
+          d3.select(this).attr("x", box.left - measured.x).attr("y", box.top - measured.y - measured.bearingY);
+          const targetX = Math.max(box.left, Math.min(box.left + box.width, measured.x));
+          const targetY = Math.max(box.top, Math.min(box.top + box.height, measured.y));
+          if (Math.hypot(targetX - measured.x, targetY - measured.y) > 18) {
+            panel.insert("line", ".pareto-point").attr("class", "pareto-label-leader")
+              .attr("x1", measured.x).attr("y1", measured.y).attr("x2", targetX).attr("y2", targetY)
+              .attr("stroke", "#94a3b8").attr("stroke-width", .7).attr("pointer-events", "none");
+          }
+        });
+      }
       if (!panelPoints.length) panel.append("text").attr("class", "pareto-empty")
         .attr("x", (width + margin.left - margin.right) / 2).attr("y", panelHeight / 2)
         .attr("text-anchor", "middle").text("No available measurements for this selection");
@@ -449,6 +462,7 @@ async function initialise() {
     typeof data.normalisation?.description === "string" ? data.normalisation.description : ""].filter(Boolean).join(". ");
   document.getElementById("pareto-provenance").textContent = "";
   renderChart();
+  document.fonts?.ready.then(renderChart);
   root.dataset.loadState = "ready";
 }
 

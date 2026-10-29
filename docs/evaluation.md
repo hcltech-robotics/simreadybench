@@ -1,5 +1,9 @@
 # Scoring
 
+This guide covers the `simready-bench benchmark` workflow. Standalone Harbor
+releases record their evaluator and renderer versions in task metadata; see the
+[native evaluator guide](../native/README.md#scores-and-support) for that interface.
+
 SimReadyBench reports three independent composite scores on a 0-100 scale. Formal fidelity measures the submitted asset against the [NVIDIA SimReady-Foundation Robotics-Prop 4.0.0 profile](https://github.com/NVIDIA/simready-foundation/blob/main/nv_core/sr_specs/docs/guides/profiles_validation_workflow.md), visual fidelity measures its shape and appearance and kinematic fidelity measures its joints and allowed motion. Orientation-aligned captures show the reference and candidate from shared cameras at the same physical scale.
 
 | Composite | Factors |

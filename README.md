@@ -46,7 +46,7 @@ The no-op agent submits no asset, so its scores are zero. For a reconstruction e
 
 The verifier requests 16 GiB of memory. Allow additional memory for the host and other services. Rendering uses the CPU. Each submission has a top-level `asset.usd`, includes all dependencies, and is limited to 1 GiB and 10,000 files/directories. Up to five formal validator feedback calls are available. Blender is reserved for verifier rendering.
 
-Task inputs use HF revision `631fd67d899a3cc6bdeb1f3dceb6145337c8ec87`. The agent receives the public observation and instructions; reference USDs and the four comparison views are supplied separately to the verifier.
+Each task manifest pins its asset revision and file checksums. The agent receives the public observation and instructions; reference USDs and the four comparison views are supplied separately to the verifier.
 
 ## Install the benchmark tools
 

@@ -1,10 +1,10 @@
 # Native SimReadyBench evaluator
 
-This independently installable package contains no Harbor harness, private runner,
-model client or Orichalcum application dependency. Python 3.12, NumPy 2.5.4,
-Pillow 13.0.0 and OpenUSD 26.8 are pinned. The optional fetch and validator
-dependencies are separate extras. Code retains the accompanying MIT license;
-NVIDIA assets retain their own licenses and provenance.
+This independently installable package provides formal validation, geometry,
+appearance and kinematic evaluation, reference rendering and Harbor task export.
+Python 3.12, NumPy 2.5.4, Pillow 13.0.0 and OpenUSD 26.8 are pinned. Fetch and
+validator dependencies are separate extras. Code uses the accompanying MIT
+license; NVIDIA assets retain their own licenses and attribution.
 
 Blender 4.3.2 is used **only by the verifier renderer**. Blender authoring remains
 prohibited. The actor recipe installs neither Blender nor NVIDIA validation SDKs.
@@ -14,7 +14,7 @@ four CPU threads, no adaptive sampling and no denoising. Its reference images
 use the qualified Blender 4.5.11 LTS OptiX producer. The reference receipt retains
 the actual producer's recipe, binary and bridge identities; eligibility also
 pins the CPU evaluator and shared scientific settings. Formal, visual and
-kinematic scores retain their existing definitions.
+kinematic scores are reported separately.
 
 ## Import existing NV100 v2 reference captures
 
@@ -77,7 +77,7 @@ The final CPU evaluation continues to render only the four comparison views.
 
 ## Reference preparation and rendering
 
-Install the clean wheel in an isolated Python 3.12 environment. Use the delivered
+Install the evaluator wheel in an isolated Python 3.12 environment. Use the release's
 dependency lock for an exact resolved environment. Install public Blender 4.3.2
 on the rendering host; it is a system dependency, not part of the wheel. For a
 nested entrypoint, pass `--package-root /qualified/closure` so sibling textures
@@ -130,7 +130,7 @@ Final scoring verifies the recipe, cameras, bridge code and Blender binary
 against that eligibility before touching the candidate. Changing the renderer
 requires a newly qualified binding even when existing pixels remain identical.
 It writes no HF revision into self-hashed content: after the dataset is frozen,
-the release owner binds the output file checksums to that immutable HF commit.
+the release manifest binds the output file checksums to that immutable HF commit.
 
 For a complete original package, `runtime_closure(source, package_root)` in
 `simready_eval.prepare` returns an exact path/size/SHA-256 inventory of authored
@@ -147,23 +147,23 @@ bounded 2 GiB dependency closure. This permits inspecting original source
 packages; it does not establish reference eligibility. Candidate files and
 expanded archives are bounded at 1 GiB. A selected reference still needs a faithful candidate representation
 within the declared submission limit and successful evaluation with headroom.
-Do not treat a texture-reduced candidate as exact-identity or Oracle eligibility:
-its measured visual loss is real. The corrected byte limit now accommodates the
-unmodified selected runtime closures; full runtime qualification stays separate.
+Texture reduction changes the candidate and can change its visual score.
+Package admission and complete runtime qualification are separate checks.
 
 Feedback accepts a bounded plain TAR envelope with separate metadata overhead;
 the extracted package stays within 1 GiB. Its 2 GiB scratch and one in-flight
 upload/evaluation bound memory use before body reading. Busy requests receive
 retryable HTTP 503 with `Retry-After` and consume no feedback slot. Retry the
-same request ID and candidate digest. The five-call quota and replay semantics,
-8 MiB response bound and private ledger permissions are unchanged.
+same request ID and candidate digest. The service permits five calls, retains
+replay state across restarts and bounds responses at 8 MiB. Its ledger is
+inaccessible to the actor.
 
 ## Scores and support
 
 Formal, visual and kinematic fidelity are independent percentages. Formal uses
-the genuine pinned NVIDIA 46 mandatory requirements with the original 95/5
-completion rule; 51 optional requirements remain diagnostic. Kinematics retains
-the existing joint-motion and moving/fixed group metric.
+the pinned NVIDIA 46 mandatory requirements with the 95/5 completion rule;
+51 optional requirements are scored separately. Kinematics measures joint motion
+and recovery of moving and fixed constraint groups.
 Visual is `sqrt(G * mean(R1,R2,R3,R4))`, where G is full 3D surface correspondence
 and each R is foreground-only RGB SSIM at a frozen camera. Authored material
 correspondence remains diagnostic with property-level measurement coverage.
@@ -206,46 +206,17 @@ bound. Exceeding a resource bound returns typed unknown. These limits do not
 establish a whole-dataset runtime or memory qualification.
 
 The final verifier bounds the render worker at 12 GiB of address space inside
-its 16 GiB container; other workers keep their own bounds and the overall
-600-second deadline remains unchanged. Conversion and rendering use time left
-in that same final deadline; Blender itself retains a 180-second subprocess
-bound. An additional 180-second cap on conversion plus Blender was removed
-after measured extraction alone exceeded it. Run large preparation jobs one at a time
-on a 16 GiB host. This draft is usable for qualified smaller assets. The
-1,931,457-triangle locker produced only partial comparison images before the
-180-second Blender limit and is not a qualified workload for this draft.
-Oversized assets must be filtered during roster qualification, without
-decimation or relaxed scoring. A four-million-triangle extraction cap is not a
-claim that every selected asset has passed runtime qualification.
+its 16 GiB container. Conversion and rendering share the 600-second final
+deadline, and Blender has a separate 180-second subprocess limit. Large textures,
+complex geometry and concurrent workers can exceed these bounds even when the
+package passes inspection. Qualify references with complete evaluation under the
+release's resource settings, leaving headroom for candidate work.
 
-Reference qualification should reserve candidate headroom, rather than reuse
-the four-million-triangle safety guard as an eligibility claim. The largest
-completed full-grader real probe has 305896 triangles: five frames/masks in 115.80s,
-then faithful full evaluation in 179.40s with F=88.80, V=100, K=100 and 1.24 GiB
-maximum individual process/child RSS. All original source hashes remained equal.
-Recommended admission targets are full faithful self-evaluation within 300 of
-the existing 600 seconds, process-tree RSS within 6 GiB of the 16 GiB envelope,
-and preferably runtime package bytes within 512 MiB of the 1 GiB submission
-limit. These are pre-release headroom targets, not score changes or a blanket
-triangle cutoff; replace only measured outliers and qualify replacements.
-
-The corrected streaming bridge also completed full-resolution, full-geometry
-render-only probes for the 853847-triangle hospital bed (390.16s, 3.36 GiB child
-RSS) and 742798-triangle foldout toolbox (297.42s, 2.97 GiB). Each produced five
-RGBs and five masks with original PNG16 samples and unchanged source hashes.
-These are not full-grader eligibility claims: complete evaluation must fit
-the unchanged 600-second total. Keep the original
-execution receipts and any final-code equivalence proof separate.
-
-A separate bed feasibility witness retained every triangle but authored candidate
-PNGs as RGBA8 at at most 2048px. That 107715941-byte candidate measured G=100,
-R=98.60417, V=99.29963 and K=100, with formal 88.80435 measured separately in the
-pinned SDK runtime. Conservative serial phase time was 515.38s and peak measured
-process-tree RSS 3.59 GiB. It is explicitly lossy candidate evidence, not an
-exact Oracle or one fully configured invocation. Reference bytes were unchanged.
-The original required bed closure is 452060328 bytes, now below the corrected
-1 GiB candidate limit without texture reduction. Earlier evidence under the
-inherited 256 MiB cap remains historical; it does not redefine the current cap.
+A triangle-count limit or a successful render-only probe does not establish
+full-evaluation eligibility. Preserve source geometry and textures during
+reference preparation; choose compatible references rather than simplifying
+them or relaxing scoring. A reference can match itself geometrically while
+failing formal profile requirements, so retain its measured formal result.
 
 Finite nonzero authored normals retain their original corners and are normalized.
 Zero authored normal vectors are preserved as zero, invoking Blender
@@ -286,9 +257,11 @@ seconds respectively; repetitions and model turn/token limits remain runner
 settings. A Docker host supporting Harbor's NFT FIB network enforcement is
 required for the declared allowlist and offline phase policies.
 
-Keep results in the same HF dataset under `results/`. The local migration tool
-is `python -m simready_bench.results_migration`; its default is dry run, and
-`--apply` only makes local additive copies with checksum/rollback evidence.
-No live migration, bucket creation or publication occurs in these commands.
+The publishing procedure is in [Publish NV100 task packages](tools/README.md).
+
+`python -m simready_bench.results_migration` creates additive local copies of
+historical result snapshots. It defaults to a dry run; `--apply` writes local
+copies with source/destination checksums and rollback records. It does not upload
+results to a live dataset.
 `python -m simready_eval.mirror` produces a local per-set mirror manifest;
 mutable bucket copies never replace the pinned dataset as version authority.

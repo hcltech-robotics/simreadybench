@@ -1,94 +1,79 @@
-# NV25 interactive geometry comparison
+# Interactive geometry comparison
 
-This viewer contains five reference objects and their first reconstruction from
-four recorded benchmark conditions. Every condition uses zero-based repetition
-`0`; examples are not selected by score. The manifest pins the public result
-dataset and NVIDIA reference revisions, each original results-file hash, the
-actual trial condition identifier, source USD hashes and exported GLB hashes.
+The gallery displays reference objects and matched reconstruction examples from
+the benchmark results. `manifest.json` selects each object, model configuration
+and repetition explicitly. Examples use the same repetition across conditions;
+they are not selected by score. Each candidate links to its source trial, render
+and USD package.
 
-The three displayed scores are the original formal, visual and kinematic fidelity
-measurements. Values retain their recorded precision in the manifest. A measured
-zero remains zero; `not_applicable` remains distinct from an unavailable value.
-Reference objects are not assigned reconstruction scores.
+The displayed formal, visual and kinematic scores are recorded benchmark
+measurements. The manifest preserves their precision and distinguishes measured
+zero, unavailable values and `not_applicable`. Reference objects have no
+reconstruction score. Usage fields retain their recorded units and missing
+values; preview generation does not recalculate scores or costs.
 
-Cost is recorded inference cost in USD, with its source classification retained.
-Compute and total cost are unavailable in this selection. Token counts retain
-the recorded input, output and total usage, including repeated context. Time is
-elapsed reconstruction time in seconds; model-request time is also retained when
-available. Missing usage is `null`, never an inferred zero. Model reasoning,
-harness and output limits are shown because these experimental settings differ.
+## Geometry previews
 
-The GLBs are static, neutral-shaded geometry projections of the recorded USD
-assets. They preserve authored geometry scale after unit conversion and apply
-the measured whole-object alignment when available. They omit source textures,
-materials, physics schemas, animation and authoring metadata. They therefore
-support shape inspection; the visual score still evaluates the original asset,
-including its appearance. An invalid source mesh produces an unavailable preview
-while its recorded scores and usage remain visible. Analytic primitives are tessellated with 64 angular segments; subdivision meshes show their authored control surfaces. Nonplanar polygons use deterministic fan triangulation. Per-file counts, alignment and conversion notes are recorded in [geometry-provenance.json](geometry-provenance.json). Browser conversion used OpenUSD 26.11; the benchmark evaluator was unchanged.
+GLBs are neutral-shaded geometry projections of the submitted and reference USDs.
+They preserve physical scale after unit conversion and apply the recorded
+whole-object alignment when available. Textures, materials, physics schemas,
+animation and authoring metadata are omitted. The preview supports shape
+inspection; it is not a replacement for the original USD or its visual score.
 
-Orichalcum attribution is limited to its source pin. Its contents and authoring
-traces are not part of this publication.
+Analytic primitives use 64 angular segments. Subdivision meshes show their
+authored control surfaces, and nonplanar polygons use deterministic fan
+triangulation. Conversion counts, alignment and source/GLB checksums are recorded
+in [geometry-provenance.json](geometry-provenance.json). An unavailable preview
+does not change the recorded score.
 
 ## Mesh delta point cloud
 
-`delta-manifest.json` describes the optional mesh-difference display. Each valid
-reference/reconstruction pair has 12,000 deterministic samples from each mesh,
-drawn uniformly by triangle surface area. A point's colour represents its
-unsigned Euclidean distance to the closest triangle surface of the other mesh.
-Both directions are included so missing and additional surfaces remain visible.
-Distances are calculated against complete triangle surfaces, not against the
-other point samples or vertices. Reference sample positions are reused across
-all reconstructions of each object.
+`delta-manifest.json` describes the mesh-difference display. Each available pair
+has 12,000 deterministic area-weighted surface samples from each mesh. A point's
+colour represents its unsigned Euclidean distance to the closest triangle
+surface of the other mesh. Both directions are included to show missing and
+additional surfaces. Reference sample positions are shared across the
+reconstructions of each object.
 
-The clouds retain the GLBs' common metre/Y-up coordinates, including any recorded
-rigid evaluation alignment. No additional centring, registration or scale fitting
-is applied. Each binary file contains little-endian float32 rows
-`x, y, z, distance_m`, with reference rows first. The manifest records their count,
-split index, hashes, source GLB hashes, reference bounding-box diagonal and sampled
-maximum/95th-percentile distance. These are geometry display diagnostics, not new
-benchmark fidelity scores or continuous Hausdorff measurements. Finite sampling
-can miss small features; the GLBs' tessellation and omitted-material limitations
-also apply. The unavailable reconstruction has no fabricated cloud.
+Clouds retain the GLBs' common metre/Y-up coordinates and recorded rigid
+alignment. There is no additional registration or scale fitting. Binary rows are
+little-endian float32 `x, y, z, distance_m`, with reference samples first. The
+manifest records counts, the split index, checksums, source GLB hashes, reference
+diagonal and sampled maximum/95th-percentile distances.
+
+These are finite-sample display diagnostics, not new fidelity scores or
+continuous Hausdorff measurements. Small features can be missed, and the GLB
+tessellation and omitted-material limitations still apply.
+
+## Build and check
+
+Build tools use local source files and matching export records. Copy the gallery
+manifests and `geometry-provenance.json` into a separate build directory. Download
+the selected hosted GLBs, verify their checksums and provide local relative paths
+in that directory's `assets/explorer/manifest.json`. Keep the original scale,
+alignment and source identities.
+
+The delta builder uses `numpy==2.4.1`, `scipy==1.17.1`, `trimesh==4.11.5` and
+`rtree==1.4.1`:
+
+```sh
+python scripts/build_viewer_delta.py ./viewer-build
+python scripts/build_viewer_delta.py ./viewer-build --check
+PYTHONPATH=src python -m pytest tests/test_viewer_delta.py -q
+```
+
+The check recomputes clouds and compares bytes and metadata. The tests cover
+translation, scale, both distance directions and triangle-interior projections.
+See the [site guide](../../README.md) for browser rendering checks.
 
 ## Attribution and licence
 
-Reference geometry is derived from NVIDIA SimReady Assets, revision
+Reference geometry derives from NVIDIA SimReady Assets revision
 `f4860aa0c75607adb50a78bf96e77510bffc040f`, under the accompanying
-[Creative Commons Attribution 4.0 licence](NVIDIA-ASSET-LICENSE.txt). NVIDIA retains ownership of the
-reference assets. The source entrypoint and revision for each object are linked
-in `manifest.json`. The licence text is copied byte-for-byte from the pinned
-reference package.
+[Creative Commons Attribution 4.0 licence](NVIDIA-ASSET-LICENSE.txt). NVIDIA
+retains ownership of the reference assets. `manifest.json` links each source
+entry point and revision; the licence text is preserved from the source package.
 
-Generated candidates and their measurements are attributed to the named model,
-harness and run in the
-[SimReadyBench results dataset](https://huggingface.co/datasets/hcltech-robotics/simreadybench).
+Generated candidates and measurements are attributed to their model, harness
+and run in the [results dataset](https://huggingface.co/datasets/hcltech-robotics/simreadybench).
 Repository code remains under the repository's MIT licence.
-
-## Rebuild and verify
-
-Prepare the allowlisted discovery snapshot, public/private export job manifests
-and export receipts in a build-data directory. These inputs are not served by the
-site. Run from the repository root:
-
-```bash
-python3 scripts/build_viewer_manifest.py /path/to/build-data site/assets/explorer --require-geometry
-python3 scripts/build_viewer_manifest.py /path/to/build-data site/assets/explorer --check --require-geometry
-```
-
-The checker compares all selected score and usage values against their exact
-source trial and verifies each available GLB against its export receipt. It
-rejects missing, duplicated or changed trial identities and changed geometry.
-
-To rebuild the delta clouds from the already published GLBs, use an isolated
-environment with `numpy==2.4.1`, `scipy==1.17.1`, `trimesh==4.11.5` and
-`rtree==1.4.1`:
-
-```bash
-python3 scripts/build_viewer_delta.py site
-python3 scripts/build_viewer_delta.py site --check
-PYTHONPATH=src python3 -m pytest tests/test_viewer_delta.py -q
-```
-
-The check recomputes every cloud and compares the exact bytes and metadata. The
-tests also cover identical meshes, translation, scale differences, both distance
-directions, triangle-interior projections and the published sample distances.

@@ -1,3 +1,5 @@
+import { resetExplorerPreview } from "./explorer-state.js?v=viewer-labels-20261029";
+
 const manifestURL = new URL("assets/explorer/manifest.json?v=model-names-20261029", document.baseURI);
 const deltaManifestURL = new URL("assets/explorer/delta-manifest.json?v=model-names-20261029", document.baseURI);
 const root = document.getElementById("explorer");
@@ -251,7 +253,7 @@ async function initialise() {
     const [data, delta, renderer] = await Promise.all([
       fetchJSON(manifestURL).then(validateManifest),
       fetchJSON(deltaManifestURL).catch(() => null),
-      import(new URL("comparison-viewer.js?v=20261024", document.baseURI).href).catch(() => null),
+      import(new URL("comparison-viewer.js?v=viewer-labels-20261029", document.baseURI).href).catch(() => null),
     ]);
     state.data = data;
     state.deltaData = delta?.schema_version === 1 ? delta : null;
@@ -293,7 +295,9 @@ async function initialise() {
   }
 }
 
-if (root && new URLSearchParams(location.search).get("snapshot") !== "1") {
+const isSnapshot = new URLSearchParams(location.search).get("snapshot") === "1";
+if (root) resetExplorerPreview(root, { interactive: !isSnapshot });
+if (root && !isSnapshot) {
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
