@@ -1,0 +1,96 @@
+{
+  "source_index": "https://deb.debian.org/debian/dists/trixie/main/binary-amd64/Packages.xz",
+  "index_sha256": "7778d3e3f303b7ddb8ce0fe7c8d57473a076c6bf2e8f241f75421d2396352498",
+  "packages": [
+    {
+      "name": "libbsd0",
+      "version": "0.12.2-2",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libb/libbsd/libbsd0_0.12.2-2_amd64.deb",
+      "sha256": "e5a85986fa6bec3307ab1bc860736b478b331882bc45e17675a7bdf88eecb43a",
+      "size": 130968,
+      "depends": "libc6 (>= 2.38), libmd0 (>= 1.0.3-2)"
+    },
+    {
+      "name": "libgl1",
+      "version": "1.7.0-1+b2",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libg/libglvnd/libgl1_1.7.0-1+b2_amd64.deb",
+      "sha256": "87fa2f6e5abaed4ed385fac879c8dd735af719ee2300222d901793c66e041678",
+      "size": 89504,
+      "depends": "libc6 (>= 2.34), libglvnd0 (= 1.7.0-1+b2), libglx0 (= 1.7.0-1+b2)"
+    },
+    {
+      "name": "libglvnd0",
+      "version": "1.7.0-1+b2",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libg/libglvnd/libglvnd0_1.7.0-1+b2_amd64.deb",
+      "sha256": "887f74008166549ce9e100c906aa937e95d6e5ce1c8d86efe8c95fd953359b9c",
+      "size": 51960,
+      "depends": "libc6 (>= 2.38)"
+    },
+    {
+      "name": "libglx0",
+      "version": "1.7.0-1+b2",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libg/libglvnd/libglx0_1.7.0-1+b2_amd64.deb",
+      "sha256": "2721fdca0fe3bd963cb39482eabc253af52b88f4a7f6dbb69e475549daf5af3b",
+      "size": 34892,
+      "depends": "libc6 (>= 2.38), libglvnd0 (= 1.7.0-1+b2), libx11-6 (>= 2:1.4.99.1), libglx-mesa0"
+    },
+    {
+      "name": "libmd0",
+      "version": "1.1.0-2+b1",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libm/libmd/libmd0_1.1.0-2+b1_amd64.deb",
+      "sha256": "7244ec3839b61fac0c1884fe08aaa040f26e8f1f35f1f5d3482eacefd30d1b44",
+      "size": 36272,
+      "depends": "libc6 (>= 2.33)"
+    },
+    {
+      "name": "libx11-6",
+      "version": "2:1.8.12-1",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libx/libx11/libx11-6_1.8.12-1_amd64.deb",
+      "sha256": "b5a3fd3bf8c8fd0364bfb9bea00dcba7fc301229bd02dded084632d31f5b0fb3",
+      "size": 815292,
+      "depends": "libc6 (>= 2.38), libxcb1 (>= 1.11.1), libx11-data"
+    },
+    {
+      "name": "libx11-data",
+      "version": "2:1.8.12-1",
+      "architecture": "all",
+      "url": "https://deb.debian.org/debian/pool/main/libx/libx11/libx11-data_1.8.12-1_all.deb",
+      "sha256": "c54f87069888f80ba4da586da6147d74c7598ccdd8b90906dbc4271fa414c738",
+      "size": 343072,
+      "depends": null
+    },
+    {
+      "name": "libxau6",
+      "version": "1:1.0.11-1",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libx/libxau/libxau6_1.0.11-1_amd64.deb",
+      "sha256": "689a9f0e0ba3e2c65431f864871e303ee904de69dd28abfc462663fae030227f",
+      "size": 20392,
+      "depends": "libc6 (>= 2.33)"
+    },
+    {
+      "name": "libxcb1",
+      "version": "1.17.0-2+b1",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libx/libxcb/libxcb1_1.17.0-2+b1_amd64.deb",
+      "sha256": "5c222a72d11b866447da31693254f738430726e3e065a384e82687b2fd2f978b",
+      "size": 144340,
+      "depends": "libc6 (>= 2.38), libxau6 (>= 1:1.0.9), libxdmcp6"
+    },
+    {
+      "name": "libxdmcp6",
+      "version": "1:1.1.5-1",
+      "architecture": "amd64",
+      "url": "https://deb.debian.org/debian/pool/main/libx/libxdmcp/libxdmcp6_1.1.5-1_amd64.deb",
+      "sha256": "0740dc760916b2008b45417a42a8fd7dd5de370fb57d31373f15034cda8acf0b",
+      "size": 27756,
+      "depends": "libc6 (>= 2.36)"
+    }
+  ]
+}

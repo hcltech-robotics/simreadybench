@@ -1,0 +1,15 @@
+{
+  "agents": [{
+    "name": "acp",
+    "source": {
+      "type": "github",
+      "repo": "hcltech-robotics/simreadybench",
+      "ref": "REPLACE_WITH_APPROVED_PUBLISHED_COMMIT",
+      "path": "agents/codex-text2cad",
+      "manifest": "harbor-agent.json"
+    },
+    "model_name": "openai/gpt-6.1-terra",
+    "env": {"CAD_AGENT_REASONING_EFFORT": "medium"},
+    "secrets": ["OPENAI_API_KEY"]
+  }]
+}

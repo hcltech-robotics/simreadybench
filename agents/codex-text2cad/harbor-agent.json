@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "codex-text2cad-build123d",
+  "version": "0.1.0",
+  "protocol": "acp",
+  "runtime": {
+    "kind": "python-uv",
+    "python": "3.12",
+    "project": ".",
+    "lockfile": "uv.lock",
+    "entrypoint": ["python", "-m", "cad_agent.acp"]
+  }
+}

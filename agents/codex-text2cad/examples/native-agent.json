@@ -1,0 +1,7 @@
+{
+  "agents": [{
+    "import_path": "cad_agent.native:CodexText2Cad",
+    "model_name": "openai/gpt-6.1-terra",
+    "kwargs": {"version": "0.164.0", "reasoning_effort": "medium"}
+  }]
+}

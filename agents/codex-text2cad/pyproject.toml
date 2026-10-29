@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simready-codex-text2cad"
+version = "0.1.0"
+description = "Pinned text2cad/build123d workflow for Codex, independent of benchmark tasks"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[project.optional-dependencies]
+native = ["harbor==0.24.0"]
+test = ["pytest==9.1.1"]
+
+[tool.setuptools.packages.find]
+include = ["cad_agent*"]
+
+[tool.setuptools.package-data]
+cad_agent = ["*.txt", "*.json", "vendor/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
