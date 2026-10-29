@@ -21,7 +21,7 @@
       "candidate"
     ]
   },
-  "source_manifest_sha256": "d26c2ff101be3e3e64259dbae99ee1a8e51bfbd62d5d2f0be57eef8af0d0d27e",
+  "source_manifest_sha256": "a9eed2df5c89353540234487a489ab546332d12b6a8f344477c3de18ed7a5675",
   "source_geometry_provenance_sha256": "31af79f12fbe5588f73ecbf783c5c62ed7ebe0136fc9410426be388892da8d10",
   "build_dependencies": {
     "numpy": "2.5.4",

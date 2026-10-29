@@ -130,7 +130,9 @@ def build(rows, *, evaluator, revision, formal_success=None):
         display_effort = 'low' if family == 'Sol' and effort is None else effort or 'default'
         n = len(rs)
         job = first['harbor_job_id']
-        run = {'id': condition, 'label': f'{family} {display_effort}', 'model': family, 'model_family': family,
+        model_name = {'Sol':'ChatGPT 6.1 Sol', 'Terra':'ChatGPT 6.1 Terra'}.get(family, family)
+        run = {'id': condition, 'label': f'{model_name} · {display_effort}', 'model': model_name, 'model_family': family,
+               'model_display_name': model_name, 'reasoning_display': display_effort,
                'requested_model': first['requested_model'], 'reasoning': effort, 'harness': 'Codex',
                'evaluator_version': evaluator, 'job_id': job,
                'frontier_group': f'{first["reference_set"]}:{evaluator}',
@@ -233,8 +235,8 @@ def figures(data, output):
                 ax.scatter(point['x'], point['y'], facecolors='white' if not r['metrics'][axis]['complete'] else COLORS[i % len(COLORS)], edgecolors=COLORS[i % len(COLORS)], linewidths=1.6, s=70 if r['metrics'][axis]['paired_scores'][metric]['frontier'] else 45, zorder=3)
                 offset = [(5, 7), (5, -13), (-4, 8), (5, -12), (5, 7)][i % 5]
                 if axis == 'elapsed_seconds_per_asset' and metric == 'kinematic':
-                    if r['label'] == 'Terra high': offset = (8, -17)
-                    elif r['label'] == 'Sol medium': offset = (7, 9)
+                    if r['model_family'] == 'Terra' and r['reasoning_display'] == 'high': offset = (8, -17)
+                    elif r['model_family'] == 'Sol' and r['reasoning_display'] == 'medium': offset = (7, 9)
                 ax.annotate(r['label'], (point['x'], point['y']), xytext=offset, textcoords='offset points', fontsize=8,
                             ha='right' if offset[0] < 0 else 'left')
             ax.set_xlabel(AXES[axis][1]);ax.set_ylabel(metric.capitalize() + ' fidelity (%)')

@@ -11,8 +11,8 @@
   "runs": [
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-unspecified",
-      "label": "Sol low",
-      "model": "Sol",
+      "label": "ChatGPT 6.1 Sol \u00b7 low",
+      "model": "ChatGPT 6.1 Sol",
       "model_family": "Sol",
       "requested_model": "openai/gpt-6.1-sol",
       "reasoning": null,
@@ -176,12 +176,14 @@
             }
           }
         }
-      }
+      },
+      "model_display_name": "ChatGPT 6.1 Sol",
+      "reasoning_display": "low"
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-medium",
-      "label": "Sol medium",
-      "model": "Sol",
+      "label": "ChatGPT 6.1 Sol \u00b7 medium",
+      "model": "ChatGPT 6.1 Sol",
       "model_family": "Sol",
       "requested_model": "openai/gpt-6.1-sol",
       "reasoning": "medium",
@@ -345,12 +347,14 @@
             }
           }
         }
-      }
+      },
+      "model_display_name": "ChatGPT 6.1 Sol",
+      "reasoning_display": "medium"
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-high",
-      "label": "Sol high",
-      "model": "Sol",
+      "label": "ChatGPT 6.1 Sol \u00b7 high",
+      "model": "ChatGPT 6.1 Sol",
       "model_family": "Sol",
       "requested_model": "openai/gpt-6.1-sol",
       "reasoning": "high",
@@ -514,12 +518,14 @@
             }
           }
         }
-      }
+      },
+      "model_display_name": "ChatGPT 6.1 Sol",
+      "reasoning_display": "high"
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-terra-low",
-      "label": "Terra low",
-      "model": "Terra",
+      "label": "ChatGPT 6.1 Terra \u00b7 low",
+      "model": "ChatGPT 6.1 Terra",
       "model_family": "Terra",
       "requested_model": "openai/gpt-6.1-terra",
       "reasoning": "low",
@@ -683,12 +689,14 @@
             }
           }
         }
-      }
+      },
+      "model_display_name": "ChatGPT 6.1 Terra",
+      "reasoning_display": "low"
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-terra-high",
-      "label": "Terra high",
-      "model": "Terra",
+      "label": "ChatGPT 6.1 Terra \u00b7 high",
+      "model": "ChatGPT 6.1 Terra",
       "model_family": "Terra",
       "requested_model": "openai/gpt-6.1-terra",
       "reasoning": "high",
@@ -852,7 +860,9 @@
             }
           }
         }
-      }
+      },
+      "model_display_name": "ChatGPT 6.1 Terra",
+      "reasoning_display": "high"
     }
   ],
   "methodology": "Scores use the same object/repetition pairs across configurations.",

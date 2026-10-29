@@ -32,7 +32,7 @@
       "variants": [
         {
           "id": "sol-low",
-          "label": "Sol low",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": null,
@@ -84,11 +84,13 @@
             "input_tokens": 372688.0,
             "output_tokens": 7249.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "low"
         },
         {
           "id": "sol-medium",
-          "label": "Sol medium",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: medium",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "medium",
@@ -140,11 +142,13 @@
             "input_tokens": 2446368.0,
             "output_tokens": 32288.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "medium"
         },
         {
           "id": "sol-high",
-          "label": "Sol high",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "high",
@@ -196,11 +200,13 @@
             "input_tokens": 1617442.0,
             "output_tokens": 25299.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "high"
         },
         {
           "id": "terra-low",
-          "label": "Terra low",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "low",
@@ -252,11 +258,13 @@
             "input_tokens": 249806.0,
             "output_tokens": 4903.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "low"
         },
         {
           "id": "terra-high",
-          "label": "Terra high",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "high",
@@ -308,7 +316,9 @@
             "input_tokens": 1849133.0,
             "output_tokens": 23209.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "high"
         }
       ]
     },
@@ -337,7 +347,7 @@
       "variants": [
         {
           "id": "sol-low",
-          "label": "Sol low",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": null,
@@ -389,11 +399,13 @@
             "input_tokens": 363059.0,
             "output_tokens": 7533.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "low"
         },
         {
           "id": "sol-medium",
-          "label": "Sol medium",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: medium",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "medium",
@@ -445,11 +457,13 @@
             "input_tokens": 553164.0,
             "output_tokens": 17500.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "medium"
         },
         {
           "id": "sol-high",
-          "label": "Sol high",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "high",
@@ -501,11 +515,13 @@
             "input_tokens": 2045774.0,
             "output_tokens": 36974.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "high"
         },
         {
           "id": "terra-low",
-          "label": "Terra low",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "low",
@@ -557,11 +573,13 @@
             "input_tokens": 336302.0,
             "output_tokens": 6185.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "low"
         },
         {
           "id": "terra-high",
-          "label": "Terra high",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "high",
@@ -613,7 +631,9 @@
             "input_tokens": 1015636.0,
             "output_tokens": 17125.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "high"
         }
       ]
     },
@@ -642,7 +662,7 @@
       "variants": [
         {
           "id": "sol-low",
-          "label": "Sol low",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": null,
@@ -694,11 +714,13 @@
             "input_tokens": 820473.0,
             "output_tokens": 11687.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "low"
         },
         {
           "id": "sol-medium",
-          "label": "Sol medium",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: medium",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "medium",
@@ -750,11 +772,13 @@
             "input_tokens": 1499439.0,
             "output_tokens": 17179.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "medium"
         },
         {
           "id": "sol-high",
-          "label": "Sol high",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "high",
@@ -806,11 +830,13 @@
             "input_tokens": 4156088.0,
             "output_tokens": 48028.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "high"
         },
         {
           "id": "terra-low",
-          "label": "Terra low",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "low",
@@ -862,11 +888,13 @@
             "input_tokens": 377024.0,
             "output_tokens": 6409.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "low"
         },
         {
           "id": "terra-high",
-          "label": "Terra high",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "high",
@@ -918,7 +946,9 @@
             "input_tokens": 1455479.0,
             "output_tokens": 19433.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "high"
         }
       ]
     },
@@ -947,7 +977,7 @@
       "variants": [
         {
           "id": "sol-low",
-          "label": "Sol low",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": null,
@@ -999,11 +1029,13 @@
             "input_tokens": 624826.0,
             "output_tokens": 9336.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "low"
         },
         {
           "id": "sol-medium",
-          "label": "Sol medium",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: medium",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "medium",
@@ -1055,11 +1087,13 @@
             "input_tokens": 982879.0,
             "output_tokens": 16868.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "medium"
         },
         {
           "id": "sol-high",
-          "label": "Sol high",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "high",
@@ -1111,11 +1145,13 @@
             "input_tokens": 695540.0,
             "output_tokens": 19814.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "high"
         },
         {
           "id": "terra-low",
-          "label": "Terra low",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "low",
@@ -1167,11 +1203,13 @@
             "input_tokens": 350787.0,
             "output_tokens": 5092.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "low"
         },
         {
           "id": "terra-high",
-          "label": "Terra high",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "high",
@@ -1223,7 +1261,9 @@
             "input_tokens": 1812465.0,
             "output_tokens": 20300.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "high"
         }
       ]
     },
@@ -1252,7 +1292,7 @@
       "variants": [
         {
           "id": "sol-low",
-          "label": "Sol low",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": null,
@@ -1304,11 +1344,13 @@
             "input_tokens": 465013.0,
             "output_tokens": 7257.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "low"
         },
         {
           "id": "sol-medium",
-          "label": "Sol medium",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: medium",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "medium",
@@ -1360,11 +1402,13 @@
             "input_tokens": 564260.0,
             "output_tokens": 13804.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "medium"
         },
         {
           "id": "sol-high",
-          "label": "Sol high",
+          "label": "ChatGPT 6.1 Sol \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-sol",
           "harness": "Codex",
           "reasoning": "high",
@@ -1416,11 +1460,13 @@
             "input_tokens": 1814086.0,
             "output_tokens": 33211.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Sol",
+          "reasoning_display": "high"
         },
         {
           "id": "terra-low",
-          "label": "Terra low",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: low",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "low",
@@ -1472,11 +1518,13 @@
             "input_tokens": 339522.0,
             "output_tokens": 5819.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "low"
         },
         {
           "id": "terra-high",
-          "label": "Terra high",
+          "label": "ChatGPT 6.1 Terra \u00b7 Reasoning: high",
           "model": "openai/gpt-6.1-terra",
           "harness": "Codex",
           "reasoning": "high",
@@ -1528,7 +1576,9 @@
             "input_tokens": 1066672.0,
             "output_tokens": 16884.0
           },
-          "inference_cost_kind": "harbor_reported_unverified_basis"
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "model_display_name": "ChatGPT 6.1 Terra",
+          "reasoning_display": "high"
         }
       ]
     }

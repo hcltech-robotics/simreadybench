@@ -46,7 +46,9 @@ function render() {
     const row=element('tr');row.dataset.configuration=run.id;
     const primary=valueFor(run,key);if(primary!==previous || index===0)rank=index+1;previous=primary;
     row.append(element('td',key==='label'?'':primary===null||primary===undefined?'—':String(rank),'leaderboard-rank'));
-    const name=element('th',run.label);name.scope='row';row.append(name);
+    const name=element('th');name.scope='row';
+    if(run.model_display_name){name.append(element('span',run.model_display_name),element('span',`Reasoning: ${run.reasoning_display}`,'leaderboard-submetric'));}
+    else name.textContent=run.label;row.append(name);
     for(const metric of ['formal','visual','kinematic']) {
       const score=run.scores[metric];const cell=element('td',scoreText(score),'metric-value');
       cell.title=`${score.measured_attempts}/${score.eligible_attempts} measured scores`;
@@ -79,6 +81,7 @@ function render() {
   directionButton.setAttribute('aria-label',`Sort ${direction==='asc'?'descending':'ascending'}`);
   status.hidden=ordered.length>0;status.textContent=ordered.length?'':'No matching configurations.';
 }
+selector.replaceChildren();
 for(const [field,[label]] of Object.entries(sortFields))selector.append(new Option(label,field));
 selector.addEventListener('change',()=>{key=selector.value;direction=sortFields[key][1];render();});
 directionButton.addEventListener('click',()=>{direction=direction==='asc'?'desc':'asc';render();});

@@ -138,3 +138,13 @@ def test_incomplete_cost_frontier_is_explicitly_provisional():
     run=module.build(rows,evaluator='2.2.0',revision='test')['runs'][0]
     assert run['metrics']['cost_usd_per_asset']['paired_scores']['formal']['frontier_provisional'] is True
     assert run['metrics']['elapsed_seconds_per_asset']['paired_scores']['formal']['frontier_provisional'] is False
+
+
+def test_full_model_display_names_keep_raw_ids_and_reasoning_settings():
+    sol=row('low','a',100,1);sol['reasoning_effort']=None
+    terra=row('high','a',100,1);terra['requested_model']='openai/gpt-6.1-terra'
+    runs=module.build([sol,terra],evaluator='2.2.0',revision='test')['runs']
+    assert [r['model_display_name'] for r in runs]==['ChatGPT 6.1 Sol','ChatGPT 6.1 Terra']
+    assert runs[0]['requested_model']=='openai/gpt-6.1-sol' and runs[0]['reasoning'] is None
+    assert runs[0]['reasoning_display']=='low' and runs[1]['reasoning_display']=='high'
+    assert runs[1]['requested_model']=='openai/gpt-6.1-terra'

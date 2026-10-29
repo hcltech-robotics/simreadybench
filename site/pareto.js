@@ -33,6 +33,7 @@ function publicLabel(value) {
 }
 
 function configLabel(run) {
+  if (run.model_display_name) return `${run.model_display_name} · Reasoning: ${run.reasoning_display}`;
   if (run.label) return run.label;
   const parts = [run.model, run.harness, run.reasoning || "default reasoning"];
   if (run.orichalcum_pin) parts.push(`Orichalcum …${run.orichalcum_pin.slice(-8)}`);
@@ -149,7 +150,7 @@ async function initialise() {
   const runs = data.runs;
   const symbols = [d3.symbolCircle, d3.symbolSquare, d3.symbolTriangle, d3.symbolDiamond,
     d3.symbolCross, d3.symbolStar, d3.symbolWye];
-  const familyName = (run) => run.model_family || run.model;
+  const familyName = (run) => run.model_display_name || run.model_family || run.model;
   const families = [...new Set(runs.map(familyName))];
   const familySymbol = new Map(families.map((family, index) => [family, symbols[index % symbols.length]]));
   let selectedScore = "formal";
@@ -391,9 +392,15 @@ async function initialise() {
         .attr("d", (point) => d3.symbol().type(familySymbol.get(familyName(point.run))).size(width < 500 ? 105 : 85)());
       if (runs.length <= 12) markers.append("text").attr("class", "pareto-point-label")
         .attr("x", point => point.x > maxX * .75 ? -9 : 9)
-        .attr("y", point => metricId === "elapsed_seconds_per_asset" && point.scoreId === "kinematic" && point.run.label === "Terra high" ? 18 : -9)
+        .attr("y", point => metricId === "elapsed_seconds_per_asset" && point.scoreId === "kinematic" && point.run.requested_model === "openai/gpt-6.1-terra" && point.run.reasoning_display === "high" ? 18 : -22)
         .attr("text-anchor", point => point.x > maxX * .75 ? "end" : "start")
-        .attr("font-size", 10).attr("fill", "#344552").text(point => point.run.label || point.run.model);
+        .attr("font-size", 10).attr("fill", "#344552").each(function(point) {
+          const label = d3.select(this);
+          label.text("");
+          label.append("tspan").text(point.run.model_display_name || point.run.model);
+          label.append("tspan").attr("x", this.getAttribute("x")).attr("dy", "1.1em")
+            .text(`Reasoning: ${point.run.reasoning_display || point.run.reasoning || "default"}`);
+        });
       if (!panelPoints.length) panel.append("text").attr("class", "pareto-empty")
         .attr("x", (width + margin.left - margin.right) / 2).attr("y", panelHeight / 2)
         .attr("text-anchor", "middle").text("No available measurements for this selection");

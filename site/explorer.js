@@ -1,5 +1,5 @@
-const manifestURL = new URL("assets/explorer/manifest.json?v=nv100-20261029", document.baseURI);
-const deltaManifestURL = new URL("assets/explorer/delta-manifest.json?v=nv100-20261029", document.baseURI);
+const manifestURL = new URL("assets/explorer/manifest.json?v=model-names-20261029", document.baseURI);
+const deltaManifestURL = new URL("assets/explorer/delta-manifest.json?v=model-names-20261029", document.baseURI);
 const root = document.getElementById("explorer");
 const byId = (id) => document.getElementById(`explorer-${id}`);
 const measured = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
@@ -106,7 +106,7 @@ function renderReadout(variant) {
   if (variant.orichalcum_pin) provenance.push(`Orichalcum …${variant.orichalcum_pin.slice(-8)}`);
   byId("provenance").textContent = provenance.join(" · ");
   byId("candidate-title").textContent = variant.label;
-  byId("candidate-title").title = variant.model;
+  byId("candidate-title").title = variant.label;
   byId("result-source").href = safeURL(variant.source_url);
   byId("readout").hidden = false;
   const render = byId("candidate-render");
