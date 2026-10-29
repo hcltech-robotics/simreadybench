@@ -43,7 +43,7 @@ is inserted into ACP or ATIF metrics by this package.
 
 The parent verified Harbor pricing at https://hub.harborframework.com/pricing :
 $0.1561032 per physical core-hour plus $0.0264132 per GiB-hour, billed per second.
-Derived rates for the inspected **actual 2.2.0 oily-waste task** are:
+Derived rates for **all 100 verified pinned 2.2.0 NV100 tasks** are:
 
 | Service | Declared resources | USD / hour |
 |---|---|---:|
@@ -54,15 +54,22 @@ Derived rates for the inspected **actual 2.2.0 oily-waste task** are:
 The feedback row assumes it is separately billed; verify actual service billing
 and whether any co-resident resources are already included before settlement.
 
-Evidence is the extracted canonical task.toml, docker-compose.yaml and separate
-verifier configuration under `/workspace/terra-cad-trial/tasks/nv100_04ed00317ccc5a90`.
+All 100 task references were resolved from dataset
+`sha256:8433b438e66de164bf77ae150be907f8c530becc3c46e9532e13fd8097ed4c30`.
+Each published archive's task.toml and docker-compose.yaml were downloaded and
+checked against their immutable registry file hashes. All 100 share the resource
+configuration above and task version 2.2.0. Evidence is recorded outside the
+repository at `/workspace/codex-text2cad-validation/nv100-resource-bounds.json`.
 The actor timeout is 231,000 seconds; actor and verifier build timeouts are each
 1,200 seconds; verifier execution timeout is 600 seconds. These are not small
-cost bounds. Feedback may remain alive through other phases. Build/setup,
-service teardown, cleanup and any separately billed resources must be included.
-These files prove one canonical task's resources, **not all 100 release tasks**.
-The other 99 resolved task configurations and actual billed service lifetimes
-still need verification before asserting an aggregate bound.
+cost bounds. Harbor's installed single-step separate-verifier path stops the
+actor environment before starting verification; it does not require actor and
+verifier lifetimes to overlap. Default agent setup is 360 seconds in Harbor 0.24.0,
+unless overridden. CAD wrapper installation runs inside the agent phase. Build
+resource billing, artifact upload/collection, feedback lifetime, stop/teardown
+latency and cleanup still need bounded treatment. The inspected environment stop
+is shielded but has no explicit timeout in Trial._stop_agent_environment. Verified
+task resources therefore do **not** establish a strict total-dollar lifetime bound.
 
 Even 600 maximum-duration verifier executions alone cost $104.7024; if verifier
 build time also bills at its declared resources, 600 builds plus executions can
