@@ -28,12 +28,12 @@
     "system-runtime-packages.json": "6eb200e1a30e8f0b577f581650a83492e16eee953d20162ff7f70875c308f8bb",
     "package.json": "e0b7045ca5cc50429283f5048c59e041afca9b97176676f1d274c99bfe8fdca0",
     "package-lock.json": "e5dd04c5af61a1508d2f5a064a42f714109f9021e66b301fd1c86fda4b66a61b",
-    "workflow.txt": "a666d80abc9c46565cac450afd6d6aff2845d7f1f2e5cfbaf0d17478c0a66b1f",
+    "workflow.txt": "5e17dfc13f40714c09a04dbd6f331fa4146aa9bfbc56e02b3e3d39443a0c0184",
     "smoke.py": "b11612c686ccda3ab5237ddc0b78969c2168345c92e9ec0979e618acf88a8a18",
     "node.json": "1cecffa1de6318d62a2ffd249182a3e500a8fe3b3cc1bc82080fd2354e6c926e",
     "native.py": "09c5add05ef1199722566902d375e782942ab132d3b5e09d64c1036c53299ff6",
     "workflow.py": "aae171a9d349633fdbf3a0953e16df660802ca2384a951f7ec8466247a39fab9",
-    "__init__.py": "67e080be156e88cdaaad37f41d7da7f9380f351933781e645d86dac3cb5fc84b",
+    "__init__.py": "c01f683d4fda0a74cd33c6c0335fa9898cca17f4919f9184a4fbafca54249e76",
     "prepare.py": "190d7feb2899d031023a529868967be8dd9b4569e44de62d64c4fc6d8c361a3a",
     "acp.py": "59a8ab77bd25861970abd97a5b82bb6d41fbd7068018b98dd3fb84fe73e4dd02",
     "usd_export.py": "52ccdbd7c043710351696ff8ea29d785cf665af6831b12c508edf2161e24855e",
@@ -43,5 +43,5 @@
     "pricing.json": "b5db9b3439b972bb433dd8f9ab904937012b676b59e01d3e8913870e54c61c08"
   },
   "node_version": "24.19.0",
-  "agent_version": "0.1.2"
+  "agent_version": "0.1.3"
 }

@@ -60,6 +60,8 @@ for raw in sys.stdin:
     message = next(m for m in messages if m.get('id')==2)
     assert message["result"]["receivedPrompt"][-1]["text"] == "original request"
     assert "<selected-cad-skill>" in message["result"]["receivedPrompt"][0]["text"]
+    assert "http://feedback:8080/health" in message["result"]["receivedPrompt"][0]["text"]
+    assert "Reserve the last available call" in message["result"]["receivedPrompt"][0]["text"]
     assert message["result"]["usage"]["inputTokens"] == 3000
     assert message["result"]["usage"]["cachedReadTokens"] == 2100
     assert message["result"]["_meta"]["cad_agent_accounting"]["upstream_usage"]["inputTokens"] == 500

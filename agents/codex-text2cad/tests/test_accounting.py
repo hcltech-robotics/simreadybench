@@ -39,10 +39,11 @@ def observe_new(b):
 
 
 @pytest.mark.parametrize("model", ["gpt-6.1-terra", "gpt-6.1-sol"])
-def test_both_models_require_an_actual_low_receipt(tmp_path, model):
-    b = AccountingBridge(tmp_path / ".codex-text2cad", tmp_path / "logs", model, "low")
+@pytest.mark.parametrize("effort", ["minimal", "low", "medium", "high", "xhigh"])
+def test_models_require_the_selected_effort_receipt(tmp_path, model, effort):
+    b = AccountingBridge(tmp_path / ".codex-text2cad", tmp_path / "logs", model, effort)
     b.request({"id": 1, "method": "session/new", "params": {}})
-    b.response({"id": 1, "result": {"sessionId": "s", "models": {"currentModelId": model + "[low]"}}})
+    b.response({"id": 1, "result": {"sessionId": "s", "models": {"currentModelId": model + f"[{effort}]"}}})
     forwarded = b.request({"id": 2, "method": "session/prompt", "params": {"sessionId": "s"}})
     assert forwarded["params"]["sessionId"] == "s"
 

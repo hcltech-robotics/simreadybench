@@ -24,6 +24,36 @@ def test_full_skill_loaded_and_original_instruction_preserved():
     assert pins["skill_commit"] == "2781952aebca62cb4fd11a9d2f91b4e26ea48590"
 
 
+@pytest.mark.parametrize("transport", ["native", "hosted"])
+def test_validation_loop_reaches_agent_prompt_without_changing_task(tmp_path, transport):
+    original = "Reconstruct the requested asset. Original task and five-call allowance."
+    if transport == "native":
+        agent = CodexText2Cad(logs_dir=tmp_path, model_name="openai/gpt-6.1-terra")
+        prompt = agent.render_instruction(original)
+        assert original in prompt
+    else:
+        blocks = [{"type": "text", "text": original},
+                  {"type": "image", "data": "frozen-input", "mimeType": "image/png"}]
+        request = {"method": "session/prompt", "params": {"sessionId": "s", "prompt": blocks}}
+        result = transform_request(request, "/agent")
+        assert result["params"]["prompt"][1:] == blocks
+        assert request["params"]["prompt"] == blocks
+        prompt = result["params"]["prompt"][0]["text"]
+    # These are instructions delivered to the agent, not a claim of runtime enforcement.
+    prompt = " ".join(prompt.split())
+    assert "http://feedback:8080/health" in prompt
+    assert "limit, used and remaining" in prompt
+    assert "python -m simready_eval.feedback validate_candidate" in prompt
+    assert "result.simready.all_scored_mandatory_pass" in prompt
+    assert "Reserve the last available call" in prompt
+    assert "fresh request ID" in prompt and "same request ID" in prompt
+    assert "HTTP 200 or a zero client exit code" in prompt
+    assert "USD, thumbnail and generation receipts" in prompt
+    assert "no fixed authoring-turn limit" in prompt
+    assert "hidden visual/kinematic fidelity scores" in prompt
+    assert "calls used/remaining and unresolved findings" in prompt
+
+
 def test_mcp_keeps_explicit_writable_cad_state(monkeypatch):
     from cad_agent.prepare import runtime_env
     monkeypatch.setenv("CADGEN_ENGINE_DIR", "/writable/engine")
@@ -106,6 +136,31 @@ def test_acp_config_keeps_model_effort_and_auth_independent():
     assert env["CODEX_PATH"] == "/agent/toolchain/node_modules/.bin/codex"
     gateway = child_environment("/agent", {"HOSTED_INFERENCE_URL": "http://localhost:1234/v1"})
     assert json.loads(gateway["CODEX_CONFIG"])["model_providers"]["harbor"]["base_url"] == "http://localhost:1234/v1"
+
+
+def test_entries_keep_independent_models_and_efforts(tmp_path):
+    shared = {"PATH": "/usr/bin"}
+    entries = [("gpt-6.1-terra", "low"), ("gpt-6.1-terra", "high"),
+               ("gpt-6.1-sol", "medium")]
+    results = []
+    for model, effort in entries:
+        source = dict(shared, HARBOR_ACP_REQUESTED_MODEL="openai/" + model,
+                      CAD_AGENT_REASONING_EFFORT=effort)
+        results.append(child_environment("/agent", source))
+        assert "CODEX_CONFIG" not in source
+        native = CodexText2Cad(logs_dir=tmp_path / f"{model}-{effort}",
+                              model_name="openai/" + model, reasoning_effort=effort)
+        assert native.model_name == "openai/" + model
+        assert native.options.reasoning_effort == effort
+    assert [(json.loads(e["CODEX_CONFIG"])["model"],
+             json.loads(e["CODEX_CONFIG"])["model_reasoning_effort"]) for e in results] == entries
+    assert shared == {"PATH": "/usr/bin"}
+
+
+@pytest.mark.parametrize("effort", ["", "LOW", "ultra", "unknown"])
+def test_hosted_invalid_effort_fails_without_fallback(effort):
+    with pytest.raises(ValueError, match="Unsupported CAD_AGENT_REASONING_EFFORT"):
+        child_environment("/agent", {"CAD_AGENT_REASONING_EFFORT": effort})
 
 
 def test_hosted_manifest_matches_installed_schema():

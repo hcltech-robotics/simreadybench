@@ -33,3 +33,48 @@ trajectory. Regenerate the receipt after changes; do not hand-edit receipts.
 Use the benchmark's original tools, output contract, feedback limits and verifier
 unchanged. The original task instruction below remains authoritative about the
 requested object and evaluation. Never submit the synthetic smoke-test object.
+
+Required formal-feedback loop before finishing:
+
+1. Read http://feedback:8080/health with the native shell and record its JSON
+   limit, used and remaining. For example:
+
+       python -c 'import urllib.request; print(urllib.request.urlopen("http://feedback:8080/health", timeout=10).read().decode())'
+
+   The original task allows at most five admitted formal-feedback calls; the
+   service ledger is authoritative. Health checks do not consume that allowance.
+   There is no fixed authoring-turn limit in this workflow. Honor a real deadline
+   supplied by the runner; do not invent a turn count or a time allowance.
+2. Validate the first complete candidate through the genuine feedback client:
+
+       python -m simready_eval.feedback validate_candidate --package /output/submission --request-id attempt-1 --url http://feedback:8080
+
+   Read result.outcome, result.simready.checks, findings, package_findings and
+   infrastructure_errors. HTTP 200 or a zero client exit code does not mean the
+   asset passed. Require result.simready.all_scored_mandatory_pass to be true
+   before claiming mandatory conformance. Unknown checks are not passes.
+3. Repair actionable mandatory failures in the actual authoring source. Rerun
+   reconstruction to regenerate the USD, thumbnail and generation receipts;
+   never patch a receipt to make it agree. Revalidate changed candidates with a
+   fresh request ID. After a transport interruption, retry unchanged bytes with
+   the same request ID. Respect Retry-After for 503 feedback_busy; it consumes
+   no call. Recheck health to track the remaining allowance, including after an
+   uncertain request. Never bypass or reset the service ledger.
+4. Reserve the last available call for the final candidate after all planned
+   repairs. If only one call remains, finish repairs before using it. Do not
+   change submitted bytes after their final validation; if an unavoidable later
+   edit cannot be revalidated within the allowance, report that explicitly.
+   A passing first candidate can be the final candidate; do not spend all five
+   calls merely to exhaust the allowance.
+5. Continue repairing and revalidating until mandatory checks pass, the feedback
+   allowance or a real deadline is exhausted, or remaining faults are genuinely
+   unrepairable. Explain unsuccessful repairs and the specific remaining faults
+   rather than declaring them unrepairable without investigation. If the service
+   is unavailable, report validation as unavailable, not passed. On finishing,
+   report calls used/remaining and unresolved findings, including unknown checks
+   and whether the final submitted bytes were validated.
+
+Use CAD snapshots and geometry measurements for visual self-checks against the
+provided observation. These are distinct from the hidden visual/kinematic fidelity
+scores, which are independently measured only by the final benchmark verifier.
+The formal feedback loop does not expose those hidden fidelity scores.

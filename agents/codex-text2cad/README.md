@@ -72,6 +72,45 @@ the approved execution limits in the complete job configuration.
 Official source contract:
 https://docs.harborframework.com/hosted-harbor/custom-agents
 
+## Validate, repair and revalidate (0.1.3)
+
+The agent prompt now requires a first complete candidate to use the task's
+genuine formal-feedback client, inspect requirement outcomes and findings, repair
+actionable mandatory failures, regenerate USD/thumbnail/receipts, and revalidate
+changed candidates. It checks `/health` for the server's limit/used/remaining and
+reserves the last available call for the final candidate. It stops on mandatory
+success, exhausted allowance or actual deadline, or investigated unrepairable
+faults, reporting unresolved findings and whether final bytes were validated.
+HTTP success alone is not a passing check. The original five-call service quota
+and independent final verifier are unchanged. CAD snapshots remain self-checks;
+they do not expose the hidden visual or kinematic fidelity scores.
+
+This is an instruction policy, not a new programmatic completion gate. The agent
+can still fail to follow it; inspect its recorded feedback calls and final report.
+No authoring-turn count or deadline is invented or injected by this revision.
+
+## Select model and reasoning per agent
+
+The package is independent of both selections. In hosted Harbor, set each
+entry's `model_name` and `env.CAD_AGENT_REASONING_EFFORT` separately. The supported
+hosted effort values are `minimal`, `low`, `medium`, `high`, and `xhigh`; invalid
+values fail instead of falling back. The default is `medium`, so set it explicitly
+for reproducible comparisons. The selected provider model must advertise the
+requested effort; a model/effort receipt mismatch prevents the prompt from running.
+Native journal model/effort mismatches leave accounting unverified. Cost estimates
+follow the verified model and actual token counts, not a hard-coded low setting.
+Availability of each provider/model/effort combination is not established by
+offline tests.
+
+Use `examples/hosted-agent.json` for one agent or
+`examples/hosted-agents-multiple.json` for Terra low and Sol high sharing the same
+immutable source revision. Both are agent fragments to merge into the intended
+job; each added entry expands the task/attempt combinations. Harbor's agent
+selector remains `name: acp`; the schema has no separate display-label field.
+Identify variants by model plus effort. For native Harbor, use `model_name` and
+`kwargs.reasoning_effort` as in `examples/native-agent.json`; omit the built-in
+`name: codex` selector. No examples launch jobs.
+
 ## CAD → USD and evidence
 
 Run reconstruction scripts using `/opt/codex-text2cad/bin/cad-python` (the ACP

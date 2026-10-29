@@ -37,12 +37,17 @@ def live_counts_calls():
 
 
 @pytest.mark.parametrize("model,expected", [("gpt-6.1-terra", "0.1151725"), ("gpt-6.1-sol", "0.230345")])
-def test_live_fixture_counts_are_priced_per_request_not_cumulative_context(tmp_path, model, expected):
+@pytest.mark.parametrize("effort", ["low", "medium", "high"])
+def test_live_fixture_counts_are_priced_per_request_not_cumulative_context(tmp_path, model, expected, effort):
     home = tmp_path / ".codex-text2cad"
-    _, total = journal(home, live_counts_calls(), model)
+    calls = [{**call, "context": {"effort": effort}} for call in live_counts_calls()]
+    _, total = journal(home, calls, model)
     assert total["input_tokens"] == 769755 and total["cached_input_tokens"] == 713850
     assert total["output_tokens"] == 4715 and total["reasoning_output_tokens"] == 1177
-    snapshot = native_snapshot(home / "sessions", "s", model, "low")
+    snapshot = native_snapshot(home / "sessions", "s", model, effort)
+    assert snapshot["status"] == "verified"
+    assert all(turn == {"model": model, "effort": effort} for turn in snapshot["turns"])
+    assert native_snapshot(home / "sessions", "s", model, "xhigh")["status"] == "unverified"
     result = estimate_cost(snapshot, model, POLICY)
     assert result["status"] == "estimated" and result["billed"] is False
     assert Decimal(str(result["amount_usd"])) == Decimal(expected)
