@@ -1,15 +1,22 @@
 {
-  "agents": [{
-    "name": "acp",
-    "source": {
-      "type": "github",
-      "repo": "hcltech-robotics/simreadybench",
-      "ref": "8d6a88938955c844fb2f87c71a7e2613475856c3",
-      "path": "agents/codex-text2cad",
-      "manifest": "harbor-agent.json"
-    },
-    "model_name": "openai/gpt-6.1-terra",
-    "env": {"CAD_AGENT_REASONING_EFFORT": "low"},
-    "secrets": ["OPENAI_API_KEY"]
-  }]
+  "agents": [
+    {
+      "name": "acp",
+      "source": {
+        "type": "github",
+        "repo": "hcltech-robotics/simreadybench",
+        "ref": "8cfca5e17977ba4049f6c6e1135952ad1258f166",
+        "path": "agents/codex-text2cad",
+        "manifest": "harbor-agent.json"
+      },
+      "model_name": "openai/gpt-6.1-terra",
+      "env": {
+        "CAD_AGENT_REASONING_EFFORT": "low",
+        "CAD_AGENT_PRICING_POLICY": "openai-standard-global-30m"
+      },
+      "secrets": [
+        "OPENAI_API_KEY"
+      ]
+    }
+  ]
 }
