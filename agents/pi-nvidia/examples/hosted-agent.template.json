@@ -6,7 +6,7 @@
       "source": {
         "type": "github",
         "repo": "hcltech-robotics/simreadybench",
-        "ref": "49b549fd0ffd6e4ec46b4af1e7e50b4d422215f0",
+        "ref": "14fa8780b521b2b5d6b962995bc4706434c5565f",
         "path": "agents/pi-nvidia",
         "manifest": "harbor-agent.json"
       },
