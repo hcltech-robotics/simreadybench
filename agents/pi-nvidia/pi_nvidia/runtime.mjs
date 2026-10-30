@@ -1,7 +1,8 @@
 // Agent-owned image receipts and enforced model-turn budget; no CAD tools.
 import {appendFileSync, existsSync, readFileSync, writeFileSync, renameSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {dirname, join} from "node:path";
+import {fileURLToPath} from "node:url";
+import {dirname, join, resolve} from "node:path";
 
 export function makeNotice(config, turn, candidateExists) {
   const remaining = config.model_turn_limit - turn + 1;
@@ -54,13 +55,34 @@ export default function (pi) {
     renameSync(temporary, receiptFile);
   }
   persist();
+  const helper = fileURLToPath(new URL("candidate.py", import.meta.url));
+  const finalPackage = dirname(config.submission_entrypoint);
+  pi.registerTool({name: "build_candidate", label: "Build and promote candidate",
+    description: "Run a complete authoring command in a separate package and atomically promote only if the command succeeds and OpenUSD opens asset.usd. Write to the provided PI_CANDIDATE_DIR environment variable, never directly to /output/submission. A valid empty stage is allowed. The local gate does not run SimReady, quality checks or official feedback and consumes no validator calls. Run complete foreground authoring commands; run official feedback separately after promotion. Previous promoted packages are retained.",
+    parameters: {type: "object", properties: {command: {type: "string", minLength: 1}}, required: ["command"], additionalProperties: false},
+    executionMode: "sequential",
+    async execute(_id, params, signal, _update, ctx) {
+      const result = await pi.exec("python", [helper, "--runtime", file, "build", "--command", params.command], {signal, cwd: ctx.cwd});
+      if (result.code !== 0) throw new Error("Candidate not promoted: " + (result.stdout || result.stderr));
+      return {content: [{type: "text", text: result.stdout || result.stderr}]};
+    }});
+  pi.on("tool_call", (event, ctx) => {
+    if (["write", "edit"].includes(event.toolName) && typeof event.input?.path === "string") {
+      const target = resolve(ctx.cwd, event.input.path);
+      if (target === finalPackage || target.startsWith(finalPackage + "/"))
+        return {block: true, reason: "Direct submission edits are not promoted. Author outside the submission and use build_candidate with PI_CANDIDATE_DIR; then run genuine feedback on the promoted package."};
+    }
+  });
   let sequence = 0, verifiedInitialImage = false, blocked = false;
   pi.on("turn_start", (_event, ctx) => {
     if (state.started >= 64) { blocked = true; ctx.abort(); return; }
     state.started++;
     persist();
   });
-  pi.on("turn_end", (_event, ctx) => {
+  pi.on("turn_end", async (_event, ctx) => {
+    // Restore any raw shell writes that bypassed the transaction, after all tools finish.
+    const guard = await pi.exec("python", [helper, "--runtime", file, "guard"], {cwd: ctx.cwd, timeout: 30000});
+    if (guard.code !== 0) { ctx.abort(); throw new Error("Candidate preservation failed; inspect candidate receipts"); }
     // Pi dispatches this boundary only after every tool result was persisted.
     if (blocked) return;
     state.completed = state.started;
@@ -73,6 +95,11 @@ export default function (pi) {
   pi.on("context", (event) => {
     if (blocked || state.exhausted) return;
     const notice = makeNotice(config, state.started, existsSync(config.submission_entrypoint));
+    const latestFile = join(logs, "pi-candidate-latest.json");
+    if (existsSync(latestFile)) {
+      const latest = JSON.parse(readFileSync(latestFile, "utf8"));
+      notice.message += ` Candidate transaction: ${latest.action || latest.reason || (latest.promoted ? "promoted" : "not promoted")}. Local promotion checks valid OpenUSD only; use genuine feedback separately.`;
+    }
     appendFileSync(join(logs, "pi-budget-notices.jsonl"), JSON.stringify(notice) + "\n");
     return {messages: [...event.messages, {role: "user", content: [{type: "text", text: notice.message}], timestamp: Date.now()}]};
   });

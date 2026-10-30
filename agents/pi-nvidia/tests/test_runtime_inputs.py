@@ -86,12 +86,16 @@ def test_turn_end_finishes_tool_batch_and_aborts_only_at_64_and_guards_65(tmp_pa
 import runtime from {json.dumps(module.as_uri())};
 import {{readFileSync}} from "node:fs";
 process.env.PI_NVIDIA_RUNTIME_FILE={json.dumps(str(config))};
-const hooks={{}};runtime({{on:(name,fn)=>hooks[name]=fn}});
-let aborts=0;const ctx={{abort:()=>aborts++}};
+const hooks={{}};runtime({{on:(name,fn)=>hooks[name]=fn,registerTool:()=>{{}},exec:async()=>({{code:0,stdout:"{{}}"}})}});
+let aborts=0;const ctx={{abort:()=>aborts++,cwd:"/task"}};
+if (!hooks.tool_call({{toolName:"write",input:{{path:"/output/submission/asset.usd"}}}},ctx)?.block)
+ throw new Error("Direct final writes must be blocked");
+if (hooks.tool_call({{toolName:"write",input:{{path:"/tmp/author.py"}}}},ctx))
+ throw new Error("Separate authoring must remain available");
 for(let i=1;i<=64;i++){{
  hooks.turn_start({{turnIndex:i-1}},ctx);
  hooks.context({{messages:[]}},ctx);
- hooks.turn_end({{message:{{stopReason:"toolUse"}},toolResults:[{{role:"toolResult"}}]}},ctx);
+ await hooks.turn_end({{message:{{stopReason:"toolUse"}},toolResults:[{{role:"toolResult"}}]}},ctx);
  if(aborts !== (i===64?1:0)) throw new Error("Wrong boundary at "+i);
 }}
 const receipt=JSON.parse(readFileSync({json.dumps(str(logs / 'pi-turn-budget.json'))},"utf8"));
@@ -126,6 +130,8 @@ def test_bridge_injects_the_frozen_image_once_without_resetting_turn_budget(tmp_
         return bridge.request({"id": i, "method": "session/prompt", "params": {
             "sessionId": "s", "prompt": [{"type": "text", "text": "Frozen task"}]}})
     first = request(1)
+    assert "build_candidate" in first["params"]["prompt"][0]["text"]
+    assert "Valid empty stages are allowed" in first["params"]["prompt"][0]["text"]
     second = request(2)
     assert len([b for b in first["params"]["prompt"] if b["type"] == "image"]) == 1
     assert not any(b["type"] == "image" for b in second["params"]["prompt"])

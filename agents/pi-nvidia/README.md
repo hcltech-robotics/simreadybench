@@ -87,7 +87,7 @@ turn limit, task timeout, feedback-ledger rule or independent verifier budget is
 changed. Hosted Pi error/provider retries are disabled separately.
 Visual self-checks are not hidden visual/kinematic fidelity feedback.
 
-## Hosted Hub package (0.2.4)
+## Hosted Hub package (0.2.5)
 
 `harbor-agent.json` implements the documented Python-uv/ACP source contract and
 runs `python -m pi_nvidia.acp`. Use `examples/hosted-agent.template.json` for a
@@ -395,3 +395,61 @@ client validation on turn 64 against the unchanged five-call ledger, and strict
 abort-artifact accounting. The feedback test uses a synthetic evaluator: it proves
 the client/ledger/budget integration, not live model compliance or asset quality.
 No paid model call, secret access, publication or run change is part of these tests.
+
+
+## Ongoing replace only after valid OpenUSD (0.2.5)
+
+Use hosted Pi's registered `build_candidate` tool for **every** complete rebuild or package
+change. Author the script outside `/output/submission`, then call the tool with
+a foreground command that writes its output under `PI_CANDIDATE_DIR`:
+
+```python
+out = Path(os.environ["PI_CANDIDATE_DIR"])
+stage = Usd.Stage.CreateNew(str(out / "asset.usd"))
+# Author the asset, write package dependencies/thumbnail under out, then Save().
+stage.GetRootLayer().Save()
+```
+
+The tool clones the last promoted package into a sibling working directory,
+executes the command with Bash `-e -o pipefail`, and promotes only when the
+command exits successfully **and** OpenUSD opens its `asset.usd` layer and stage.
+The validity gate is exactly `Sdf.Layer.FindOrOpen` followed by `Usd.Stage.Open`
+succeeding in a fresh task-Python process. It uses the task's existing usd-core
+26.8; no CAD or new actor dependency is installed by the agent. A missing OpenUSD
+runtime is reported unavailable and cannot promote.
+
+**A valid empty stage is allowed.** There is no nonempty/geometry/SimReady/visual,
+dimension, score or complete-dependency gate. In particular, unresolved-reference
+warnings do not reject a stage if OpenUSD still opens it. The local gate consumes
+zero official feedback calls and never edits the evaluator or five-call ledger.
+After promotion, call the genuine feedback client on `/output/submission` as
+before. "USD valid" does not mean benchmark-compliant or officially validated.
+
+The entire package directory is switched atomically, including its relative
+layers, thumbnail and dependencies. Linux `renameat2(RENAME_EXCHANGE)` handles an
+existing nonempty final directory; no destructive remove-then-rename fallback is
+used for a promoted package. A failed switch leaves the previous final intact.
+A failed current-pointer commit rolls the switch back. Each promoted package is
+also retained as a separate copy under `pi/candidates/verified/` in this trial's
+agent logs, with a content manifest and current pointer. Thus an earlier populated
+candidate remains archived even if a later valid empty stage is promoted.
+
+Direct native `write`/`edit` calls to the final package are blocked. After each
+complete tool batch, an ongoing guard restores any unpromoted shell changes from
+the preserved current package; without a promoted package, direct writes are
+retained as an unpromoted draft. A build that writes to the final directory
+instead of its staging path is rejected and the prior package restored. A final
+guard also runs after the native process group has stopped on normal exit or
+handled cancellation. The guard has a separate 30-second cleanup watchdog; this
+is not an authoring-time budget or a new model turn. The 64-turn counter and final
+four-turn reserve are unchanged, and the promotion tool adds no inference calls.
+
+`pi-candidate-events.jsonl`, `pi-candidate-latest.json` and preserved packages
+record what happened. Transaction failures report errors rather than grading
+success. This protects ordinary authoring failures, not malicious filesystem
+access or background writers. Use complete foreground builds. SIGKILL/host loss
+cannot run a final restoration, although saved snapshots remain available if the
+trial's log volume survives. Directory exchange must be supported by the hosted
+filesystem; an unsupported operation fails closed rather than deleting the prior
+candidate. This gate cannot prevent every empty-stage result: successful builds
+that produce valid empty OpenUSD are deliberately permitted.

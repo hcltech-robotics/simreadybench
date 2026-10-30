@@ -90,6 +90,7 @@ class Bridge:
                         "Infrastructure cancellation and transport failures remain separate from the model-turn budget.\n")
                 if self.runtime_file:
                     caps += "You have at most 64 model turns for this task, including any bounded continuation. One turn is one assistant generation plus its tool-result batch. The runtime gives the exact remaining count before each turn and enforces the cap.\n"
+                    caps += (ROOT / "candidate_workflow.txt").read_text() + "\n"
                     caps += "The frozen task observation was hash-verified and attached to the initial session prompt; use that image directly.\n"
                 params["prompt"] = [{"type": "text", "text": caps + (ROOT / "feedback.txt").read_text()}] + list(params["prompt"])
             if "id" in result and method:
@@ -156,7 +157,7 @@ class Bridge:
                 return result
             payload = result["result"]
             if method == "initialize":
-                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.4"}
+                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.5"}
                 payload["authMethods"] = []  # Headless injected auth; never terminal login.
                 payload.setdefault("agentCapabilities", {})["loadSession"] = False
             if method in {"session/new", "session/set_model", "session/set_mode", "session/set_config_option"}:
@@ -276,7 +277,17 @@ def main():
     node = install(prefix)
     bridge = Bridge(profile, effort, sessions, logs, runtime_file=env["PI_NVIDIA_RUNTIME_FILE"])
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
-    return proxy([str(node), str(prefix / "node_modules/pi-acp/dist/index.js")], env, bridge)
+    try:
+        return proxy([str(node), str(prefix / "node_modules/pi-acp/dist/index.js")], env, bridge)
+    finally:
+        # proxy has stopped its native process group before restoring final bytes.
+        # SIGKILL/host loss cannot run cleanup; preserved packages still live in logs.
+        with (logs / "pi-candidate-final-guard.log").open("a") as output:
+            try:
+                subprocess.run(["python", str(ROOT / "candidate.py"), "--runtime", env["PI_NVIDIA_RUNTIME_FILE"], "guard"],
+                    env=env, stdout=output, stderr=output, timeout=30, check=True)
+            except (OSError, subprocess.SubprocessError) as error:
+                output.write("Final candidate guard failed: " + type(error).__name__ + "\n")
 
 
 if __name__ == "__main__":

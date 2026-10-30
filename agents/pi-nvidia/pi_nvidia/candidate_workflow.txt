@@ -1,0 +1,18 @@
+Hosted candidate workflow: build_candidate is the registered authoring tool.
+write an authoring program outside the submission. Generate each complete package
+with the build_candidate tool, passing a command that writes asset.usd and all
+submission dependencies inside the provided PI_CANDIDATE_DIR environment variable.
+For example, in Python: out = Path(os.environ["PI_CANDIDATE_DIR"]). Do not hard-code
+/output/submission as your authoring destination. The tool starts from the last
+promoted package, runs your complete command, checks valid OpenUSD and atomically
+publishes the whole package to /output/submission only on success. A failed build
+or invalid USD keeps the previous promoted package. Valid empty stages are allowed
+by this narrow gate; it proves no SimReady compliance, geometry or visual quality.
+Do not edit the final submission directly, including through an old script: those
+unpromoted changes are restored/quarantined after the tool batch. Use a fresh
+build_candidate transaction for every change to the asset, thumbnail or dependencies.
+Authoring source stays outside the submission. After promotion, reopen
+/output/submission/asset.usd for the local self-checks in the task workflow.
+
+This transaction workflow produces the final package required by the original task.
+Run complete foreground builds and use genuine official feedback separately after promotion.

@@ -190,3 +190,8 @@ def test_actual_harbor_context_population_from_session_receipts(tmp_path, comple
     assert context.n_output_tokens == (20 if complete else None)
     trajectory = json.loads((tmp_path / "trajectory.json").read_text())
     assert trajectory["final_metrics"].get("total_cost_usd") is None
+
+
+def test_native_import_adapter_does_not_request_unregistered_hosted_candidate_tool(tmp_path):
+    prompt=agent(tmp_path).render_instruction("Original task")
+    assert "build_candidate" not in prompt and "PI_CANDIDATE_DIR" not in prompt

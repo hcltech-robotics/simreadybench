@@ -69,10 +69,13 @@ def test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, key_sou
                     delta = {"role": "assistant", "reasoning_content": "synthetic empty length stop"}
                     finish = "length"
                 else:
-                    delta = {"role": "assistant", "tool_calls": [{"index": i, "id": f"limit-{number}-{i}",
-                        "type": "function", "function": {"name": "write", "arguments": json.dumps({
-                            "path": str(tmp_path / "candidate" / ("asset.usd" if i == 0 else "batch-receipt.txt")),
-                            "content": f"#usda 1.0\n# saved turn {number}\n"})}} for i in range(2)]}
+                    source = 'import os; from pathlib import Path; p=Path(os.environ["PI_CANDIDATE_DIR"]); data='+repr(f"#usda 1.0\n# saved turn {number}\n")+'; (p/"asset.usd").write_text(data); (p/"batch-receipt.txt").write_text(data)'
+                    command = shlex.join(["python", "-c", source])
+                    delta = {"role": "assistant", "tool_calls": [
+                        {"index": 0, "id": f"limit-{number}-0", "type": "function", "function": {
+                            "name": "build_candidate", "arguments": json.dumps({"command": command})}},
+                        {"index": 1, "id": f"limit-{number}-1", "type": "function", "function": {
+                            "name": "write", "arguments": json.dumps({"path": str(tmp_path / "outer-batch-marker.txt"), "content": str(number)})}}]}
                     finish = "tool_calls"
             if runtime_case == "turn_limit_validation" and number == 64:
                 delta = {"role": "assistant", "tool_calls": [{"index": 0, "id": "final-validation",
@@ -80,12 +83,16 @@ def test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, key_sou
                         "command": shlex.join(["python", "-m", "simready_eval.feedback", "validate_candidate",
                             "--package", str(tmp_path / "candidate"), "--request-id", "candidate-final", "--url", feedback_url])})}}]}
                 finish = "tool_calls"
-            if runtime_case == "workflow" and number in (1, 2):
-                args = {"path": str(tmp_path / "candidate/asset.usd"), "content": '#usda 1.0\n( metersPerUnit = 1; upAxis = "Z" )\ndef Xform "Asset" {}\n'} if number == 1 else {
+            if runtime_case in {"workflow", "candidate_recovery"} and number in (1, 2):
+                source = 'import os; from pathlib import Path; text='+repr('#usda 1.0\n( metersPerUnit = 1; upAxis = "Z" )\ndef Xform "Asset" {}\n')+'; (Path(os.environ["PI_CANDIDATE_DIR"])/"asset.usd").write_text(text)'
+                args = {"command": shlex.join(["python", "-c", source])} if number == 1 else {
                     "command": shlex.join(["python", "-m", "simready_eval.feedback", "validate_candidate",
                         "--package", str(tmp_path / "candidate"), "--request-id", "candidate-1", "--url", feedback_url])}
+                if runtime_case == "candidate_recovery" and number == 2:
+                    source = 'from pxr import Usd; s=Usd.Stage.CreateNew('+repr(str(tmp_path / "candidate/asset.usd"))+'); raise RuntimeError("synthetic failed rebuild")'
+                    args = {"command": shlex.join(["python", "-c", source])}
                 delta = {"role": "assistant", "tool_calls": [{"index": 0, "id": f"workflow-{number}",
-                    "type": "function", "function": {"name": "write" if number == 1 else "bash", "arguments": json.dumps(args)}}]}
+                    "type": "function", "function": {"name": "build_candidate" if number == 1 else "bash", "arguments": json.dumps(args)}}]}
                 finish = "tool_calls"
             try:
                 for chunk in [
@@ -166,7 +173,7 @@ globalThis.fetch = (url, init) => {
         env[key_source] = "offline-dummy-not-real"
     if offline:
         env["PI_OFFLINE"] = "1"
-    if runtime_case in {"workflow", "turn_limit_validation"}:
+    if runtime_case in {"workflow", "candidate_recovery", "turn_limit", "turn_limit_length", "turn_limit_validation"}:
         env["PATH"] = os.environ["PI_TASK_PYTHON_DIR"] + os.pathsep + os.defpath
     client_logs = tmp_path / "client"
     client_logs.mkdir()
@@ -196,7 +203,7 @@ globalThis.fetch = (url, init) => {
                 expected = "max_turn_requests"
             assert result.stop_reason == expected
             if recovery_case != "cancel":
-                count = 64 if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"} else 3 if runtime_case == "workflow" else 1 if recovery_case in {"normal", "partial"} else 2
+                count = 64 if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"} else 3 if runtime_case in {"workflow", "candidate_recovery"} else 1 if recovery_case in {"normal", "partial"} else 2
                 assert result.usage.input_tokens == (100 + 120 * (count - 1))
                 assert result.usage.output_tokens == (640 if count == 64 else 30 if count == 3 else {"exhausted": 16384, "partial": 8192, "recovered": 8202}.get(recovery_case, 10))
                 assert result.usage.cached_read_tokens == 20 * count
@@ -232,7 +239,7 @@ globalThis.fetch = (url, init) => {
         assert len(requests) == 1
         assert json.loads((logs / "pi-accounting.json").read_text())["status"] == "unavailable"
         return
-    assert len(requests) == (64 if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"} else 3 if runtime_case == "workflow" else 1 if recovery_case in {"normal", "partial"} else 2)
+    assert len(requests) == (64 if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"} else 3 if runtime_case in {"workflow", "candidate_recovery"} else 1 if recovery_case in {"normal", "partial"} else 2)
     path, _, body = requests[0]
     assert path == "/v1/chat/completions"
     assert body["model"] == profile["id"] and body["reasoning_effort"] == profile["thinkingLevelMap"][effort]
@@ -271,9 +278,15 @@ globalThis.fetch = (url, init) => {
             assert receipt["turn_budget"]["started"] == receipt["turn_budget"]["completed"] == 64
             assert receipt["turn_budget"]["exhausted"] is True and receipt["length_recovery_count"] == 0
             assert receipt["completion"] == "model_turn_budget_exhausted"
-        if runtime_case == "workflow":
+        if runtime_case in {"workflow", "candidate_recovery"}:
             assert budget[0]["phase"] == "build_first_candidate"
             assert budget[1]["phase"] == "validate_or_repair"
+        if runtime_case == "candidate_recovery":
+            events = [json.loads(line) for line in (logs / "pi-candidate-events.jsonl").read_text().splitlines()]
+            assert events[0]["promoted"] is True
+            assert any(row.get("action") == "restored_last_valid" for row in events)
+            assert (tmp_path / "candidate/asset.usd").read_text().endswith('def Xform "Asset" {}\n')
+            assert "restored_last_valid" in str(requests[2][2]["messages"])
         assert json.loads((logs / "pi-accounting.json").read_text())["image_delivery"]["initial_payload_verified"] is True
     if recovery_case not in {"normal", "partial"}:
         assert any("single automatic length recovery" in str(message) for message in requests[1][2]["messages"])
@@ -331,3 +344,10 @@ def test_real_candidate_write_then_genuine_feedback_with_one_of_five_calls(tmp_p
 def test_actual_64_turn_limit_completes_last_tool_batch_without_request_65(tmp_path, case):
     test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, "NGC_API_KEY", None, True,
         effort="off", output_cap=16384, runtime_case=case)
+
+
+@pytest.mark.skipif(not all(os.environ.get(k) for k in ("PI_TEST_PREFIX", "NV100_OBSERVATION_PNG", "PI_TASK_PYTHON_DIR")),
+                   reason="requires pinned runtime, original image and task Python")
+def test_real_pi_recovers_failed_raw_in_place_rebuild_without_extra_model_turn(tmp_path):
+    test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, "NGC_API_KEY", None, True,
+        effort="off", output_cap=16384, runtime_case="candidate_recovery")
