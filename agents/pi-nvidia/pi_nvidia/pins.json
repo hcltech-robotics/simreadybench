@@ -1,0 +1,15 @@
+{
+  "harbor_version": "0.24.0",
+  "harbor_pi_source_sha256": "5d51eddbbbf8f5bcab2263fe3ada99bd9611add2e857c4b7d4f4c2eb3a2a5487",
+  "harbor_upstream_inspected_commit": "7d9a0b688898a11cd03cf14a21d51a9ab45d3b94",
+  "harbor_upstream_pi_sha256": "a952b42f3e93a4ac44701ec8e69eab01deb500185cd0abc76f92dc34462e471d",
+  "pi_package": "@earendil-works/pi-coding-agent",
+  "pi_version": "1.4.0",
+  "pi_npm_integrity": "sha512-Z41LpZ3yYHSC/UUps6Mr39UMFPwH8elhJBG9DY1P7kuzsE5qSK/6eMj2EHzO5evJRQWLbKSqUMw+4nCNtIyiQg==",
+  "pi_upstream_inspected_commit": "908aa7b74baa7502321293797313f64c6fec22ee",
+  "pi_bundled_models_document_sha256": "c9914f5411db5ddd158b5391ec1da76c1f65788cfaea3a90e1e1555451b3d12e",
+  "feedback_wheel_version": "2.2.0",
+  "feedback_wheel_sha256": "caf759ff7d9b392922530567b22678da4556de366fa879ef6395299425627d52",
+  "model_selected": false,
+  "pricing": "unknown"
+}

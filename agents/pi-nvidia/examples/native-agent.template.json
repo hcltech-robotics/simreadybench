@@ -1,0 +1,27 @@
+{
+  "agents": [
+    {
+      "import_path": "pi_nvidia.agent:NvidiaPi",
+      "model_name": "nvidia/SELECT_VENDOR/SELECT_MODEL",
+      "env": {
+        "NVIDIA_BASE_URL": "https://integrate.api.nvidia.com/v1"
+      },
+      "kwargs": {
+        "version": "1.4.0",
+        "thinking": "off",
+        "model_api": "openai-completions",
+        "model_profile": {
+          "id": "SELECT_VENDOR/SELECT_MODEL",
+          "input": null,
+          "contextWindow": null,
+          "maxTokens": null,
+          "reasoning": null,
+          "toolCalls": true,
+          "thinkingLevelMap": {},
+          "compat": {},
+          "evidence": "SELECT_MODEL_DOCUMENTATION_AND_VERIFIED_CAPABILITIES"
+        }
+      }
+    }
+  ]
+}
