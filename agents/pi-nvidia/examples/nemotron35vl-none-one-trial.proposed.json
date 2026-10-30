@@ -1,0 +1,40 @@
+{
+  "credential_mode": "direct",
+  "agents": [
+    {
+      "name": "acp",
+      "source": {
+        "type": "github",
+        "repo": "hcltech-robotics/simreadybench",
+        "ref": "cda9f067d0014d4b12422fd66294010a8003cbbf",
+        "path": "agents/pi-nvidia",
+        "manifest": "harbor-agent.json"
+      },
+      "model_name": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b",
+      "env": {
+        "PI_NVIDIA_PROFILE": "{\"id\":\"nvidia/nemotron-3.5-super-vl-120b-a12b\",\"input\":[\"text\",\"image\"],\"contextWindow\":262000,\"maxTokens\":16384,\"reasoning\":true,\"toolCalls\":true,\"thinkingLevelMap\":{\"off\":\"none\",\"minimal\":null,\"low\":\"low\",\"medium\":null,\"high\":\"high\",\"xhigh\":null,\"max\":null},\"compat\":{\"supportsStore\":false,\"supportsDeveloperRole\":true,\"supportsReasoningEffort\":true,\"supportsUsageInStreaming\":true,\"maxTokensField\":\"max_tokens\",\"thinkingFormat\":\"openai\"},\"evidence\":\"Verified 2026-10-30: https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3_5-super-vl-120b-a12b-infer ; https://build.nvidia.com/nvidia/nemotron-3.5-super-vl-120b-a12b . 262000 is a conservative operational cap below the advertised hosted 262K, not an assertion of exact server limit; 16384 is the proposed per-response cap, matching the documented endpoint default; reasoning none is explicitly supported.\"}",
+        "PI_NVIDIA_THINKING": "off",
+        "PI_NVIDIA_ENV_NAME": "NGC_API_KEY"
+      },
+      "secrets": [
+        "NGC_API_KEY"
+      ],
+      "max_timeout_sec": 600,
+      "override_setup_timeout_sec": 360
+    }
+  ],
+  "job_name": "nv100-04ed-pi-nemotron35vl-none-one-trial",
+  "n_attempts": 1,
+  "n_concurrent_trials": 1,
+  "retry": {
+    "max_retries": 0
+  },
+  "datasets": [],
+  "tasks": [
+    {
+      "name": "hcltech-robotics/nv100_04ed00317ccc5a90",
+      "ref": "sha256:66d369bca7399c818976c6537900e9048a9fd8f0f345fc3ea8c886ad846c9283",
+      "source": "hcltech-robotics/simreadybench"
+    }
+  ]
+}

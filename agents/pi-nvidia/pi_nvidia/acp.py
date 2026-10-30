@@ -1,6 +1,7 @@
 """Small guarded stdio proxy around the registry-listed pi-acp bridge."""
 
 import copy
+from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import signal
 import subprocess
 import sys
 import threading
+from uuid import uuid4
 
 from .accounting import snapshot
 from .bootstrap import install
@@ -16,18 +18,26 @@ from .hosted import configure
 ROOT = Path(__file__).parent
 
 
+@dataclass(frozen=True)
+class Continuation:
+    request: dict
+
+
 class Bridge:
     def __init__(self, profile, effort, sessions, logs):
         self.profile, self.effort, self.sessions, self.logs = profile, effort, Path(sessions), Path(logs)
         self.public = "nvidia/" + profile.id
         self.native = "harbor-endpoint/" + profile.id
         self.pending, self.ready = {}, set()
+        self.origins, self.recovered, self.cancelled = {}, set(), set()
         self.lock = threading.RLock()
 
     def request(self, message):
         with self.lock:
             result = copy.deepcopy(message)
             method, params = result.get("method"), result.get("params") or {}
+            if method == "session/cancel":
+                self.cancelled.add(params.get("sessionId"))
             if method == "session/new" and params.get("mcpServers"):
                 raise ValueError("Task MCP servers cannot be silently ignored by this plain bridge")
             if method in {"session/load", "session/fork"}:
@@ -51,7 +61,12 @@ class Bridge:
             if method == "session/prompt":
                 if params.get("sessionId") not in self.ready:
                     raise ValueError("Matching native model/thinking receipt is required before prompting")
-                params["prompt"] = [{"type": "text", "text": (ROOT / "feedback.txt").read_text()}] + list(params["prompt"])
+                if result.get("id") not in self.origins:
+                    self.cancelled.discard(params["sessionId"])
+                caps = (f"This entry's output cap is {self.profile.maxTokens} tokens per inference response, including reasoning; "
+                        f"it is not an authoring-turn or validator-call budget. Reasoning level: {self.effort}. "
+                        "The original runner wall-clock deadline covers the whole task and any bounded continuation; it is never reset.\n")
+                params["prompt"] = [{"type": "text", "text": caps + (ROOT / "feedback.txt").read_text()}] + list(params["prompt"])
             if "id" in result and method:
                 self.pending[result["id"]] = (method, params)
             return result
@@ -87,12 +102,25 @@ class Bridge:
             if "result" not in result and "error" not in result:
                 return result
             request = self.pending.pop(result.get("id"), None)
-            if not request or "result" not in result:
+            root_id = self.origins.pop(result.get("id"), result.get("id"))
+            if "id" in result:
+                result["id"] = root_id
+            if not request:
                 return result
             method, params = request
+            if method == "session/prompt":
+                receipt = snapshot(self.sessions, params["sessionId"], self.profile, self.effort)
+                receipt["length_recovery_count"] = int(root_id in self.recovered)
+                receipt["length_recovery_limit"] = 1
+                if "error" in result:
+                    receipt["completion"] = "upstream_error"
+                self.logs.mkdir(parents=True, exist_ok=True)
+                (self.logs / "pi-accounting.json").write_text(json.dumps(receipt, indent=2) + "\n")
+            if "result" not in result:
+                return result
             payload = result["result"]
             if method == "initialize":
-                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.1"}
+                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.2"}
                 payload["authMethods"] = []  # Headless injected auth; never terminal login.
                 payload.setdefault("agentCapabilities", {})["loadSession"] = False
             if method in {"session/new", "session/set_model", "session/set_mode", "session/set_config_option"}:
@@ -104,15 +132,32 @@ class Bridge:
                         raise ValueError("Pi actual model receipt is missing")
                     self.ready.add(payload["sessionId"])
             if method == "session/prompt":
-                receipt = snapshot(self.sessions, params["sessionId"], self.profile, self.effort)
-                self.logs.mkdir(parents=True, exist_ok=True)
-                (self.logs / "pi-accounting.json").write_text(json.dumps(receipt, indent=2) + "\n")
+                if params["sessionId"] in self.cancelled:
+                    payload["stopReason"] = "cancelled"
                 payload.setdefault("_meta", {})["pi_nvidia_accounting"] = receipt
                 payload.pop("usage", None)
                 if receipt["status"] == "verified":
                     payload["usage"] = receipt["usage"]
                 if receipt.get("provider_error") and payload.get("stopReason") != "cancelled":
-                    raise ValueError("Pi reported a provider error; see the retained native session")
+                    return {"jsonrpc": "2.0", "id": root_id, "error": {
+                        "code": -32000, "message": "Pi reported a provider error; inspect native session diagnostics"}}
+                last = receipt.get("last_assistant") or {}
+                if payload.get("stopReason") == "end_turn" and last.get("stop_reason") == "length":
+                    payload["stopReason"] = "max_tokens"
+                    if receipt["status"] == "verified" and last.get("empty_length_stop") and root_id not in self.recovered:
+                        self.recovered.add(root_id)
+                        internal_id = "pi-nvidia-length-" + uuid4().hex
+                        self.origins[internal_id] = root_id
+                        prompt = "Your prior response reached its output limit without text or a tool call. Continue the same task with concrete tool actions: preserve existing work, write and reopen the first complete /output/submission/asset.usd candidate, then use the genuine feedback validator and repair actionable failures. Do not restart exploration. The original deadline and five-validator-call allowance still apply. This is the single automatic length recovery; do not rely on another follow-up."
+                        follow_up = self.request({"jsonrpc": "2.0", "id": internal_id,
+                            "method": "session/prompt", "params": {"sessionId": params["sessionId"],
+                            "prompt": [{"type": "text", "text": prompt}]}})
+                        receipt.update(length_recovery_count=1, completion="continuation_requested")
+                        (self.logs / "pi-accounting.json").write_text(json.dumps(receipt, indent=2) + "\n")
+                        with (self.logs / "pi-length-recovery.jsonl").open("a") as log:
+                            log.write(json.dumps({"reason": "empty_length_stop", "root_request_id": root_id,
+                                "limit": 1, "request": follow_up}) + "\n")
+                        return Continuation(follow_up)
             return result
 
 
@@ -120,7 +165,12 @@ def proxy(command, env, bridge):
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                env=env, start_new_session=True)
     output_lock = threading.Lock()
+    input_lock = threading.Lock()
     errors = []
+    def send(value):
+        with input_lock:
+            process.stdin.write(json.dumps(value).encode() + b"\n")
+            process.stdin.flush()
     def emit(value):
         with output_lock:
             sys.stdout.buffer.write(json.dumps(value).encode() + b"\n")
@@ -138,8 +188,7 @@ def proxy(command, env, bridge):
                 except ValueError:
                     failure(message)
                     continue
-                process.stdin.write(json.dumps(transformed).encode() + b"\n")
-                process.stdin.flush()
+                send(transformed)
         except (ValueError, OSError):
             errors.append("ACP input failed")
         finally:
@@ -149,7 +198,15 @@ def proxy(command, env, bridge):
         for raw in process.stdout:
             message = json.loads(raw)
             try:
-                emit(bridge.response(message))
+                response = bridge.response(message)
+                if isinstance(response, Continuation):
+                    with bridge.lock:
+                        if response.request["params"]["sessionId"] in bridge.cancelled:
+                            emit(bridge.response({"id": response.request["id"], "result": {"stopReason": "cancelled"}}))
+                        else:
+                            send(response.request)
+                else:
+                    emit(response)
             except ValueError:
                 failure(message)
         code = process.wait()

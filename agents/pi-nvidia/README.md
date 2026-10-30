@@ -86,7 +86,7 @@ not; retrying the same ID/content retrieves the existing result. No turn limit,
 task timeout, retry count or independent verifier budget is added or changed.
 Visual self-checks are not hidden visual/kinematic fidelity feedback.
 
-## Hosted Hub package (0.2.1)
+## Hosted Hub package (0.2.2)
 
 `harbor-agent.json` implements the documented Python-uv/ACP source contract and
 runs `python -m pi_nvidia.acp`. Use `examples/hosted-agent.template.json` for a
@@ -259,3 +259,46 @@ final usage; non-loopback fetch is forbidden. Missing credentials cannot issue a
 inference request. Conflict tests verify that no dummy values appear in errors.
 No paid API request is made. Hosted recovery still needs an authorized publication
 and one separately approved retry; no retry is performed by this package.
+
+
+## Output-length handling and first candidate (0.2.2)
+
+NVIDIA max_tokens is a cap on each inference response, including reasoning. It
+is separate from Harbor's whole authoring timeout. In the observed smoke trial, the final 8192-token response contained
+reasoning but no text/tool call and stopped with length. Pi 1.4.0 then settled;
+pi-acp 0.0.34 converted the settled run to ACP end_turn. The run had no entrypoint
+and no admitted validation calls. This is one failed workflow, not evidence that
+the model is generally unsuitable. The source code does not support blaming a
+wall-clock timeout for that response-length stop.
+
+The wrapper now retains only last-assistant stop/content flags in the accounting
+receipt, maps length to ACP max_tokens, and performs at most one same-session ACP
+prompt continuation when a verified final length response has neither text nor
+a tool call. The continuation asks for concrete candidate construction and real
+validation, preserving existing work and the original task context. It does not
+change model/effort/caps or start a new trial. A second truncation returns
+max_tokens; partial text/tool calls are not replayed automatically. Cancellation,
+provider errors and unverifiable receipts do not trigger recovery. The original
+Harbor timeout surrounds the entire agent run, so this continuation cannot reset
+it. The generated continuation is also recorded in pi-length-recovery.jsonl. A
+receipt captured while continuation is pending is labeled continuation_requested,
+not final usage. Both responses remain in native/ACP evidence; cumulative usage and the
+Baseten reference estimate include every recorded inference call exactly once.
+On an ACP error, final usage remains in the native/accounting logs; a successful
+ACP response includes it for Harbor ingestion.
+
+The policy prioritizes an initial complete asset.usd, reopening and basic geometry
+checks before optional exploration, then the genuine feedback client. --help is
+explicitly setup only. The five admitted-validator-call ledger is unchanged and
+a passing first candidate may finish early. This is an instruction policy, not
+a claim that a mock server proves a model follows it or a hard validation gate.
+
+`examples/nemotron35vl-none-one-trial.proposed.json` is an unlaunched proposal:
+reasoning off (NVIDIA reasoning_effort none), max_tokens 16384, the same 600-second
+authoring cap, 360-second setup cap, one original task/attempt and zero trial
+retries. None avoids another response spending all its output budget in hidden
+reasoning; 16384 is NVIDIA's documented default and gives code/tool output more
+room. This changes two generation settings for a workflow smoke test, not a
+controlled reasoning comparison. Larger response capacity does not guarantee an
+asset, a validation call, quality or lower cost. No increase to the approved
+aggregate budget is implied, and no publication or live trial is performed here.

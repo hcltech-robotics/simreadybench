@@ -52,6 +52,7 @@ def snapshot(sessions, session_id, profile, effort):
         totals = {"inputTokens": 0, "cachedReadTokens": 0, "cachedWriteTokens": 0, "outputTokens": 0}
         reasoning, reasoning_known = 0, True
         seen, calls, models, efforts, error, provider_error = {}, 0, [], [], None, False
+        last_assistant = None
         for row in rows[1:]:
             rid = row.get("id")
             if rid:
@@ -70,6 +71,14 @@ def snapshot(sessions, session_id, profile, effort):
                 usage = row.get("usage")
             elif row.get("type") == "message" and message.get("role") == "assistant":
                 usage = message.get("usage")
+                content = message.get("content", [])
+                blocks = content if isinstance(content, list) else []
+                has_text = bool(content.strip()) if isinstance(content, str) else any(
+                    isinstance(b, dict) and b.get("type") == "text" and str(b.get("text", "")).strip() for b in blocks)
+                has_tool = any(isinstance(b, dict) and b.get("type") == "toolCall" for b in blocks)
+                last_assistant = {"stop_reason": message.get("stopReason"), "has_text": has_text,
+                    "has_tool_call": has_tool, "empty_length_stop": message.get("stopReason") == "length"
+                    and isinstance(content, (list, str)) and not has_text and not has_tool}
             elif row.get("type") == "message" and message.get("role") == "toolResult" and "usage" in message:
                 usage = message["usage"]
             else:
@@ -100,6 +109,7 @@ def snapshot(sessions, session_id, profile, effort):
             "reason": error or (None if calls else "no_native_usage"), "pricing": "unknown",
             "billed": False, "scope": "selected_root_session_all_calls", "call_count": calls,
             "provider_error": provider_error,
+            "last_assistant": last_assistant,
             "usage": {**totals, "totalTokens": totals["inputTokens"] + totals["outputTokens"]},
             "native_file": str(path.relative_to(root)),
             "native_sha256": hashlib.sha256(path.read_bytes()).hexdigest()})

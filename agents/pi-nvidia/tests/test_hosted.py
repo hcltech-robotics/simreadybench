@@ -234,7 +234,7 @@ def test_real_manifest_entrypoint_initializes_without_credentials_or_model_call(
         async with spawn_agent_process(client, sys.executable, "-m", "pi_nvidia.acp", env=env, cwd=str(tmp_path)) as (conn, proc):
             result = await conn.initialize(protocol_version=PROTOCOL_VERSION, client_capabilities=ClientCapabilities())
             assert result.agent_info.name == "pi-nvidia-feedback"
-            assert result.agent_info.version == "0.2.1"
+            assert result.agent_info.version == "0.2.2"
             assert result.auth_methods == []
             assert not result.agent_capabilities.load_session
     asyncio.run(exercise())
