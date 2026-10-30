@@ -16,14 +16,11 @@
         "PI_NVIDIA_THINKING": "off",
         "PI_NVIDIA_ENV_NAME": "NGC_API_KEY",
         "PI_NVIDIA_OBSERVATION_PATH": "/task/observation.png",
-        "PI_NVIDIA_TIME_LIMIT_SEC": "600",
-        "PI_NVIDIA_FINAL_RESERVE_SEC": "90",
         "PI_NVIDIA_OBSERVATION_SHA256": "058ad92263ca6ac778b8b6485bb58642923311e7c744710c54038c5baf86ee51"
       },
       "secrets": [
         "NGC_API_KEY"
       ],
-      "max_timeout_sec": 600,
       "override_setup_timeout_sec": 360
     }
   ],

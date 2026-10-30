@@ -1,8 +1,5 @@
 """Small guarded stdio proxy around the registry-listed pi-acp bridge."""
 
-import time
-STARTED_NS = time.monotonic_ns()
-
 import copy
 from dataclasses import dataclass
 import json
@@ -38,6 +35,10 @@ class Bridge:
         self.image_sessions = set()
         self.lock = threading.RLock()
 
+    def turn_budget(self):
+        path = self.logs / "pi-turn-budget.json"
+        return json.loads(path.read_text()) if self.runtime_file and path.exists() else None
+
     def request(self, message):
         with self.lock:
             result = copy.deepcopy(message)
@@ -65,6 +66,9 @@ class Bridge:
                 else:
                     raise ValueError("Unverified session configuration option")
             if method == "session/prompt":
+                budget = self.turn_budget()
+                if budget and budget.get("started", 0) >= 64:
+                    raise ValueError("The 64-model-turn budget is exhausted; no further prompt is allowed")
                 if params.get("sessionId") not in self.ready:
                     raise ValueError("Matching native model/thinking receipt is required before prompting")
                 if result.get("id") not in self.origins:
@@ -83,8 +87,9 @@ class Bridge:
                     (self.logs / "pi-input-image.json").write_text(json.dumps(image_receipt, indent=2) + "\n")
                 caps = (f"This entry's output cap is {self.profile.maxTokens} tokens per inference response, including reasoning; "
                         f"it is not an authoring-turn or validator-call budget. Reasoning level: {self.effort}. "
-                        "The original runner wall-clock deadline covers the whole task and any bounded continuation; it is never reset.\n")
+                        "Infrastructure cancellation and transport failures remain separate from the model-turn budget.\n")
                 if self.runtime_file:
+                    caps += "You have at most 64 model turns for this task, including any bounded continuation. One turn is one assistant generation plus its tool-result batch. The runtime gives the exact remaining count before each turn and enforces the cap.\n"
                     caps += "The frozen task observation was hash-verified and attached to the initial session prompt; use that image directly.\n"
                 params["prompt"] = [{"type": "text", "text": caps + (ROOT / "feedback.txt").read_text()}] + list(params["prompt"])
             if "id" in result and method:
@@ -129,9 +134,14 @@ class Bridge:
                 return result
             method, params = request
             if method == "session/prompt":
-                receipt = snapshot(self.sessions, params["sessionId"], self.profile, self.effort)
+                budget = self.turn_budget()
+                receipt = snapshot(self.sessions, params["sessionId"], self.profile, self.effort, turn_budget=budget)
                 receipt["length_recovery_count"] = int(root_id in self.recovered)
                 receipt["length_recovery_limit"] = 1
+                if budget is not None:
+                    receipt["turn_budget"] = budget
+                    if budget.get("exhausted"):
+                        receipt["completion"] = "model_turn_budget_exhausted"
                 if self.runtime_file:
                     wire = self.logs / "pi-image-wire.jsonl"
                     entries = [json.loads(line) for line in wire.read_text().splitlines() if line] if wire.exists() else []
@@ -146,7 +156,7 @@ class Bridge:
                 return result
             payload = result["result"]
             if method == "initialize":
-                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.3"}
+                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.4"}
                 payload["authMethods"] = []  # Headless injected auth; never terminal login.
                 payload.setdefault("agentCapabilities", {})["loadSession"] = False
             if method in {"session/new", "session/set_model", "session/set_mode", "session/set_config_option"}:
@@ -156,6 +166,10 @@ class Bridge:
                         raise ValueError("Pi actual thinking receipt is missing")
                     if (payload.get("models") or {}).get("currentModelId") != self.public:
                         raise ValueError("Pi actual model receipt is missing")
+                    if self.runtime_file:
+                        budget = self.turn_budget()
+                        if not budget or budget.get("limit") != 64:
+                            raise ValueError("The enforcing Pi turn-budget extension did not initialize")
                     self.ready.add(payload["sessionId"])
             if method == "session/prompt":
                 if params["sessionId"] in self.cancelled:
@@ -170,6 +184,8 @@ class Bridge:
                 if self.runtime_file and not receipt["image_delivery"]["initial_payload_verified"] and params["sessionId"] not in self.cancelled:
                     return {"jsonrpc": "2.0", "id": root_id, "error": {"code": -32000,
                         "message": "Initial frozen observation was not verified in the provider payload; inspect image receipts"}}
+                if (receipt.get("turn_budget") or {}).get("exhausted") and params["sessionId"] not in self.cancelled:
+                    payload["stopReason"] = "max_turn_requests"
                 last = receipt.get("last_assistant") or {}
                 if payload.get("stopReason") == "end_turn" and last.get("stop_reason") == "length":
                     payload["stopReason"] = "max_tokens"
@@ -177,7 +193,7 @@ class Bridge:
                         self.recovered.add(root_id)
                         internal_id = "pi-nvidia-length-" + uuid4().hex
                         self.origins[internal_id] = root_id
-                        prompt = "Your prior response reached its output limit without text or a tool call. Continue the same task with concrete tool actions: preserve existing work, write and reopen the first complete /output/submission/asset.usd candidate, then use the genuine feedback validator and repair actionable failures. Do not restart exploration. The original deadline and five-validator-call allowance still apply. This is the single automatic length recovery; do not rely on another follow-up."
+                        prompt = "Your prior response reached its output limit without text or a tool call. Continue the same task with concrete tool actions: preserve existing work, write and reopen the first complete /output/submission/asset.usd candidate, then use the genuine feedback validator and repair actionable failures. Do not restart exploration. The original model-turn budget and five-validator-call allowance still apply; this continuation does not reset either. This is the single automatic length recovery; do not rely on another follow-up."
                         follow_up = self.request({"jsonrpc": "2.0", "id": internal_id,
                             "method": "session/prompt", "params": {"sessionId": params["sessionId"],
                             "prompt": [{"type": "text", "text": prompt}]}})
@@ -256,7 +272,7 @@ def main():
     prefix = Path(os.environ.get("PI_NVIDIA_PREFIX", Path.home() / ".cache/pi-nvidia"))
     logs = Path(os.environ.get("PI_NVIDIA_LOGS", "/logs/agent"))
     # Fail incomplete model profiles before any installation, not after launch.
-    env, profile, effort, sessions = configure(prefix, logs, os.environ, started_ns=STARTED_NS)
+    env, profile, effort, sessions = configure(prefix, logs, os.environ)
     node = install(prefix)
     bridge = Bridge(profile, effort, sessions, logs, runtime_file=env["PI_NVIDIA_RUNTIME_FILE"])
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))

@@ -64,6 +64,22 @@ def test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, key_sou
             delta.update({"reasoning_content": "synthetic private reasoning"} if truncated and not partial
                          else {"content": "partial answer" if partial else "mock complete"})
             finish = "length" if truncated else ("content_filter" if recovery_case == "error" else "stop")
+            if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"}:
+                if runtime_case == "turn_limit_length" and number == 64:
+                    delta = {"role": "assistant", "reasoning_content": "synthetic empty length stop"}
+                    finish = "length"
+                else:
+                    delta = {"role": "assistant", "tool_calls": [{"index": i, "id": f"limit-{number}-{i}",
+                        "type": "function", "function": {"name": "write", "arguments": json.dumps({
+                            "path": str(tmp_path / "candidate" / ("asset.usd" if i == 0 else "batch-receipt.txt")),
+                            "content": f"#usda 1.0\n# saved turn {number}\n"})}} for i in range(2)]}
+                    finish = "tool_calls"
+            if runtime_case == "turn_limit_validation" and number == 64:
+                delta = {"role": "assistant", "tool_calls": [{"index": 0, "id": "final-validation",
+                    "type": "function", "function": {"name": "bash", "arguments": json.dumps({
+                        "command": shlex.join(["python", "-m", "simready_eval.feedback", "validate_candidate",
+                            "--package", str(tmp_path / "candidate"), "--request-id", "candidate-final", "--url", feedback_url])})}}]}
+                finish = "tool_calls"
             if runtime_case == "workflow" and number in (1, 2):
                 args = {"path": str(tmp_path / "candidate/asset.usd"), "content": '#usda 1.0\n( metersPerUnit = 1; upAxis = "Z" )\ndef Xform "Asset" {}\n'} if number == 1 else {
                     "command": shlex.join(["python", "-m", "simready_eval.feedback", "validate_candidate",
@@ -110,7 +126,7 @@ if {runtime_case!r}:
 if {runtime_case!r} == "reserve":
     runtime=Path(env["PI_NVIDIA_RUNTIME_FILE"])
     data=json.loads(runtime.read_text())
-    data["working_deadline_monotonic_ns"]=str(time.monotonic_ns()+75_000_000_000)
+    (Path({str(logs)!r})/"pi-turn-budget.json").write_text(json.dumps(dict(limit=64,started=60,completed=60,exhausted=False)))
     candidate=Path({str(tmp_path / "candidate/asset.usd")!r});candidate.parent.mkdir();candidate.write_text("#usda 1.0")
     data["submission_entrypoint"]=str(candidate)
     runtime.write_text(json.dumps(data))
@@ -140,8 +156,7 @@ globalThis.fetch = (url, init) => {
         image_path = Path(os.environ["NV100_OBSERVATION_PNG"])
         image_data = image_path.read_bytes()
         declared.update(PI_NVIDIA_OBSERVATION_PATH=str(image_path),
-            PI_NVIDIA_OBSERVATION_SHA256="0" * 64 if runtime_case == "wrong_hash" else hashlib.sha256(image_data).hexdigest(),
-            PI_NVIDIA_TIME_LIMIT_SEC="600", PI_NVIDIA_FINAL_RESERVE_SEC="90")
+            PI_NVIDIA_OBSERVATION_SHA256="0" * 64 if runtime_case == "wrong_hash" else hashlib.sha256(image_data).hexdigest())
     config = HostedJobConfig.model_validate({"agents": [{"name": "acp", "env": declared}]})
     normalized = dump_hosted_config(config)["agents"][0]["env"]
     assert normalized == declared  # Real Harbor serialization retains these public options.
@@ -151,7 +166,7 @@ globalThis.fetch = (url, init) => {
         env[key_source] = "offline-dummy-not-real"
     if offline:
         env["PI_OFFLINE"] = "1"
-    if runtime_case == "workflow":
+    if runtime_case in {"workflow", "turn_limit_validation"}:
         env["PATH"] = os.environ["PI_TASK_PYTHON_DIR"] + os.pathsep + os.defpath
     client_logs = tmp_path / "client"
     client_logs.mkdir()
@@ -175,13 +190,15 @@ globalThis.fetch = (url, init) => {
                     await conn.cancel(session_id=session.session_id)
                     return
                 await conn.cancel(session_id=session.session_id)
-            result = await asyncio.wait_for(task, 15)
+            result = await asyncio.wait_for(task, 45 if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"} else 15)
             expected = {"exhausted": "max_tokens", "partial": "max_tokens", "cancel": "cancelled"}.get(recovery_case, "end_turn")
+            if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"}:
+                expected = "max_turn_requests"
             assert result.stop_reason == expected
             if recovery_case != "cancel":
-                count = 3 if runtime_case == "workflow" else 1 if recovery_case in {"normal", "partial"} else 2
-                assert result.usage.input_tokens == (340 if count == 3 else 100 if count == 1 else 220)
-                assert result.usage.output_tokens == (30 if count == 3 else {"exhausted": 16384, "partial": 8192, "recovered": 8202}.get(recovery_case, 10))
+                count = 64 if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"} else 3 if runtime_case == "workflow" else 1 if recovery_case in {"normal", "partial"} else 2
+                assert result.usage.input_tokens == (100 + 120 * (count - 1))
+                assert result.usage.output_tokens == (640 if count == 64 else 30 if count == 3 else {"exhausted": 16384, "partial": 8192, "recovered": 8202}.get(recovery_case, 10))
                 assert result.usage.cached_read_tokens == 20 * count
 
     try:
@@ -215,7 +232,7 @@ globalThis.fetch = (url, init) => {
         assert len(requests) == 1
         assert json.loads((logs / "pi-accounting.json").read_text())["status"] == "unavailable"
         return
-    assert len(requests) == (3 if runtime_case == "workflow" else 1 if recovery_case in {"normal", "partial"} else 2)
+    assert len(requests) == (64 if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"} else 3 if runtime_case == "workflow" else 1 if recovery_case in {"normal", "partial"} else 2)
     path, _, body = requests[0]
     assert path == "/v1/chat/completions"
     assert body["model"] == profile["id"] and body["reasoning_effort"] == profile["thinkingLevelMap"][effort]
@@ -239,11 +256,21 @@ globalThis.fetch = (url, init) => {
         wire = [json.loads(line) for line in (logs / "pi-image-wire.jsonl").read_text().splitlines()]
         assert len(wire) == len(requests) and all(row["matched"] for row in wire)
         budget = [json.loads(line) for line in (logs / "pi-budget-notices.jsonl").read_text().splitlines()]
-        assert len(budget) == len(requests) and all(row["remaining_sec"] <= 585 for row in budget)
-        assert budget[-1]["remaining_sec"] <= budget[0]["remaining_sec"]
+        assert len(budget) == len(requests) and all(1 <= row["remaining_including_current"] <= 64 for row in budget)
+        assert budget[-1]["remaining_including_current"] <= budget[0]["remaining_including_current"]
         if runtime_case == "reserve":
-            assert budget[0]["phase"] == "final_revalidation" and 0 < budget[0]["remaining_sec"] <= 75
+            assert budget[0]["phase"] == "final_revalidation" and budget[0]["remaining_including_current"] == 4
             assert any("FINAL REVALIDATION WINDOW" in str(m) for m in body["messages"])
+        if runtime_case in {"turn_limit", "turn_limit_length", "turn_limit_validation"}:
+            assert [row["turn"] for row in budget] == list(range(1,65))
+            assert [row["remaining_including_current"] for row in budget] == list(range(64,0,-1))
+            last_write = 63 if runtime_case in {"turn_limit_length", "turn_limit_validation"} else 64
+            assert (tmp_path / "candidate/asset.usd").read_text() == f"#usda 1.0\n# saved turn {last_write}\n"
+            assert (tmp_path / "candidate/batch-receipt.txt").read_text() == (tmp_path / "candidate/asset.usd").read_text()
+            receipt = json.loads((logs / "pi-accounting.json").read_text())
+            assert receipt["turn_budget"]["started"] == receipt["turn_budget"]["completed"] == 64
+            assert receipt["turn_budget"]["exhausted"] is True and receipt["length_recovery_count"] == 0
+            assert receipt["completion"] == "model_turn_budget_exhausted"
         if runtime_case == "workflow":
             assert budget[0]["phase"] == "build_first_candidate"
             assert budget[1]["phase"] == "validate_or_repair"
@@ -275,7 +302,7 @@ def test_proposed_none_reasoning_16384_request_is_supported_locally(tmp_path):
 @pytest.mark.skipif(not os.environ.get("PI_TEST_PREFIX") or not os.environ.get("NV100_OBSERVATION_PNG"),
                    reason="requires pinned runtime and original public observation")
 @pytest.mark.parametrize("case", ["initial", "preprovided", "wrong_hash", "wire_missing", "reserve", "continuation", "provider_503"])
-def test_initial_image_and_deadline_reach_real_pi_provider_payload(tmp_path, case):
+def test_initial_image_and_turn_budget_reach_real_pi_provider_payload(tmp_path, case):
     test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, "NGC_API_KEY", None, False,
         effort="off", output_cap=16384, runtime_case=case,
         recovery_case="recovered" if case == "continuation" else "normal")
@@ -283,7 +310,8 @@ def test_initial_image_and_deadline_reach_real_pi_provider_payload(tmp_path, cas
 
 @pytest.mark.skipif(not all(os.environ.get(k) for k in ("PI_TEST_PREFIX", "NV100_OBSERVATION_PNG", "PI_TASK_PYTHON_DIR", "NV100_EVAL_WHEEL")),
                    reason="requires pinned runtime, original task image and genuine feedback client")
-def test_real_candidate_write_then_genuine_feedback_with_one_of_five_calls(tmp_path, feedback):
+@pytest.mark.parametrize("case", ["workflow", "turn_limit_validation"])
+def test_real_candidate_write_then_genuine_feedback_with_one_of_five_calls(tmp_path, feedback, case):
     from test_feedback_protocol import outcome
     service = feedback.FeedbackService(tmp_path / "feedback-state", evaluator=lambda p: outcome((p / "asset.usd").is_file()))
     server = service.make_server("127.0.0.1", 0)
@@ -291,7 +319,15 @@ def test_real_candidate_write_then_genuine_feedback_with_one_of_five_calls(tmp_p
     thread.start()
     try:
         test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, "NGC_API_KEY", None, False,
-            effort="off", output_cap=16384, runtime_case="workflow", feedback_url=f"http://127.0.0.1:{server.server_port}")
+            effort="off", output_cap=16384, runtime_case=case, feedback_url=f"http://127.0.0.1:{server.server_port}")
         assert service.ledger.health() == {"status": "ok", "limit": 5, "used": 1, "remaining": 4}
     finally:
         server.shutdown(); server.server_close(); thread.join(timeout=2); service.close()
+
+
+@pytest.mark.parametrize("case", ["turn_limit", "turn_limit_length"])
+@pytest.mark.skipif(not os.environ.get("PI_TEST_PREFIX") or not os.environ.get("NV100_OBSERVATION_PNG"),
+                   reason="requires pinned runtime and original public observation")
+def test_actual_64_turn_limit_completes_last_tool_batch_without_request_65(tmp_path, case):
+    test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, "NGC_API_KEY", None, True,
+        effort="off", output_cap=16384, runtime_case=case)

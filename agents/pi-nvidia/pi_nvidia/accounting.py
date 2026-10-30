@@ -28,7 +28,7 @@ def baseten_reference(receipt, model_id):
         "actual_nvidia_cost": "unknown"}
 
 
-def snapshot(sessions, session_id, profile, effort):
+def snapshot(sessions, session_id, profile, effort, *, turn_budget=None):
     root = Path(sessions)
     if root.name != "sessions" or root.parent.name != "pi" or root.is_symlink() or root.parent.is_symlink():
         raise ValueError("Only this trial's pi/sessions receipt directory is allowed")
@@ -52,7 +52,7 @@ def snapshot(sessions, session_id, profile, effort):
         totals = {"inputTokens": 0, "cachedReadTokens": 0, "cachedWriteTokens": 0, "outputTokens": 0}
         reasoning, reasoning_known = 0, True
         seen, calls, models, efforts, error, provider_error = {}, 0, [], [], None, False
-        last_assistant = None
+        last_assistant, termination_artifact, assistant_count = None, None, 0
         for row in rows[1:]:
             rid = row.get("id")
             if rid:
@@ -67,9 +67,23 @@ def snapshot(sessions, session_id, profile, effort):
                 efforts.append(row.get("thinkingLevel"))
             message = row.get("message") or {}
             usage = None
+            # Pi 1.4's supported post-batch abort can append a synthetic zero-usage
+            # assistant error while unwinding its natural tool continuation. Keep
+            # that native record intact, but do not call it inference or a provider
+            # failure when the independently persisted 64-turn boundary proves it.
+            if (assistant_count == 64 and row is rows[-1] and turn_budget and turn_budget.get("exhausted") is True
+                    and turn_budget.get("started") == turn_budget.get("completed") == turn_budget.get("limit") == 64
+                    and row.get("type") == "message" and message.get("role") == "assistant"
+                    and message.get("stopReason") == "error" and message.get("errorMessage") == "This operation was aborted"
+                    and message.get("content") == [] and isinstance(message.get("usage"), dict)
+                    and all(message["usage"].get(k) == 0 for k in ("input", "output", "cacheRead", "cacheWrite", "totalTokens"))):
+                termination_artifact = {"native_event_id": rid, "reason": "pi_post_budget_abort_zero_usage",
+                    "excluded_from_inference_usage": True, "native_record_preserved": True}
+                continue
             if row.get("type") in {"compaction", "branch_summary"}:
                 usage = row.get("usage")
             elif row.get("type") == "message" and message.get("role") == "assistant":
+                assistant_count += 1
                 usage = message.get("usage")
                 content = message.get("content", [])
                 blocks = content if isinstance(content, list) else []
@@ -110,6 +124,7 @@ def snapshot(sessions, session_id, profile, effort):
             "billed": False, "scope": "selected_root_session_all_calls", "call_count": calls,
             "provider_error": provider_error,
             "last_assistant": last_assistant,
+            "termination_artifact": termination_artifact,
             "usage": {**totals, "totalTokens": totals["inputTokens"] + totals["outputTokens"]},
             "native_file": str(path.relative_to(root)),
             "native_sha256": hashlib.sha256(path.read_bytes()).hexdigest()})

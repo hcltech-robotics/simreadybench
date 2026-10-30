@@ -1175,7 +1175,7 @@ wheels = [
 
 [[package]]
 name = "simready-pi-nvidia"
-version = "0.2.3"
+version = "0.2.4"
 source = { editable = "." }
 dependencies = [
     { name = "harbor" },

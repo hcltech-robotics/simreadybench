@@ -87,7 +87,7 @@ turn limit, task timeout, feedback-ledger rule or independent verifier budget is
 changed. Hosted Pi error/provider retries are disabled separately.
 Visual self-checks are not hidden visual/kinematic fidelity feedback.
 
-## Hosted Hub package (0.2.3)
+## Hosted Hub package (0.2.4)
 
 `harbor-agent.json` implements the documented Python-uv/ACP source contract and
 runs `python -m pi_nvidia.acp`. Use `examples/hosted-agent.template.json` for a
@@ -175,8 +175,10 @@ the hosted protocol/package integration itself is implemented and tested.
 `examples/nemotron35vl-low-one-trial.json` selects the unchanged original NV100
 task `nv100_04ed00317ccc5a90`, one attempt, concurrency one and zero trial retries.
 The plain Pi agent has no CAD packages. The original five-validator-call ledger
-and evaluator remain unchanged. Its 600-second authoring cap is a smoke-test
-condition, not the original full benchmark time budget; setup remains 360 seconds.
+and evaluator remain unchanged. The old 600-second smoke authoring cap is removed
+in 0.2.4; the hosted agent enforces 64 model turns. Setup remains 360 seconds.
+The canonical task still imposes its inherited 231000-second outer timeout; see
+the platform constraint below. This is not an unlimited hosted deadline.
 The task's verifier timeout remains 600 seconds and both build timeouts 1200 seconds.
 
 The wire model is `nvidia/nemotron-3.5-super-vl-120b-a12b`; the Harbor model name
@@ -296,17 +298,17 @@ a passing first candidate may finish early. This is an instruction policy, not
 a claim that a mock server proves a model follows it or a hard validation gate.
 
 `examples/nemotron35vl-none-one-trial.proposed.json` is an unlaunched proposal:
-reasoning off (NVIDIA reasoning_effort none), max_tokens 16384, the same 600-second
-authoring cap, 360-second setup cap, one original task/attempt and zero trial
-retries. None avoids another response spending all its output budget in hidden
-reasoning; 16384 is NVIDIA's documented default and gives code/tool output more
+reasoning off (NVIDIA reasoning_effort none), max_tokens 16384, the enforced
+64-model-turn budget, 360-second setup cap, one original task/attempt and zero trial
+retries. None explicitly requests disabled reasoning; it does not prove absence of
+internal computation. 16384 is NVIDIA's documented default and gives code/tool output more
 room. This changes two generation settings for a workflow smoke test, not a
 controlled reasoning comparison. Larger response capacity does not guarantee an
 asset, a validation call, quality or lower cost. No increase to the approved
 aggregate budget is implied, and no publication or live trial is performed here.
 
 
-## Frozen image and deadline guidance (0.2.3)
+## Frozen image delivery (since 0.2.3)
 
 Every hosted initial session prompt attaches the existing public
 `/task/observation.png` as structured image content before model inference. Set
@@ -325,40 +327,71 @@ image is missing, it aborts the request and the wrapper reports failure. These
 are pre-send payload receipts, not a claim about remote server interpretation.
 Native session records retain the image and actual tool results as before.
 
-The unchanged hosted authoring cap is 600 seconds. Pinned Harbor 0.24.0 does not
-pass its absolute outer deadline into custom ACP processes. The agent therefore
-labels its clock `conservative_adapter_clock`, never an exact outer deadline:
-it starts at adapter entry before runtime installation, subtracts 15 seconds of
-pre-entry startup headroom and provides a 90-second final-validation reserve.
-Harbor can still stop it earlier; the outer timer remains authoritative. The
-exact outer timestamp would require Harbor to expose runtime deadline metadata.
-Do not present the local UTC working deadline as that unavailable timestamp.
+## Enforced 64-turn policy (0.2.4)
 
-The explicit runtime extension uses Pi 1.4.0's supported `context` hook to add a
-fresh elapsed/remaining-time notice before each model request, with phases for
-first candidate, validate/repair, final revalidation and finish-now. The initial
-candidate target is 120 seconds in the 600-second configuration. An entrypoint's
-existence is reported only as existence, not validity. The final phase asks the
-model to stop optional exploration/edits, use an available genuine feedback call
-and leave validated bytes stable. This is advisory agent workflow; the original
-service enforces the five admitted validation calls. It does not invent a model
-turn limit, fake validation, force all five calls or create a new trial controller.
-The clock is not reset by an empty-length continuation. Transient notices are
-retained in `pi-budget-notices.jsonl` for audit alongside native/ACP records.
+The hosted runtime enforces **64 model turns for the entire task**. A turn is
+one Pi assistant generation plus its complete tool-result batch, regardless of
+how many tools it calls. A failed generation attempt still consumes its turn.
+Context notices and health reads do not create extra turns. Internal compaction
+requests are not authoring turns; their recorded usage still contributes to
+accounting. Model identity, reasoning and response-token caps remain independent.
 
-Set `PI_NVIDIA_TIME_LIMIT_SEC=600` to match the hosted `max_timeout_sec=600`, and
-`PI_NVIDIA_FINAL_RESERVE_SEC=90` for the reserve. Public option names survive
-Harbor's real sensitive-env serialization. The variant rejects declared limits
-above 600. Pi error retries, provider retries and background cache warming are
-disabled; Harbor trial retries remain zero. The existing single bounded
-empty-length continuation is distinct and remains inside the original timer.
-Models, supported reasoning levels, response caps and accounting remain
-independently configurable.
+Before each generation, the transient `context` notice explicitly gives the
+current turn, limit 64, remaining including this turn, and remaining afterward.
+For example: `turn 1 of 64. 64 turns remain including this turn; 63 remain after
+this turn.` Aim to produce the first complete candidate by turn 8. Turns 61–64
+are reserved in guidance for final validation/reporting. These milestones are
+advisory; the maximum of 64 is enforced. Passing early is allowed. The model must
+schedule any last validation in turn 64's tool batch: no 65th summary turn exists.
+This reserves an opportunity, not a guarantee that a model validates or succeeds.
+The genuine five-admitted-validator-call quota and counting rules are unchanged.
 
-Offline verification includes actual Pi/ACP provider-payload image hashes,
-already-present-image deduplication, bad-hash/no-image rejection before HTTP,
-phase notices, continuation clock preservation and a real native write followed
-by the genuine 2.2.0 feedback client against the unchanged five-call ledger with
-a synthetic evaluator. That workflow uses one call and leaves four available.
-It does not establish live model compliance or claim real NVIDIA validation.
-No paid run, credential change or publication is performed by these checks.
+Pi 1.4.0's `turn_end` boundary runs after tool results have been persisted. Its
+`BoundaryResult.continue=false` does not stop natural tool continuation. The
+extension therefore uses the supported `ctx.abort()` after batch 64, with a
+second guard against an attempted next request. All tools in the last batch
+finish first. ACP returns `max_turn_requests` and retains saved output and usage;
+user cancellation and genuine provider errors keep their distinct outcomes.
+A single empty-length continuation cannot reset or exceed the 64-turn budget.
+No automatic provider/error/Harbor trial retries or background warming are enabled.
+
+`pi-turn-budget.json` records started/completed/remaining and the definition;
+`pi-budget-notices.jsonl` retains exactly the notices sent. The ACP wrapper
+requires the extension's startup receipt before admitting a task prompt. The
+existing image hash receipts and accounting are preserved. Pi may append a
+synthetic empty zero-usage assistant error while unwinding a post-batch abort.
+The compatibility layer excludes only the exact abort artifact after 64 recorded
+assistant generations, an independently exhausted budget and zero usage; it
+labels the exclusion and preserves the original native record. Other errors
+and missing usage remain failures/unknown, never invented zero-cost success.
+
+Remove `PI_NVIDIA_TIME_LIMIT_SEC` and `PI_NVIDIA_FINAL_RESERVE_SEC` from old configs;
+0.2.4 rejects those obsolete options. Remove `agents[].max_timeout_sec:600` as in
+the updated examples. No agent authoring wall clock or time reminders remain.
+Do not confuse setup/build/verifier deadlines, per-tool/transport failures or
+infrastructure termination with the 64-model-turn budget. The separate native
+import-path adapter does not install this hosted extension; use the hosted ACP
+manifest for the enforced 64-turn configuration.
+
+### Exact Harbor timeout constraint
+
+Pinned Harbor **0.24.0** supports no outer authoring timeout when the task's
+`agent.timeout_sec` is `None`. Its resolution is
+`agent.override_timeout_sec or task.agent.timeout_sec`. Therefore an agent-level
+null, omitted value or zero **cannot unset a non-null task timeout**. Removing
+the 600-second cap from the unchanged pinned NV100 task inherits **231000 seconds
+(64 hours 10 minutes)**, not infinity. The examples do not insert that large value
+or substitute a huge override: it already belongs to the canonical task. A true
+no-authoring-timeout launch with this unchanged task requires a supported Harbor
+manager/API capability that distinguishes "unset override" from "explicitly no
+timeout"; none is present in the verified installed API. Additional hosted sandbox
+lifetime limits are not exposed by this local inspection and must not be claimed
+absent. No current job is changed by these example files.
+
+Offline tests cover exact requests 1–64, notices 64–1, both tools completing in
+batch 64, no HTTP request 65, saved output, exhausted length recovery, early
+completion, explicit off/low/high request mappings, image hashes, real feedback
+client validation on turn 64 against the unchanged five-call ledger, and strict
+abort-artifact accounting. The feedback test uses a synthetic evaluator: it proves
+the client/ledger/budget integration, not live model compliance or asset quality.
+No paid model call, secret access, publication or run change is part of these tests.

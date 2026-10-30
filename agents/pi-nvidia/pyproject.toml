@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simready-pi-nvidia"
-version = "0.2.3"
+version = "0.2.4"
 description = "Plain Harbor Pi with explicit NVIDIA Build capabilities and formal feedback instructions"
 requires-python = ">=3.12,<3.13"
 dependencies = ["harbor==0.24.0"]

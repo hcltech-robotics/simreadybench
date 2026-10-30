@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import json
-import time
 from pathlib import Path
 import subprocess
 
@@ -45,44 +44,73 @@ def test_wrong_hash_missing_image_and_symlink_fail_before_attachment(tmp_path):
         runtime_inputs.attach_observation([], {**config, "observation_path": str(tmp_path / "missing.png")})
 
 
-def test_budget_starts_before_runtime_install_and_is_labeled_conservatively(tmp_path):
-    started = time.monotonic_ns() - 20_000_000_000
-    path = runtime_inputs.prepare_runtime(tmp_path, {}, started_ns=started)
+def test_budget_has_exactly_64_turns_and_no_authoring_clock(tmp_path):
+    path = runtime_inputs.prepare_runtime(tmp_path, {})
     data = json.loads(path.read_text())
-    assert data["configured_limit_sec"] == 600 and data["final_reserve_sec"] == 90
-    assert int(data["started_monotonic_ns"]) == started
-    assert int(data["working_deadline_monotonic_ns"]) - started == 585_000_000_000
-    assert data["deadline_basis"] == "conservative_adapter_clock"
-    assert data["outer_deadline_known"] is False
-    with pytest.raises(ValueError):
-        runtime_inputs.prepare_runtime(tmp_path, {"PI_NVIDIA_TIME_LIMIT_SEC": "601"}, started_ns=started)
+    assert data["model_turn_limit"] == 64 and data["final_validation_turns"] == 4
+    assert data["first_candidate_target_turn"] == 8
+    assert not any("deadline" in key or "sec" in key or "monotonic" in key for key in data)
+    # Old deployments must not silently retain the obsolete authoring policy.
+    with pytest.raises(ValueError, match="obsolete"):
+        runtime_inputs.prepare_runtime(tmp_path, {"PI_NVIDIA_TIME_LIMIT_SEC": "600"})
 
 
-def test_actual_node_budget_notice_moves_to_final_validation_without_extending_time(tmp_path):
+def test_actual_node_notice_counts_current_turn_and_final_validation_reserve(tmp_path):
     module = Path(__file__).parents[1] / "pi_nvidia/runtime.mjs"
     script = tmp_path / "notice.mjs"
     script.write_text(f'''
 import {{makeNotice}} from {json.dumps(module.as_uri())};
-const config={{configured_limit_sec:600,final_reserve_sec:90,first_candidate_target_sec:120,
- started_monotonic_ns:"1000000000000",working_deadline_monotonic_ns:"1585000000000",
- deadline_basis:"conservative_adapter_clock",working_deadline_utc:"fixture"}};
-console.log(JSON.stringify([
- makeNotice(config,1010000000000n,false),
- makeNotice(config,1130000000000n,false),
- makeNotice(config,1510000000000n,true),
- makeNotice(config,1586000000000n,true)]));
+const config={{model_turn_limit:64,final_validation_turns:4,first_candidate_target_turn:8}};
+console.log(JSON.stringify([1,9,61,64].map(n => makeNotice(config,n,n>9))));
 ''')
     result = subprocess.run(["/workspace/pi-nvidia-runtime/node/bin/node", str(script)], capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
-    first, overdue, final, expired = json.loads(result.stdout)
-    assert first["remaining_sec"] == 575 and first["phase"] == "build_first_candidate"
+    first, overdue, final, last = json.loads(result.stdout)
+    assert first["turn"] == 1 and first["remaining_including_current"] == 64
+    assert first["remaining_after_current"] == 63
+    assert "turn 1 of 64" in first["message"] and "64 turns remain including this turn" in first["message"]
     assert overdue["candidate_target_overdue"] is True
-    assert final["remaining_sec"] == 75 and final["phase"] == "final_revalidation"
-    assert expired["remaining_sec"] == 0 and expired["phase"] == "finish_now"
-    assert "conservative" in final["message"] and "five" in final["message"]
+    assert final["remaining_including_current"] == 4 and final["phase"] == "final_revalidation"
+    assert last["remaining_after_current"] == 0 and last["phase"] == "final_revalidation"
+    assert "five" in last["message"] and "last turn" in last["message"]
+    assert "seconds" not in last["message"] and "deadline" not in last["message"]
 
 
-def test_bridge_injects_the_frozen_image_once_without_resetting_working_deadline(tmp_path):
+def test_turn_end_finishes_tool_batch_and_aborts_only_at_64_and_guards_65(tmp_path):
+    module = Path(__file__).parents[1] / "pi_nvidia/runtime.mjs"
+    logs = tmp_path / "logs"
+    config = logs / "pi/config/runtime.json"
+    runtime_inputs.prepare_runtime(config.parent, {})
+    script = tmp_path / "turns.mjs"
+    script.write_text(f'''
+import runtime from {json.dumps(module.as_uri())};
+import {{readFileSync}} from "node:fs";
+process.env.PI_NVIDIA_RUNTIME_FILE={json.dumps(str(config))};
+const hooks={{}};runtime({{on:(name,fn)=>hooks[name]=fn}});
+let aborts=0;const ctx={{abort:()=>aborts++}};
+for(let i=1;i<=64;i++){{
+ hooks.turn_start({{turnIndex:i-1}},ctx);
+ hooks.context({{messages:[]}},ctx);
+ hooks.turn_end({{message:{{stopReason:"toolUse"}},toolResults:[{{role:"toolResult"}}]}},ctx);
+ if(aborts !== (i===64?1:0)) throw new Error("Wrong boundary at "+i);
+}}
+const receipt=JSON.parse(readFileSync({json.dumps(str(logs / 'pi-turn-budget.json'))},"utf8"));
+// A subsequent ACP prompt must not reset the same-trial budget.
+hooks.turn_start({{turnIndex:0}},ctx);
+hooks.before_provider_request({{payload:{{messages:[]}}}},ctx);
+console.log(JSON.stringify({{aborts,receipt}}));
+''')
+    result = subprocess.run(["/workspace/pi-nvidia-runtime/node/bin/node", str(script)], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    assert data["aborts"] >= 2
+    assert data["receipt"]["started"] == data["receipt"]["completed"] == 64
+    assert data["receipt"]["exhausted"] is True
+    notices = [json.loads(line) for line in (logs / "pi-budget-notices.jsonl").read_text().splitlines()]
+    assert [row["remaining_including_current"] for row in notices] == list(range(64,0,-1))
+
+
+def test_bridge_injects_the_frozen_image_once_without_resetting_turn_budget(tmp_path):
     from pi_nvidia.acp import Bridge
     from pi_nvidia.profile import ModelProfile
     from test_agent import profile
@@ -90,7 +118,7 @@ def test_bridge_injects_the_frozen_image_once_without_resetting_working_deadline
     runtime = runtime_inputs.prepare_runtime(tmp_path / "config", {
         "PI_NVIDIA_OBSERVATION_PATH": config["observation_path"],
         "PI_NVIDIA_OBSERVATION_SHA256": config["expected_image_sha256"]})
-    deadline = json.loads(runtime.read_text())["working_deadline_monotonic_ns"]
+    budget = json.loads(runtime.read_text())["model_turn_limit"]
     bridge = Bridge(ModelProfile.model_validate(profile()), "off", tmp_path / "pi/sessions", tmp_path,
         runtime_file=runtime)
     bridge.ready.add("s")
@@ -101,6 +129,6 @@ def test_bridge_injects_the_frozen_image_once_without_resetting_working_deadline
     second = request(2)
     assert len([b for b in first["params"]["prompt"] if b["type"] == "image"]) == 1
     assert not any(b["type"] == "image" for b in second["params"]["prompt"])
-    assert json.loads(runtime.read_text())["working_deadline_monotonic_ns"] == deadline
+    assert json.loads(runtime.read_text())["model_turn_limit"] == budget == 64
     receipt = json.loads((tmp_path / "pi-input-image.json").read_text())
     assert receipt["source_sha256"] == receipt["payload_sha256"] == config["expected_image_sha256"]

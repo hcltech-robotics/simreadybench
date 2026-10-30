@@ -13,8 +13,14 @@ write an authoring program outside the submission and generate
 and check the nominal dimensions, units and visible component placement. Validate
 this first complete candidate immediately, before polishing or further source/API
 research. Do not leave a generated candidate sitting unvalidated while exploring.
-Use the runtime notices' first-candidate target and final-revalidation reserve;
-these are workflow guidance within the original authoring limit, not new turn quotas.
+For hosted runs, the runtime enforces 64 model turns for the entire task, including
+any bounded continuation. A turn is one assistant generation plus its tool-result
+batch, even when it calls multiple tools. Each notice states the current turn,
+remaining turns including it, and turns left afterward. Aim for a first complete
+candidate by turn 8. Reserve turns 61–64 for final validation and reporting; stop
+optional edits/exploration then. On turn 64, any final validation must run in that
+turn's tool batch: no extra summary generation is available after its results.
+The target and reserve are guidance; the 64-turn maximum is enforced.
 Work in short write, generate, reopen and validate cycles. Reading CLI --help is
 setup only; it does not validate a candidate or consume a validation call.
 
@@ -23,8 +29,8 @@ Before finishing, use this formal validation and improvement loop:
    python -c 'import urllib.request; print(urllib.request.urlopen("http://feedback:8080/health", timeout=10).read().decode())'
    The benchmark service enforces at most five admitted validator feedback calls.
    These are not five model inference calls or five authoring turns. Health reads
-   consume no feedback calls. Respect the actual runner deadline and any explicitly
-   configured turn limit; do not invent one or assume a further user turn will come.
+   consume no feedback calls. Respect the configured model-turn limit; do not
+   assume a further user turn will come. Infrastructure cancellation is separate.
 2. Validate the first complete candidate with the genuine benchmark client:
    python -m simready_eval.feedback validate_candidate --package /output/submission --request-id candidate-1 --url http://feedback:8080
    Inspect result.outcome, result.simready.checks, findings, package_findings and
@@ -41,7 +47,7 @@ Before finishing, use this formal validation and improvement loop:
 4. Reserve the last available call for the final candidate after planned repairs.
    Keep all final submission bytes unchanged after their last validation. If an
    unavoidable edit cannot be revalidated within the allowance, disclose that.
-5. Stop on mandatory success, exhausted feedback allowance, the real deadline, or
+5. Stop on mandatory success, exhausted feedback allowance, the model-turn limit, or
    genuinely unrepairable faults after investigation. Do not bypass/reset the
    ledger. Report calls used/remaining, unresolved findings and unknown checks,
    unsuccessful repairs, and whether the final submitted bytes were validated.

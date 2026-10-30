@@ -14,14 +14,11 @@
       "env": {
         "PI_NVIDIA_PROFILE": "{\"id\":\"SELECT_VENDOR/SELECT_MODEL\",\"input\":null,\"contextWindow\":null,\"maxTokens\":null,\"reasoning\":null,\"toolCalls\":true,\"thinkingLevelMap\":{},\"compat\":{},\"evidence\":\"SELECT_MODEL_DOCUMENTATION_AND_VERIFIED_CAPABILITIES\"}",
         "PI_NVIDIA_THINKING": "SELECT_SUPPORTED_LEVEL",
-        "PI_NVIDIA_OBSERVATION_PATH": "/task/observation.png",
-        "PI_NVIDIA_TIME_LIMIT_SEC": "600",
-        "PI_NVIDIA_FINAL_RESERVE_SEC": "90"
+        "PI_NVIDIA_OBSERVATION_PATH": "/task/observation.png"
       },
       "secrets": [
         "NVIDIA_API_KEY"
-      ],
-      "max_timeout_sec": 600
+      ]
     }
   ]
 }

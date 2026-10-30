@@ -10,7 +10,7 @@ from .profile import ENDPOINT, ModelProfile
 from .runtime_inputs import prepare_runtime
 
 
-def configure(prefix, logs, environ, *, started_ns=None):
+def configure(prefix, logs, environ):
     env = dict(environ)
     profile = ModelProfile.model_validate_json(env.get("PI_NVIDIA_PROFILE", "{}"))
     effort = env.get("PI_NVIDIA_THINKING")
@@ -40,7 +40,7 @@ def configure(prefix, logs, environ, *, started_ns=None):
     logs, prefix = Path(logs).resolve(), Path(prefix).resolve()
     config = logs / "pi/config"
     config.mkdir(parents=True, exist_ok=True)
-    runtime_file = prepare_runtime(config, env, started_ns=started_ns)
+    runtime_file = prepare_runtime(config, env)
     # Presence and source names only: never retain keys, suffixes or hashes.
     (logs / "pi-auth-status.json").write_text(json.dumps({
         "selected_key_env": key_env, "credential_source": key_source,

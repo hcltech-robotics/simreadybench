@@ -84,3 +84,46 @@ def test_continuation_error_is_returned_under_original_request_id(tmp_path):
     follow = b.response({"id": 7, "result": {"stopReason": "end_turn"}}).request
     result = b.response({"id": follow["id"], "error": {"code": -32000, "message": "fixture provider failure"}})
     assert result["id"] == 7 and "error" in result
+
+
+def test_exhausted_64_turn_budget_blocks_length_recovery_but_preserves_usage(tmp_path):
+    b, _, _ = fixture(tmp_path)
+    runtime = tmp_path / "runtime.json"
+    runtime.write_text('{}')
+    b.runtime_file = runtime
+    (tmp_path / "pi-image-wire.jsonl").write_text(json.dumps({"expected_sha256": "fixture", "matched": True}) + '\n')
+    (tmp_path / "pi-turn-budget.json").write_text(json.dumps({
+        "limit": 64, "started": 64, "completed": 64, "exhausted": True}))
+    final = b.response({"id": 7, "result": {"stopReason": "end_turn"}})
+    assert final["result"]["stopReason"] == "max_turn_requests"
+    assert final["result"]["usage"]["outputTokens"] == 8192
+    assert final["result"]["_meta"]["pi_nvidia_accounting"]["turn_budget"]["completed"] == 64
+    assert not b.recovered and not (tmp_path / "pi-length-recovery.jsonl").exists()
+    with pytest.raises(ValueError, match="exhausted"):
+        b.request({"id": 8, "method": "session/prompt", "params": {
+            "sessionId": "s", "prompt": [{"type": "text", "text": "one more?"}]}})
+
+
+@pytest.mark.parametrize("prior_count,message,expected", [
+    (64, "This operation was aborted", "verified"),
+    (63, "This operation was aborted", "unavailable"),
+    (64, "real provider failure", "unavailable"),
+])
+def test_post_budget_abort_artifact_is_narrowly_identified_and_native_kept(tmp_path, prior_count, message, expected):
+    b, rows, path = fixture(tmp_path, stop="stop", content=[{"type": "text", "text": "response"}])
+    base = rows[-1]
+    rows = rows[:3] + [{**base, "id": f"m{i}"} for i in range(prior_count)]
+    rows.append({"type": "message", "id": "synthetic-terminal", "message": {
+        "role": "assistant", "stopReason": "error", "errorMessage": message, "content": [],
+        "usage": {"input": 0, "cacheRead": 0, "cacheWrite": 0, "output": 0, "totalTokens": 0}}})
+    path.write_text("".join(json.dumps(r) + '\n' for r in rows))
+    before = path.read_bytes()
+    budget = {"limit": 64, "started": 64, "completed": 64, "exhausted": True}
+    receipt = snapshot(b.sessions, "s", b.profile, b.effort, turn_budget=budget)
+    assert receipt["status"] == expected
+    assert receipt["provider_error"] is (expected == "unavailable")
+    assert bool(receipt["termination_artifact"]) is (expected == "verified")
+    assert path.read_bytes() == before
+    if expected == "verified":
+        assert receipt["call_count"] == 64
+        assert snapshot(b.sessions, "s", b.profile, b.effort)["status"] == "unavailable"
