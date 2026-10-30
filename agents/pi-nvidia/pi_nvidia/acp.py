@@ -92,7 +92,7 @@ class Bridge:
             method, params = request
             payload = result["result"]
             if method == "initialize":
-                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.0"}
+                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.1"}
                 payload["authMethods"] = []  # Headless injected auth; never terminal login.
                 payload.setdefault("agentCapabilities", {})["loadSession"] = False
             if method in {"session/new", "session/set_model", "session/set_mode", "session/set_config_option"}:

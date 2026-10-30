@@ -29,9 +29,22 @@ def configure(prefix, logs, environ):
     # value enters a file, command argument, diagnostic or model-profile receipt.
     if env.get("HOSTED_INFERENCE_TOKEN"):
         env[key_env] = env["HOSTED_INFERENCE_TOKEN"]
+        key_source = "HOSTED_INFERENCE_TOKEN"
+    elif env.get(key_env):
+        key_source = key_env
+    else:
+        alternate = "NVIDIA_API_KEY" if key_env == "NGC_API_KEY" else "NGC_API_KEY"
+        key_source = alternate if env.get(alternate) else None
+        if key_source:
+            env[key_env] = env[key_source]
     logs, prefix = Path(logs).resolve(), Path(prefix).resolve()
     config = logs / "pi/config"
     config.mkdir(parents=True, exist_ok=True)
+    # Presence and source names only: never retain keys, suffixes or hashes.
+    (logs / "pi-auth-status.json").write_text(json.dumps({
+        "selected_key_env": key_env, "credential_source": key_source,
+        "credential_present": bool(env.get(key_env)), "provider": "harbor-endpoint",
+        "endpoint": ENDPOINT, "model": profile.id}, indent=2) + "\n")
     models = {"providers": {"harbor-endpoint": {"baseUrl": ENDPOINT,
         "api": "openai-completions", "apiKey": "$" + key_env, "authHeader": True,
         "models": [profile.pi_model()]}}}

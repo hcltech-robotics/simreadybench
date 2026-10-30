@@ -86,7 +86,7 @@ not; retrying the same ID/content retrieves the existing result. No turn limit,
 task timeout, retry count or independent verifier budget is added or changed.
 Visual self-checks are not hidden visual/kinematic fidelity feedback.
 
-## Hosted Hub package (0.2.0)
+## Hosted Hub package (0.2.1)
 
 `harbor-agent.json` implements the documented Python-uv/ACP source contract and
 runs `python -m pi_nvidia.acp`. Use `examples/hosted-agent.template.json` for a
@@ -220,3 +220,30 @@ Sources: [Harbor Pi](https://github.com/harbor-framework/harbor/blob/7d9a0b68889
 [Pi model documentation](https://github.com/earendil-works/pi/blob/908aa7b74baa7502321293797313f64c6fec22ee/packages/coding-agent/docs/models.md),
 [pi-acp](https://github.com/svkozak/pi-acp/tree/04d0a15d6bb42bb65cce5c9caedcdcb2cdcb6905),
 [Hub custom agents](https://docs.harborframework.com/hosted-harbor/custom-agents).
+
+
+## Authentication diagnostics (0.2.1)
+
+The direct credential is resolved from `HOSTED_INFERENCE_TOKEN`, the selected
+`PI_NVIDIA_KEY_ENV`, or the alternate existing NVIDIA/NGC variable, in that order.
+Aliases are normalized only in the child environment; no key is written into
+`models.json`, launch arguments or logs. `pi-auth-status.json` records only the
+selected variable name, source variable name, presence boolean, endpoint and model.
+No credential value, suffix or hash is retained.
+
+The registry bridge's generic Authentication required response can mean that Pi's
+available-model list is empty; it does not establish a rejected NVIDIA key or an
+HTTP 401. `$NGC_API_KEY` interpolation is supported by the pinned Pi 1.4.0.
+The old adapter omitted the canonical `NVIDIA_API_KEY` alias when an NGC reference
+was selected and no hosted token was present. This omission is reproduced and
+fixed locally. Whether that alias mismatch caused hosted job
+`1c0efefa-ad31-43ae-bb9f-2ae04b6b8935` remains unverified: that run did not retain
+credential-presence diagnostics. Do not treat its candidate-invalid scores as
+model performance, or claim this patch alone proves the hosted failure resolved.
+
+The regression runs the actual Pi CLI and pi-acp bridge with fake keys against a
+loopback SSE endpoint, checks the Authorization header, exact model, reasoning low,
+8192-token cap and final usage, and verifies missing credentials cannot issue an
+inference request. Both offline and normal startup modes are checked; non-loopback
+fetch is forbidden. This is more coverage than model-profile parsing, but it does
+not verify Hub's deployed secret-delivery layer. No paid API request is made.

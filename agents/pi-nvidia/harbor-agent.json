@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "pi-nvidia-feedback",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "protocol": "acp",
   "runtime": {
     "kind": "python-uv",
