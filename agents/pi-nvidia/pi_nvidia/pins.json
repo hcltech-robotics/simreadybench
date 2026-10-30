@@ -11,5 +11,12 @@
   "feedback_wheel_version": "2.2.0",
   "feedback_wheel_sha256": "caf759ff7d9b392922530567b22678da4556de366fa879ef6395299425627d52",
   "model_selected": false,
-  "pricing": "unknown"
+  "pricing": "unknown",
+  "acp_bridge": "pi-acp",
+  "acp_bridge_version": "0.0.34",
+  "acp_bridge_source_commit": "04d0a15d6bb42bb65cce5c9caedcdcb2cdcb6905",
+  "acp_registry_commit": "af322d3bf734436be837bc078f5ae9364449aeba",
+  "node_version": "24.19.0",
+  "npm_lock_sha256": "c5461a5fa6a2719d4bc35b6b43eb1d3eab21447a89fafecfee8d8002e127f24d",
+  "acp_bridge_integrity": "sha512-MrCp37UbpUzkTkzTIMJQf1RYrT+kr4fgGDGFoLmBN26UupuCZp0XxVIY+7XYsMo3yDnzDeZUJ0jPyM3Si6Bkkg=="
 }

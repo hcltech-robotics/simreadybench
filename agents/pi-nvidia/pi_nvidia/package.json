@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "pi-acp": "0.0.34"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "credential_mode": "direct",
+  "agents": [
+    {
+      "name": "acp",
+      "source": {
+        "type": "github",
+        "repo": "hcltech-robotics/simreadybench",
+        "ref": "89350e067fc4e6411347edd51bf4a1695ad188fb",
+        "path": "agents/pi-nvidia",
+        "manifest": "harbor-agent.json"
+      },
+      "model_name": "nvidia/SELECT_VENDOR/SELECT_MODEL",
+      "env": {
+        "PI_NVIDIA_PROFILE": "{\"id\":\"SELECT_VENDOR/SELECT_MODEL\",\"input\":null,\"contextWindow\":null,\"maxTokens\":null,\"reasoning\":null,\"toolCalls\":true,\"thinkingLevelMap\":{},\"compat\":{},\"evidence\":\"SELECT_MODEL_DOCUMENTATION_AND_VERIFIED_CAPABILITIES\"}",
+        "PI_NVIDIA_THINKING": "SELECT_SUPPORTED_LEVEL"
+      },
+      "secrets": [
+        "NVIDIA_API_KEY"
+      ]
+    }
+  ]
+}
