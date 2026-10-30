@@ -1,4 +1,4 @@
-import {orderRuns, sortFields, valueFor, scoreText} from './leaderboard-math.js?v=leaderboard-20261029';
+import {orderRuns, sortFields, valueFor, scoreText} from './leaderboard-math.js?v=cad-leaderboard-20261030';
 
 const region = document.getElementById('leaderboard-table-region');
 const body = document.getElementById('leaderboard-body');
@@ -13,18 +13,18 @@ const numeric = (value, digits=2) => Number.isFinite(value)
   ? value.toLocaleString('en-GB', {maximumFractionDigits:digits, minimumFractionDigits:digits}) : '—';
 const compact = value => Number.isFinite(value)
   ? value.toLocaleString('en-GB',{notation:'compact',maximumSignificantDigits:4}) : '—';
-const token = metric => Number.isFinite(metric?.value) ? (metric.partial?'≥ ':'') + compact(metric.value) : '—';
+const token = metric => Number.isFinite(metric?.value) ? compact(metric.value) : '—';
 const money = (metric, digits=4) => !metric || !Number.isFinite(metric.value) ? '—'
-  : (metric.partial || metric.status === 'partial_lower_bound' ? '≥ ' : '') + '$' + numeric(metric.value,digits);
+  : '$' + numeric(metric.value,digits);
 function element(tag, text, className) {
   const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;
 }
 function detail(row, run) {
-  const cell=element('td');cell.colSpan=13;
+  const cell=element('td');cell.colSpan=14;
   const grid=element('div',undefined,'leaderboard-detail-grid');
   const tokens=element('div');tokens.append(element('h4','Tokens per asset'));
   for(const [name,label] of [['total','Total'],['input','Input'],['output','Output'],['cached_input','Cached input (part of input)']]) {
-    const metric=run.tokens_per_asset[name];tokens.append(element('p',`${label}: ${Number.isFinite(metric.value)&&metric.partial?'≥ ':''}${numeric(metric.value,2)}`));
+    const metric=run.tokens_per_asset[name];tokens.append(element('p',`${label}: ${numeric(metric.value,2)}`));
   }
   const efficiency=element('div');efficiency.append(element('h4','Cost per fidelity point'));
   for(const name of ['formal','visual','kinematic']) {
@@ -33,8 +33,8 @@ function detail(row, run) {
   }
   efficiency.append(element('p','Inference $/asset ÷ mean fidelity on the 0–100 scale.','leaderboard-detail-note'));
   const pass=element('div');pass.append(element('h4','Formal passes'));
-  for(const [name,label] of [['pass_at_1','pass@1'],['pass_at_3','pass@3'],['pass_all_3','pass³']]) {
-    const metric=run.pass_rates?.[name];pass.append(element('p',metric ? `${label}: ${metric.successes}/${metric.denominator}` : `${label}: —`));
+  for(const [name,label] of [['pass_at_1','pass@1'],['pass_at_3','pass@3'],['pass_all_3','pass^3']]) {
+    const metric=run.pass_rates?.[name];pass.append(element('p',`${label}: ${numeric(metric?.value)}${Number.isFinite(metric?.value)?'%':''}`));
   }
   const link=element('a','Assets and attempt results');link.href=run.source_url;pass.append(link);
   grid.append(tokens,efficiency,pass);cell.append(grid);row.append(cell);
@@ -47,16 +47,21 @@ function render() {
     const primary=valueFor(run,key);if(primary!==previous || index===0)rank=index+1;previous=primary;
     row.append(element('td',key==='label'?'':primary===null||primary===undefined?'—':String(rank),'leaderboard-rank'));
     const name=element('th');name.scope='row';
-    if(run.model_display_name){name.append(element('span',run.model_display_name),element('span',`Reasoning: ${run.reasoning_display}`,'leaderboard-submetric'));}
+    if(run.model_display_name){name.append(element('span',run.model_display_name),element('span',`Reasoning: ${run.reasoning_display} · ${run.authoring_label || run.harness}`,'leaderboard-submetric'));}
     else name.textContent=run.label;row.append(name);
     for(const metric of ['formal','visual','kinematic']) {
       const score=run.scores[metric];const cell=element('td',scoreText(score),'metric-value');
       cell.title=`${score.measured_attempts}/${score.eligible_attempts} measured scores`;
       if(metric==='formal')cell.classList.add('leaderboard-primary');row.append(cell);
+      if(metric==='formal') {
+        const optional=run.optional_criteria;const criteria=element('td',scoreText(optional),'metric-value');
+        if(optional)criteria.title=`${optional.passed_checks}/${optional.total_checks} optional checks passed; ${optional.unknown_checks} unassessed`;
+        row.append(criteria);
+      }
     }
     for(const field of ['pass_at_1','pass_at_3','pass_all_3']) {
       const metric=run.pass_rates?.[field];const cell=element('td',numeric(metric?.value),'metric-value');
-      if(metric)cell.title=`${metric.successes}/${metric.denominator}`;row.append(cell);
+      if(metric)cell.title=`${run.pass_rates.assets} assets · ${run.pass_rates.samples_per_asset || run.pass_rates.n || run.repetitions || 3} attempts per asset`;row.append(cell);
     }
     const tokens=element('td',undefined,'leaderboard-tokens');const t=run.tokens_per_asset;
     tokens.append(element('strong',token(t.total)));

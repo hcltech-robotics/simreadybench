@@ -1,8 +1,9 @@
 /** Numeric access and stable ordering shared by the table and its tests. */
 export const sortFields = {
   formal: ['Formal fidelity', 'desc'], visual: ['Visual fidelity', 'desc'],
+  optional: ['Optional criteria', 'desc'],
   kinematic: ['Kinematic fidelity', 'desc'], pass_at_1: ['pass@1', 'desc'],
-  pass_at_3: ['pass@3', 'desc'], pass_all_3: ['pass³', 'desc'],
+  pass_at_3: ['pass@3', 'desc'], pass_all_3: ['pass^3', 'desc'],
   tokens: ['Total tokens / asset', 'asc'], input: ['Input tokens / asset', 'asc'],
   output: ['Output tokens / asset', 'asc'], cached_input: ['Cached input / asset', 'asc'],
   cost: ['Inference cost / asset', 'asc'], cost_point: ['Cost / formal point', 'asc'],
@@ -11,6 +12,7 @@ export const sortFields = {
 
 export function valueFor(run, key) {
   if (['formal', 'visual', 'kinematic'].includes(key)) return run.scores[key]?.value ?? null;
+  if (key === 'optional') return run.optional_criteria?.value ?? null;
   if (key.startsWith('pass_')) return run.pass_rates?.[key]?.value ?? null;
   if (key === 'tokens') return run.tokens_per_asset?.total?.value ?? null;
   if (['input', 'output', 'cached_input'].includes(key)) return run.tokens_per_asset?.[key]?.value ?? null;
@@ -42,6 +44,10 @@ export function orderRuns(runs, key = 'formal', direction = 'desc', query = '') 
 
 export function scoreText(metric) {
   if (metric?.status === 'not_applicable') return 'N/A';
+  if (!Number.isFinite(metric?.value) && Number.isFinite(metric?.lower_bound_percent) && Number.isFinite(metric?.upper_bound_percent)) {
+    const fmt = value => value.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return `${fmt(metric.lower_bound_percent)}–${fmt(metric.upper_bound_percent)}`;
+  }
   return Number.isFinite(metric?.value) && metric.value >= 0 && metric.value <= 100
     ? metric.value.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
 }

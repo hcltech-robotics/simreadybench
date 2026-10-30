@@ -148,3 +148,57 @@ def test_full_model_display_names_keep_raw_ids_and_reasoning_settings():
     assert runs[0]['requested_model']=='openai/gpt-6.1-sol' and runs[0]['reasoning'] is None
     assert runs[0]['reasoning_display']=='low' and runs[1]['reasoning_display']=='high'
     assert runs[1]['requested_model']=='openai/gpt-6.1-terra'
+
+
+def four_rows():
+    rows = three_rows('medium')
+    rows.append({**rows[-1], 'id':'medium3', 'harbor_trial_id':'medium3', 'repetition':3})
+    return rows
+
+
+def test_four_attempt_pass_at_three_averages_subsets_and_preserves_unknown_bounds():
+    rows = four_rows()
+    for successes, expected_any, expected_all in [(0,0,0),(1,75,0),(2,100,0),(3,100,25),(4,100,100)]:
+        evidence = {r['harbor_trial_id']:{'success':i<successes} for i,r in enumerate(rows)}
+        rates = module.pass_summary(rows,evidence)
+        assert rates['samples_per_asset'] == 4
+        assert rates['pass_at_3']['value'] == expected_any
+        assert rates['pass_all_3']['value'] == expected_all
+    evidence = {r['harbor_trial_id']:{'success':True} for r in rows[:3]}
+    rates = module.pass_summary(rows,evidence)
+    assert rates['pass_at_3']['value'] == 100
+    assert rates['pass_all_3']['value'] is None
+    assert rates['pass_all_3']['lower_bound'] == 25
+    assert rates['pass_all_3']['upper_bound'] == 100
+
+
+def test_three_and_four_attempt_configurations_keep_own_means_and_match_chart_slots():
+    baseline = three_rows('medium',scores=(60,60,60))
+    cad = four_rows()
+    for r in cad:
+        r.update(id='cad-'+r['id'],harbor_trial_id='cad-'+r['harbor_trial_id'],harbor_job_id='cad-job',
+                 harness='Codex',authoring_label='Codex / build123d',agent_revision='cb68fc11')
+    cad[-1]['formal_fidelity_percent'] = 0
+    retry = {**cad[0], 'id':'retry', 'is_final_attempt':False, 'parent_final_result_id':cad[0]['id'], 'inference_cost_usd':None}
+    evidence = {r['harbor_trial_id']:{'success':True} for r in baseline+cad}
+    runs = module.build(baseline+cad+[retry],evaluator='2.2.0',revision='test',formal_success=evidence)['runs']
+    assert len({r['id'] for r in runs}) == 2
+    old, new = sorted(runs,key=lambda r:r['final_slots'])
+    assert old['final_slots'] == 3 and new['final_slots'] == 4
+    assert old['scores']['formal']['value'] == 60 and new['scores']['formal']['value'] == 75
+    assert new['metrics']['cost_usd_per_asset']['paired_scores']['formal']['value'] == 100
+    assert old['metrics']['cost_usd_per_asset']['paired_scores']['formal']['cohort_sha256'] == new['metrics']['cost_usd_per_asset']['paired_scores']['formal']['cohort_sha256']
+    assert new['inference_cost_per_asset']['denominator'] == 4
+    assert new['inference_cost_per_asset']['unknown_executions'] == 1
+    assert new['execution_count'] == 5
+    assert new['pass_rates']['final_attempts'] == 4
+    assert new['authoring_label'] == 'Codex / build123d'
+
+
+def test_csv_export_retains_nulls_and_separates_authoring_configurations(tmp_path):
+    import csv
+    runs = module.build([row('medium','asset',None,None)],evaluator='2.2.0',revision='test')
+    module.write_csv(runs,tmp_path/'leaderboard.csv')
+    record = next(csv.DictReader((tmp_path/'leaderboard.csv').open()))
+    assert record['formal_percent'] == '' and record['inference_usd_per_asset'] == ''
+    assert record['model'] == 'ChatGPT 6.1 Sol' and record['authoring'] == 'Codex'

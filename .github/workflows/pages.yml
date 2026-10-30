@@ -39,6 +39,7 @@ jobs:
           assert data["formal_fidelity_primary"] and data["runs"]
           assert all(r["metrics"]["elapsed_seconds_per_asset"]["unit"] == "seconds/asset" and r["metrics"]["elapsed_seconds_per_asset"]["value"] == r["trial_seconds_per_asset"]["value"] for r in data["runs"])
           assert all(r["pass_rates"] and r["pass_rates"]["k"] == 3 and r["pass_rates"]["final_attempts"] == r["final_slots"] and r["pass_rates"]["assets"] == r["reference_count"] for r in data["runs"])
+          assert all(r["final_slots"] == r["reference_count"] * r["pass_rates"].get("samples_per_asset", r["pass_rates"].get("n", r.get("repetitions", 3))) for r in data["runs"])
           gallery = json.loads(Path("site/assets/explorer/manifest.json").read_text())
           assert all(v["run_id"] in data["job_ids"] for obj in gallery["objects"] for v in obj["variants"])
           for job in data["job_ids"]:

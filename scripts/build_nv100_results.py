@@ -3,6 +3,7 @@
 from collections import defaultdict
 from pathlib import Path
 import argparse
+import csv
 import hashlib
 import json
 import math
@@ -52,27 +53,35 @@ def pass_summary(final_rows, formal_success, *, k=3):
         if repetition in trials:
             raise ValueError('Duplicate scored object/repetition slot')
         trials[repetition] = formal_success.get(row['harbor_trial_id'], {}).get('success')
-    if any(set(trials) != set(range(k)) for trials in assets.values()):
-        raise ValueError('Every asset must have exactly three distinct final repetitions')
+    counts = {len(trials) for trials in assets.values()}
+    if len(counts) != 1 or min(counts) < k or any(set(trials) != set(range(len(trials))) for trials in assets.values()):
+        raise ValueError('Every asset must have the same contiguous final repetitions, at least three')
+    n = counts.pop()
     states = [v for trials in assets.values() for v in trials.values()]
     if any(v is not None and type(v) is not bool for v in states):
         raise ValueError('Formal success must be an explicit boolean or unknown')
-    known_states = [v for v in states if v is not None]
-    histogram = {str(c): 0 for c in range(k + 1)}
+    histogram = {str(c): 0 for c in range(n + 1)}
     for trials in assets.values():
         if all(v is not None for v in trials.values()):histogram[str(sum(trials.values()))] += 1
-    any_pass = [True if any(v is True for v in t.values()) else False if all(v is False for v in t.values()) else None for t in assets.values()]
-    all_pass = [False if any(v is False for v in t.values()) else True if all(v is True for v in t.values()) else None for t in assets.values()]
-    def rate(outcomes):
-        measured = [v for v in outcomes if v is not None]
-        successes = sum(measured)
-        return {'value': 100 * successes / len(outcomes) if len(measured) == len(outcomes) else None,
-                'successes': successes, 'denominator': len(outcomes), 'unknown': len(outcomes)-len(measured),
-                'lower_bound': 100 * successes / len(outcomes),
-                'upper_bound': 100 * (successes+len(outcomes)-len(measured)) / len(outcomes)}
-    return {'criterion': 'all_46_mandatory_requirements_pass', 'k': k, 'assets':len(assets),
-            'final_attempts':len(states), 'pass_at_1':rate(states), 'pass_at_3':rate(any_pass),
-            'pass_all_3':rate(all_pass), 'successes_per_asset':histogram,
+    def rate(bounds):
+        lower = math.fsum(lo for lo, hi in bounds)
+        upper = math.fsum(hi for lo, hi in bounds)
+        unknown = sum(lo != hi for lo, hi in bounds)
+        return {'value': 100 * lower / len(bounds) if not unknown else None,
+                'successes': lower, 'denominator': len(bounds), 'unknown': unknown,
+                'lower_bound': 100 * lower / len(bounds), 'upper_bound': 100 * upper / len(bounds)}
+    def estimate(c, all_pass):
+        return math.comb(c, k) / math.comb(n, k) if all_pass else 1 - math.comb(n-c, k) / math.comb(n, k)
+    def asset_bounds(all_pass):
+        result = []
+        for trials in assets.values():
+            c = sum(v is True for v in trials.values())
+            unknown = sum(v is None for v in trials.values())
+            result.append((estimate(c, all_pass), estimate(c+unknown, all_pass)))
+        return result
+    return {'criterion': 'all_46_mandatory_requirements_pass', 'k': k, 'samples_per_asset': n, 'assets':len(assets),
+            'final_attempts':len(states), 'pass_at_1':rate([(int(v is True), int(v is not False)) for v in states]),
+            'pass_at_3':rate(asset_bounds(False)), 'pass_all_3':rate(asset_bounds(True)), 'successes_per_asset':histogram,
             'estimators': {'pass_at_k':'1 - C(n-c,k)/C(n,k)', 'pass_all_k':'C(c,k)/C(n,k)'},
             'retries_excluded':True,
             'by_asset':[{'reference_id':asset,'samples':len(trials),'successes':sum(v is True for v in trials.values()),
@@ -107,37 +116,50 @@ def build(rows, *, evaluator, revision, formal_success=None):
     assert len(by_id) == len(finals)
     groups = defaultdict(list)
     attempts = defaultdict(list)
+    group_key = lambda r: (r['harbor_job_id'], r['condition_id'])
     for r in finals:
-        groups[r['condition_id']].append(r)
+        groups[group_key(r)].append(r)
     for r in rows:
         parent = r['id'] if r['is_final_attempt'] else r['parent_final_result_id']
-        assert parent in by_id and by_id[parent]['condition_id'] == r['condition_id']
-        attempts[r['condition_id']].append(r)
+        assert parent in by_id and group_key(by_id[parent]) == group_key(r)
+        attempts[group_key(r)].append(r)
     keys = lambda rs: {(r['reference_id'], r['repetition']): r for r in rs}
     indexed = {condition: keys(rs) for condition, rs in groups.items()}
     if any(len(indexed[c]) != len(rs) for c,rs in groups.items()):
         raise ValueError('Duplicate scored object/repetition slot')
-    all_keys = [set(rs) for rs in indexed.values()]
-    if not all(k == all_keys[0] for k in all_keys):
-        raise ValueError('Conditions must cover the same reference/repetition slots')
+    reference_sets = [{k[0] for k in rs} for rs in indexed.values()]
+    if not all(s == reference_sets[0] for s in reference_sets):
+        raise ValueError('Conditions must cover the same references')
     common = {metric: sorted(set.intersection(*[{k for k, r in rs.items()
         if known(r[f'{metric}_fidelity_percent'])} for rs in indexed.values()])) for metric in METRICS}
     runs = []
-    for condition, rs in groups.items():
+    for identity, rs in groups.items():
         first = rs[0]
+        job, condition = identity
+        identity_fields = ('requested_model', 'reasoning_effort', 'reference_set', 'harness', 'harness_id', 'authoring_label', 'agent_revision', 'agent_version')
+        if any(tuple(r.get(k) for k in identity_fields) != tuple(first.get(k) for k in identity_fields) for r in rs):
+            raise ValueError('Configuration metadata differs within a condition')
         family = 'Sol' if first['requested_model'].endswith('-sol') else 'Terra' if first['requested_model'].endswith('-terra') else first['requested_model']
         effort = first['reasoning_effort']
         display_effort = 'low' if family == 'Sol' and effort is None else effort or 'default'
         n = len(rs)
-        job = first['harbor_job_id']
+        configuration_id = first.get('configuration_id') or condition
+        if sum(key[1] == condition for key in groups) > 1:
+            configuration_id = f'{configuration_id}@{job}'
+        harness = first.get('harness') or first.get('harness_id') or 'Codex'
+        authoring = first.get('authoring_label') or harness
+        agent_revision = first.get('agent_revision') or first.get('harness_version')
+        if not isinstance(agent_revision, str) or len(agent_revision) != 40 or any(c not in '0123456789abcdef' for c in agent_revision):
+            agent_revision = None
         model_name = {'Sol':'ChatGPT 6.1 Sol', 'Terra':'ChatGPT 6.1 Terra'}.get(family, family)
-        run = {'id': condition, 'label': f'{model_name} · {display_effort}', 'model': model_name, 'model_family': family,
+        run = {'id': configuration_id, 'label': f'{model_name} · {display_effort} · {authoring}', 'model': model_name, 'model_family': family,
                'model_display_name': model_name, 'reasoning_display': display_effort,
-               'requested_model': first['requested_model'], 'reasoning': effort, 'harness': 'Codex',
+               'requested_model': first['requested_model'], 'reasoning': effort, 'harness': harness,
+               'authoring_label': authoring, 'agent_revision': agent_revision,
                'evaluator_version': evaluator, 'job_id': job,
                'frontier_group': f'{first["reference_set"]}:{evaluator}',
                'reference_count': len({r['reference_id'] for r in rs}), 'final_slots': n,
-               'execution_count': len(attempts[condition]),
+               'execution_count': len(attempts[identity]),
                'source_url': f'https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/{revision}/results/harbor/{job}',
                'scores': {}, 'metrics': {}}
         for metric in METRICS:
@@ -146,13 +168,13 @@ def build(rows, *, evaluator, revision, formal_success=None):
                 'measured_attempts': len(values), 'eligible_attempts': n, 'complete': len(values) == n,
                 'status': 'known' if len(values) == n else 'partial' if values else 'not_applicable' if all(r.get(f'{metric}_fidelity_status') == 'not_applicable' for r in rs) else 'unknown'}
         for axis, (field, label, divisor) in AXES.items():
-            values = [r[field] for r in attempts[condition] if known(r[field])]
+            values = [r[field] for r in attempts[identity] if known(r.get(field))]
             value = math.fsum(values) / n if values else None
             metric = {'value': value, 'unit': {'cost_usd_per_asset':'USD/asset','elapsed_seconds_per_asset':'seconds/asset','tokens_per_asset':'tokens/asset'}[axis], 'denominator': n,
-                      'measured_attempts': len(values), 'total_attempts': len(attempts[condition]),
-                      'unknown_execution_count': len(attempts[condition]) - len(values),
+                      'measured_attempts': len(values), 'total_attempts': len(attempts[identity]),
+                      'unknown_execution_count': len(attempts[identity]) - len(values),
                       'sum_recorded': math.fsum(values) if values else None,
-                      'complete': len(values) == len(attempts[condition]),
+                      'complete': len(values) == len(attempts[identity]),
                       'includes_retries': True, 'paired_scores': {}}
             if field == 'inference_cost_usd':
                 metric['kind'] = first['cost_kind']
@@ -160,13 +182,13 @@ def build(rows, *, evaluator, revision, formal_success=None):
                 metric['timing_scope'] = 'sum of individual trial durations, including setup and verification; not job wall time'
             for score in METRICS:
                 cohort = common[score]
-                scores = [indexed[condition][key][f'{score}_fidelity_percent'] for key in cohort]
+                scores = [indexed[identity][key][f'{score}_fidelity_percent'] for key in cohort]
                 metric['paired_scores'][score] = {'value': statistics.mean(scores) if scores else None,
                     'x_value': value, 'measured_attempts': len(scores), 'eligible_attempts': n,
                     'complete': len(scores) == n,
                     'cohort_sha256': hashlib.sha256(json.dumps(cohort, separators=(',', ':')).encode()).hexdigest()}
             run['metrics'][axis] = metric
-        execution_rows = attempts[condition]
+        execution_rows = attempts[identity]
         run['tokens_per_asset'] = {name:resource_summary(execution_rows, field, n) for name,field in
             [('total','total_tokens'),('input','input_tokens'),('output','output_tokens'),('cached_input','cached_input_tokens')]}
         run['inference_cost_per_asset'] = resource_summary(execution_rows,'inference_cost_usd',n)
@@ -175,16 +197,16 @@ def build(rows, *, evaluator, revision, formal_success=None):
         run['pass_rates'] = pass_summary(rs,formal_success) if formal_success else None
         runs.append(run)
     order = {'low': 0, 'medium': 1, 'high': 2}
-    runs.sort(key=lambda r: (r['model_family'], order.get(r['label'].split()[-1], 3), r['label']))
+    runs.sort(key=lambda r: (r['model_family'], order.get(r['reasoning_display'], 3), r['label']))
     output = {'schema_version': 2, 'reference_set': finals[0]['reference_set'], 'reference_count': runs[0]['reference_count'],
               'evaluator_version': evaluator, 'source_revision': revision,
               'job_ids': sorted({r['harbor_job_id'] for r in finals}),
               'formal_fidelity_primary': True, 'runs': runs,
               'leaderboard_definitions': {'pass':'all 46 mandatory requirements pass',
                   'formal_success_source':'per-trial metrics.json: scores.formal.evidence.all_scored_mandatory_pass',
-                  'pass_at_1':'mean asset success rate over the three final attempts',
-                  'pass_at_3':'at least one formal pass among three final attempts per asset',
-                  'pass_all_3':'all three final attempts pass for an asset',
+                  'pass_at_1':'mean asset success rate over final attempts',
+                  'pass_at_3':'estimated probability of at least one formal pass in three attempts',
+                  'pass_all_3':'estimated probability of three formal passes in three attempts',
                   'cost_per_point':'inference cost per intended reconstruction divided by mean fidelity on the 0–100 scale',
                   'tokens':'total = input + output; cached input is already part of input',
                   'resources':'retry-inclusive recorded sums divided by intended reconstruction slots'},
@@ -225,7 +247,7 @@ def figures(data, output):
     for axis in ('cost_usd_per_asset', 'elapsed_seconds_per_asset'):
         fig, axes = plt.subplots(1, 3, figsize=(14, 4.5), layout='constrained')
         for ax, metric in zip(axes, METRICS):
-            points = [{'id': r['id'], 'x': r['metrics'][axis]['value'] / AXES[axis][2],
+            points = [{'id': r['id'], 'x': r['metrics'][axis]['value'] / AXES[axis][2] if known(r['metrics'][axis]['value']) else None,
                        'y': r['metrics'][axis]['paired_scores'][metric]['value']} for r in runs]
             fs = frontier(points)
             provisional_line = any(not r['metrics'][axis]['complete'] and r['id'] in {p['id'] for p in fs} for r in runs)
@@ -250,12 +272,49 @@ def figures(data, output):
         plt.close(fig)
 
 
+def write_csv(data, output):
+    fields = ['configuration', 'model', 'reasoning_effort_display', 'authoring', 'formal_percent', 'optional_criteria_percent', 'optional_lower_bound_percent', 'optional_upper_bound_percent', 'visual_percent',
+              'kinematic_percent', 'pass_at_1_percent', 'pass_at_3_percent', 'pass_all_3_percent',
+              'total_tokens_per_asset', 'input_tokens_per_asset', 'output_tokens_per_asset',
+              'cached_input_tokens_per_asset', 'inference_usd_per_asset', 'inference_usd_per_formal_point',
+              'trial_minutes_per_asset', 'resource_measurements_partial']
+    with output.open('w', newline='') as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        for run in data['runs']:
+            row = dict(zip(fields[:4], [run['label'], run['model_display_name'], run['reasoning_display'], run.get('authoring_label') or run['harness']]))
+            row.update({f'{metric}_percent': run['scores'][metric]['value'] for metric in METRICS})
+            optional = run.get('optional_criteria') or {}
+            row.update(optional_criteria_percent=optional.get('value'), optional_lower_bound_percent=optional.get('lower_bound_percent'), optional_upper_bound_percent=optional.get('upper_bound_percent'))
+            row.update({f'{name}_percent': (run['pass_rates'] or {}).get(name, {}).get('value') for name in ('pass_at_1', 'pass_at_3', 'pass_all_3')})
+            row.update({f'{name}_tokens_per_asset': run['tokens_per_asset'][name]['value'] for name in ('total', 'input', 'output', 'cached_input')})
+            row.update(inference_usd_per_asset=run['inference_cost_per_asset']['value'],
+                       inference_usd_per_formal_point=run['cost_per_point']['formal']['value'],
+                       trial_minutes_per_asset=run['trial_seconds_per_asset']['value']/60 if run['trial_seconds_per_asset']['value'] is not None else None,
+                       resource_measurements_partial=any(metric['partial'] for metric in [run['inference_cost_per_asset'], run['trial_seconds_per_asset'], *run['tokens_per_asset'].values()]))
+            writer.writerow(row)
+
+
 def main():
-    import pyarrow.parquet as pq
-    p = argparse.ArgumentParser();p.add_argument('--attempts', type=Path, required=True);p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--evaluator-version', required=True);p.add_argument('--source-revision', required=True);p.add_argument('--formal-evidence',type=Path);args=p.parse_args()
-    data=build(pq.read_table(args.attempts).to_pylist(), evaluator=args.evaluator_version, revision=args.source_revision,formal_success=json.loads(args.formal_evidence.read_text()) if args.formal_evidence else None)
-    args.output.mkdir(parents=True, exist_ok=True);(args.output/'leaderboard.json').write_text(json.dumps(data,indent=2,allow_nan=False)+'\n');(args.output/'pareto.json').write_text(json.dumps(data,indent=2,allow_nan=False)+'\n');figures(data,args.output)
+    p = argparse.ArgumentParser();inputs=p.add_mutually_exclusive_group(required=True)
+    inputs.add_argument('--attempts', type=Path, nargs='+');inputs.add_argument('--leaderboard',type=Path)
+    p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--evaluator-version');p.add_argument('--source-revision');p.add_argument('--formal-evidence',type=Path,nargs='+');args=p.parse_args()
+    if args.leaderboard:
+        data=json.loads(args.leaderboard.read_text())
+        if not data.get('formal_fidelity_primary') or not data.get('runs') or len({r['id'] for r in data['runs']}) != len(data['runs']):
+            raise ValueError('Invalid published leaderboard')
+    else:
+        import pyarrow.parquet as pq
+        if not args.evaluator_version or not args.source_revision:p.error('--attempts requires --evaluator-version and --source-revision')
+        rows = [row for path in args.attempts for row in pq.read_table(path).to_pylist()]
+        evidence = {}
+        for path in args.formal_evidence or []:
+            values = json.loads(path.read_text())
+            if evidence.keys() & values.keys(): raise ValueError('Duplicate formal trial evidence')
+            evidence.update(values)
+        data=build(rows, evaluator=args.evaluator_version, revision=args.source_revision,formal_success=evidence)
+    args.output.mkdir(parents=True, exist_ok=True);(args.output/'leaderboard.json').write_text(json.dumps(data,indent=2,allow_nan=False)+'\n');(args.output/'pareto.json').write_text(json.dumps(data,indent=2,allow_nan=False)+'\n');write_csv(data,args.output/'leaderboard.csv');figures(data,args.output)
     print(json.dumps({'configurations':len(data['runs']),'files':[p.name for p in args.output.iterdir()]}))
 
 if __name__ == '__main__':main()

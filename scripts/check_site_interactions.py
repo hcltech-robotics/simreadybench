@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('.cache/site-interactions'))
     args = parser.parse_args(); args.output.mkdir(parents=True, exist_ok=True)
     manifest = json.loads(Path('site/assets/explorer/manifest.json').read_text())
+    leaderboard = json.loads(Path('site/assets/leaderboard.json').read_text())
     source_hashes = {item['src']: item['sha256'] for obj in manifest['objects']
                      for item in [obj['reference'], *obj['variants']] if item.get('src')}
     cache = {}; fetched = []; errors = []
@@ -56,6 +57,21 @@ def main():
             page = browser.new_page(viewport={'width':width,'height':height}); page.route('**/*',relay)
             page.on('pageerror',lambda error: errors.append(str(error)))
             page.goto(url,wait_until='domcontentloaded')
+            page.wait_for_function("document.querySelector('#leaderboard-table-region').dataset.loadState==='ready'")
+            table_rows = page.locator('#leaderboard-body > tr[data-configuration]')
+            assert table_rows.count() == len(leaderboard['runs'])
+            for run in leaderboard['runs']:
+                row = page.locator('#leaderboard-body > tr').filter(has=page.locator(f'[aria-label="Details for {run["label"]}"]'))
+                assert row.count() == 1 and row.locator('td,th').count() == 14
+                assert run['model_display_name'] in row.inner_text() and run['harness'] in row.inner_text()
+                optional = run.get('optional_criteria') or {}
+                expected_optional = (f'{optional["value"]:.2f}' if optional.get('value') is not None else
+                    f'{optional["lower_bound_percent"]:.2f}–{optional["upper_bound_percent"]:.2f}'
+                    if optional.get('lower_bound_percent') is not None else '—')
+                assert row.locator('td,th').nth(3).inner_text() == expected_optional
+                assert str(run['pass_rates'].get('n', run['pass_rates'].get('samples_per_asset',3))) in row.locator('td,th').nth(7).get_attribute('title')
+            assert page.locator('[data-leaderboard-sort="pass_all_3"]').inner_text().startswith('pass^3')
+            assert not any(marker in page.locator('#leaderboard-table-region').inner_text() for marker in ['≥','≤','>=','<='])
             page.wait_for_function("document.querySelector('#explorer').dataset.state==='idle'")
             assert page.locator('#explorer-canvas canvas').count() == 0
             assert page.locator('#explorer-object').is_disabled() and page.locator('#explorer-reset').is_disabled()
@@ -90,11 +106,16 @@ def main():
             page.locator('#explorer-stage').screenshot(path=str(args.output/(name+'-delta.png')))
             page.locator('#pareto').scroll_into_view_if_needed()
             page.wait_for_function("document.querySelector('#pareto-root').dataset.loadState==='ready'")
+            assert not any(marker in page.locator('#pareto').inner_text() for marker in ['≥','≤','>=','<='])
             for metric in ['formal','visual','kinematic','all']:
                 page.locator(f'[data-pareto-score="{metric}"]').click()
                 labels = page.locator('.pareto-point-label').evaluate_all('''nodes=>nodes.map(node=>{
                   const b=node.getBoundingClientRect();return {text:node.textContent,left:b.left,right:b.right,top:b.top,bottom:b.bottom};})''')
-                assert len(labels) == (15 if metric=='all' else 5)
+                scores = ['formal','visual','kinematic'] if metric == 'all' else [metric]
+                expected = sum(run['metrics']['cost_usd_per_asset']['value'] is not None and
+                    run['metrics']['cost_usd_per_asset']['paired_scores'][score]['value'] is not None
+                    for run in leaderboard['runs'] for score in scores)
+                assert len(labels) == expected
                 for i,a in enumerate(labels):
                     assert a['text'].startswith('gpt-6.1-') and '/' in a['text'] and 'Reasoning' not in a['text']
                     for b in labels[i+1:]:

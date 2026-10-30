@@ -370,15 +370,19 @@ const text=node=>[node.textContent,...node.children.map(text)].join(' ').trim();
 @pytest.mark.skipif(shutil.which('node') is None,reason='Node.js is required for the site renderer')
 def test_site_renders_zero_scores_unknown_eligibility_and_not_applicable_results():
     run_site_renderer_assertions(r"""
-assert.equal(cells().length,13);
+assert.equal(cells().length,14);
 assert.equal(text(cells()[2]),'100.00');
-assert.equal(text(cells()[3]),'0.00');
-assert.equal(text(cells()[4]),'—');
-for(const index of [5,6,7,9,10,11])assert.equal(text(cells()[index]),'—');
+assert.equal(text(cells()[4]),'0.00');
+assert.equal(text(cells()[5]),'—');
+for(const index of [3,6,7,8,10,11,12])assert.equal(text(cells()[index]),'—');
 vm.runInContext("fixture.scores.kinematic.status='not_applicable';render();",context);
-assert.equal(text(cells()[4]),'N/A');
+assert.equal(text(cells()[5]),'N/A');
 vm.runInContext("fixture.scores.formal.value=0;render();",context);
 assert.equal(text(cells()[2]),'0.00');
+vm.runInContext("fixture.optional_criteria={value:0};render();",context);
+assert.equal(text(cells()[3]),'0.00');
+vm.runInContext("fixture.optional_criteria={value:null,lower_bound_percent:70,upper_bound_percent:75};render();",context);
+assert.equal(text(cells()[3]),'70.00–75.00');
 """)
 
 
@@ -389,17 +393,17 @@ vm.runInContext(`
 fixture.tokens_per_asset={total:{value:1200},input:{value:1000},output:{value:200},cached_input:{value:800}};
 fixture.inference_cost_per_asset={value:0};fixture.trial_seconds_per_asset={value:120};
 fixture.cost_per_point.formal={value:0,status:'known'};render();`,context);
-assert.match(text(cells()[8]),/1\.2K.*In 1K.*Out 200.*Cached input 800/i);
-assert.equal(text(cells()[9]),'$0.0000');
-assert.equal(text(cells()[10]),'$0.000000');
-assert.equal(text(cells()[11]),'2.00');
-assert.match(cells()[10].title,/0–100 scale/);
+assert.match(text(cells()[9]),/1\.2K.*In 1K.*Out 200.*Cached input 800/i);
+assert.equal(text(cells()[10]),'$0.0000');
+assert.equal(text(cells()[11]),'$0.000000');
+assert.equal(text(cells()[12]),'2.00');
+assert.match(cells()[11].title,/0–100 scale/);
 vm.runInContext("fixture.inference_cost_per_asset={value:0.025,partial:true};fixture.trial_seconds_per_asset={value:null};render();",context);
-assert.equal(text(cells()[9]),'≥ $0.0250');
-assert.match(cells()[9].title,/Lower bound/);
-assert.equal(text(cells()[11]),'—');
+assert.equal(text(cells()[10]),'$0.0250');
+assert.match(cells()[10].title,/Lower bound/);
+assert.equal(text(cells()[12]),'—');
 vm.runInContext("fixture.inference_cost_per_asset={value:null};render();",context);
-assert.equal(text(cells()[9]),'—');
+assert.equal(text(cells()[10]),'—');
 const html=fs.readFileSync(root+'/site/index.html','utf8');
 assert.match(html,/Trial time[\s\S]*min \/ asset/);
 assert.match(html,/Inference[\s\S]*\$ \/ asset/);

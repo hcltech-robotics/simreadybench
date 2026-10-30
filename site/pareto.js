@@ -34,7 +34,7 @@ function publicLabel(value) {
 }
 
 function configLabel(run) {
-  if (run.model_display_name) return `${run.model_display_name} · Reasoning: ${run.reasoning_display}`;
+  if (run.model_display_name) return `${run.model_display_name} · Reasoning: ${run.reasoning_display} · ${run.authoring_label || run.harness}`;
   if (run.label) return run.label;
   const parts = [run.model, run.harness, run.reasoning || "default reasoning"];
   if (run.orichalcum_pin) parts.push(`Orichalcum …${run.orichalcum_pin.slice(-8)}`);
@@ -128,6 +128,7 @@ async function initialise() {
   controls.forEach((control) => { control.disabled = true; });
   root.dataset.loadState = "loading";
   tooltip.hidden = true;
+  tooltip.replaceChildren();
 
   let data;
   try {
@@ -151,7 +152,8 @@ async function initialise() {
   const runs = data.runs;
   const symbols = [d3.symbolCircle, d3.symbolSquare, d3.symbolTriangle, d3.symbolDiamond,
     d3.symbolCross, d3.symbolStar, d3.symbolWye];
-  const familyName = (run) => run.model_display_name || run.model_family || run.model;
+  const familyName = (run) => [run.model_display_name || run.model_family || run.model,
+    run.authoring_label || run.harness].filter(Boolean).join(' · ');
   const families = [...new Set(runs.map(familyName))];
   const familySymbol = new Map(families.map((family, index) => [family, symbols[index % symbols.length]]));
   let selectedScore = "formal";
@@ -217,7 +219,7 @@ async function initialise() {
     const measurement = element("p", `${scoreType.label}: ${number(point.y)}${cumulative ? "" : " / 100"}`, "pareto-tooltip-score");
     measurement.style.color = scoreType.colour;
     tooltip.append(measurement);
-    tooltip.append(element("p", `${axes[xSelect.value].label}: ${point.resourceIncomplete ? "≥ " : ""}${axes[xSelect.value].format(point.rawX)} per asset`));
+    tooltip.append(element("p", `${axes[xSelect.value].label}: ${axes[xSelect.value].format(point.rawX)} per asset`));
     tooltip.append(element("p", metricCoverage(point.metric), "table-note"));
     const measuredScoreCoverage = scoreCoverage(point.score);
     if (measuredScoreCoverage) tooltip.append(element("p", `Score coverage: ${measuredScoreCoverage}`, "table-note"));
@@ -374,7 +376,7 @@ async function initialise() {
         .attr("fill", (point) => point.resourceIncomplete ? "white" : scoreTypes.find((score) => score.id === point.scoreId).colour)
         .attr("stroke", (point) => scoreTypes.find((score) => score.id === point.scoreId).colour)
         .attr("tabindex", isSnapshot ? null : 0).attr("role", isSnapshot ? "img" : "button")
-        .attr("aria-label", (point) => `${configLabel(point.run)}. ${scoreTypes.find((score) => score.id === point.scoreId).label}: ${number(point.y)}${point.scoreId === "cumulative" ? " mean z-score" : " / 100"}. ${axes[metricId].label}: ${point.resourceIncomplete ? "at least " : ""}${axes[metricId].format(point.rawX)} per asset. ${metricCoverage(point.metric)}. ${point.resourceIncomplete ? "Provisional frontier position." : point.frontier ? "On frontier." : "Dominated."}`)
+        .attr("aria-label", (point) => `${configLabel(point.run)}. ${scoreTypes.find((score) => score.id === point.scoreId).label}: ${number(point.y)}${point.scoreId === "cumulative" ? " mean z-score" : " / 100"}. ${axes[metricId].label}: ${axes[metricId].format(point.rawX)} per asset. ${metricCoverage(point.metric)}. ${point.resourceIncomplete ? "Provisional frontier position." : point.frontier ? "On frontier." : "Dominated."}`)
         .on("pointerdown", (event) => { event.currentTarget._pointerFocus = true; })
         .on("pointercancel blur", (event) => { event.currentTarget._pointerFocus = false; })
         .on("pointerenter", (event, point) => { if (event.pointerType !== "touch") showTooltip(event, point); })
