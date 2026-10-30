@@ -92,7 +92,8 @@ Visual self-checks are not hidden visual/kinematic fidelity feedback.
 runs `python -m pi_nvidia.acp`. Use `examples/hosted-agent.template.json` for a
 GitHub source entry with `name: acp`; do not use native `import_path` on Hub.
 The implementation is local and **unpublished** until a separately authorized
-push. The example's immutable source ref becomes accessible only after publication.
+push. The hosted example pins implementation commit
+`07491e32305578d79c1ef0d7ea1bcdbc4fe3759d`; that ref becomes accessible only after publication.
 
 Fill the actual model ID, `env.PI_NVIDIA_PROFILE` JSON and
 `env.PI_NVIDIA_THINKING` in each entry. Those controls are independent per agent.
