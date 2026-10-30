@@ -1,5 +1,8 @@
 """Small guarded stdio proxy around the registry-listed pi-acp bridge."""
 
+import time
+STARTED_NS = time.monotonic_ns()
+
 import copy
 from dataclasses import dataclass
 import json
@@ -14,6 +17,7 @@ from uuid import uuid4
 from .accounting import snapshot
 from .bootstrap import install
 from .hosted import configure
+from .runtime_inputs import attach_observation, save_runtime
 
 ROOT = Path(__file__).parent
 
@@ -24,12 +28,14 @@ class Continuation:
 
 
 class Bridge:
-    def __init__(self, profile, effort, sessions, logs):
+    def __init__(self, profile, effort, sessions, logs, *, runtime_file=None):
         self.profile, self.effort, self.sessions, self.logs = profile, effort, Path(sessions), Path(logs)
         self.public = "nvidia/" + profile.id
         self.native = "harbor-endpoint/" + profile.id
         self.pending, self.ready = {}, set()
         self.origins, self.recovered, self.cancelled = {}, set(), set()
+        self.runtime_file = Path(runtime_file) if runtime_file else None
+        self.image_sessions = set()
         self.lock = threading.RLock()
 
     def request(self, message):
@@ -63,9 +69,23 @@ class Bridge:
                     raise ValueError("Matching native model/thinking receipt is required before prompting")
                 if result.get("id") not in self.origins:
                     self.cancelled.discard(params["sessionId"])
+                if self.runtime_file and params["sessionId"] not in self.image_sessions:
+                    runtime = json.loads(self.runtime_file.read_text())
+                    try:
+                        params["prompt"], image_receipt = attach_observation(params["prompt"], runtime)
+                    except (ValueError, OSError) as error:
+                        (self.logs / "pi-input-image.json").write_text(json.dumps({
+                            "status": "error", "reason": str(error)}) + "\n")
+                        raise ValueError("Frozen observation attachment failed; inspect pi-input-image.json") from error
+                    self.image_sessions.add(params["sessionId"])
+                    runtime["expected_image_sha256"] = image_receipt["source_sha256"]
+                    save_runtime(self.runtime_file, runtime)
+                    (self.logs / "pi-input-image.json").write_text(json.dumps(image_receipt, indent=2) + "\n")
                 caps = (f"This entry's output cap is {self.profile.maxTokens} tokens per inference response, including reasoning; "
                         f"it is not an authoring-turn or validator-call budget. Reasoning level: {self.effort}. "
                         "The original runner wall-clock deadline covers the whole task and any bounded continuation; it is never reset.\n")
+                if self.runtime_file:
+                    caps += "The frozen task observation was hash-verified and attached to the initial session prompt; use that image directly.\n"
                 params["prompt"] = [{"type": "text", "text": caps + (ROOT / "feedback.txt").read_text()}] + list(params["prompt"])
             if "id" in result and method:
                 self.pending[result["id"]] = (method, params)
@@ -112,6 +132,12 @@ class Bridge:
                 receipt = snapshot(self.sessions, params["sessionId"], self.profile, self.effort)
                 receipt["length_recovery_count"] = int(root_id in self.recovered)
                 receipt["length_recovery_limit"] = 1
+                if self.runtime_file:
+                    wire = self.logs / "pi-image-wire.jsonl"
+                    entries = [json.loads(line) for line in wire.read_text().splitlines() if line] if wire.exists() else []
+                    first = next((e for e in entries if e.get("expected_sha256")), {})
+                    receipt["image_delivery"] = {"initial_payload_verified": first.get("matched") is True,
+                        "receipt": "pi-image-wire.jsonl", "source_sha256": first.get("expected_sha256")}
                 if "error" in result:
                     receipt["completion"] = "upstream_error"
                 self.logs.mkdir(parents=True, exist_ok=True)
@@ -120,7 +146,7 @@ class Bridge:
                 return result
             payload = result["result"]
             if method == "initialize":
-                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.2"}
+                payload["agentInfo"] = {"name": "pi-nvidia-feedback", "version": "0.2.3"}
                 payload["authMethods"] = []  # Headless injected auth; never terminal login.
                 payload.setdefault("agentCapabilities", {})["loadSession"] = False
             if method in {"session/new", "session/set_model", "session/set_mode", "session/set_config_option"}:
@@ -141,6 +167,9 @@ class Bridge:
                 if receipt.get("provider_error") and payload.get("stopReason") != "cancelled":
                     return {"jsonrpc": "2.0", "id": root_id, "error": {
                         "code": -32000, "message": "Pi reported a provider error; inspect native session diagnostics"}}
+                if self.runtime_file and not receipt["image_delivery"]["initial_payload_verified"] and params["sessionId"] not in self.cancelled:
+                    return {"jsonrpc": "2.0", "id": root_id, "error": {"code": -32000,
+                        "message": "Initial frozen observation was not verified in the provider payload; inspect image receipts"}}
                 last = receipt.get("last_assistant") or {}
                 if payload.get("stopReason") == "end_turn" and last.get("stop_reason") == "length":
                     payload["stopReason"] = "max_tokens"
@@ -227,9 +256,9 @@ def main():
     prefix = Path(os.environ.get("PI_NVIDIA_PREFIX", Path.home() / ".cache/pi-nvidia"))
     logs = Path(os.environ.get("PI_NVIDIA_LOGS", "/logs/agent"))
     # Fail incomplete model profiles before any installation, not after launch.
-    env, profile, effort, sessions = configure(prefix, logs, os.environ)
+    env, profile, effort, sessions = configure(prefix, logs, os.environ, started_ns=STARTED_NS)
     node = install(prefix)
-    bridge = Bridge(profile, effort, sessions, logs)
+    bridge = Bridge(profile, effort, sessions, logs, runtime_file=env["PI_NVIDIA_RUNTIME_FILE"])
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     return proxy([str(node), str(prefix / "node_modules/pi-acp/dist/index.js")], env, bridge)
 

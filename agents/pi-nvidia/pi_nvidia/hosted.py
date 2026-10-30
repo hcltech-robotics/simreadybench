@@ -7,9 +7,10 @@ import shlex
 import sys
 
 from .profile import ENDPOINT, ModelProfile
+from .runtime_inputs import prepare_runtime
 
 
-def configure(prefix, logs, environ):
+def configure(prefix, logs, environ, *, started_ns=None):
     env = dict(environ)
     profile = ModelProfile.model_validate_json(env.get("PI_NVIDIA_PROFILE", "{}"))
     effort = env.get("PI_NVIDIA_THINKING")
@@ -39,6 +40,7 @@ def configure(prefix, logs, environ):
     logs, prefix = Path(logs).resolve(), Path(prefix).resolve()
     config = logs / "pi/config"
     config.mkdir(parents=True, exist_ok=True)
+    runtime_file = prepare_runtime(config, env, started_ns=started_ns)
     # Presence and source names only: never retain keys, suffixes or hashes.
     (logs / "pi-auth-status.json").write_text(json.dumps({
         "selected_key_env": key_env, "credential_source": key_source,
@@ -50,7 +52,9 @@ def configure(prefix, logs, environ):
     (config / "models.json").write_text(json.dumps(models, indent=2) + "\n")
     (config / "settings.json").write_text(json.dumps({"defaultProvider": "harbor-endpoint",
         "defaultModel": profile.id, "defaultThinkingLevel": effort, "quietStartup": True,
-        "enableSkillCommands": False, "packages": [], "skills": [], "extensions": []}) + "\n")
+        "enableSkillCommands": False, "packages": [], "skills": [], "extensions": [],
+        "blockImages": False, "cacheWarming": "off",
+        "retry": {"enabled": False, "maxRetries": 0, "provider": {"maxRetries": 0}}}) + "\n")
     sessions = logs / "pi/sessions"
     sessions.mkdir(parents=True, exist_ok=True)
     # pi-acp owns ~/.pi/pi-acp separately from Pi's agent directory. Isolate it
@@ -61,11 +65,13 @@ def configure(prefix, logs, environ):
     launcher = config / "pi-plain"
     command = [str(prefix / "node/bin/node"), str(prefix / "node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js"),
         "--provider", "harbor-endpoint", "--model", profile.id, "--thinking", effort,
-        "--session-dir", str(sessions), "--no-skills", "--no-extensions", "--no-prompt-templates"]
+        "--session-dir", str(sessions), "--no-skills", "--no-extensions", "--no-prompt-templates",
+        "--extension", str(Path(__file__).with_name("runtime.mjs"))]
     launcher.write_text("#!/bin/sh\nexec " + shlex.join(command) + ' "$@"\n')
     launcher.chmod(0o755)
     env.update(PI_CODING_AGENT_DIR=str(config), PI_ACP_PI_COMMAND=str(launcher),
-        PI_CODING_AGENT_SESSION_DIR=str(sessions), PI_ACP_ENABLE_EMBEDDED_CONTEXT="true", HOME=str(home))
+        PI_CODING_AGENT_SESSION_DIR=str(sessions), PI_ACP_ENABLE_EMBEDDED_CONTEXT="true", HOME=str(home),
+        PI_NVIDIA_RUNTIME_FILE=str(runtime_file))
     # Harbor prepends the source project's .venv/bin to start this Python module.
     # It must not replace the task's Python (which owns simready_eval.feedback)
     # inside Pi's authoring shell. Keep the rest of the task's original path.

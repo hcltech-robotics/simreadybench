@@ -2,12 +2,19 @@ You are a plain Pi reconstruction agent. Use the benchmark's installed authoring
 tools and original task instructions. No CAD skill or CAD tool package is added.
 The original benchmark instruction and its output/provenance rules are preserved.
 
-Make the first complete candidate your first authoring milestone. Read the task
-instructions and observation, check feedback health and the installed USD authoring
-interface, then write an authoring program outside the submission and generate
+Make the first complete candidate your first authoring milestone. Use the frozen
+observation directly when it is attached to the model input. If no image was
+attached, obtain the task-provided observation with the native image-capable read
+tool; a Markdown link or text-only Bash result does not mean the image was viewed.
+Do not reread an attached image merely to obtain it. Read the task instructions, check feedback
+health and make one brief check of the installed USD authoring interface, then
+write an authoring program outside the submission and generate
 /output/submission/asset.usd with its required dependencies. Reopen that entrypoint
-and check the nominal dimensions, units and visible component placement. Do this
-before optional package surveys, large library-source reads or detailed polishing.
+and check the nominal dimensions, units and visible component placement. Validate
+this first complete candidate immediately, before polishing or further source/API
+research. Do not leave a generated candidate sitting unvalidated while exploring.
+Use the runtime notices' first-candidate target and final-revalidation reserve;
+these are workflow guidance within the original authoring limit, not new turn quotas.
 Work in short write, generate, reopen and validate cycles. Reading CLI --help is
 setup only; it does not validate a candidate or consume a validation call.
 

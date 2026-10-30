@@ -14,7 +14,11 @@
       "env": {
         "PI_NVIDIA_PROFILE": "{\"id\":\"nvidia/nemotron-3.5-super-vl-120b-a12b\",\"input\":[\"text\",\"image\"],\"contextWindow\":262000,\"maxTokens\":8192,\"reasoning\":true,\"toolCalls\":true,\"thinkingLevelMap\":{\"off\":\"none\",\"minimal\":null,\"low\":\"low\",\"medium\":null,\"high\":\"high\",\"xhigh\":null,\"max\":null},\"compat\":{\"supportsStore\":false,\"supportsDeveloperRole\":true,\"supportsReasoningEffort\":true,\"supportsUsageInStreaming\":true,\"maxTokensField\":\"max_tokens\",\"thinkingFormat\":\"openai\"},\"evidence\":\"Verified 2026-10-30: https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3_5-super-vl-120b-a12b-infer ; https://build.nvidia.com/nvidia/nemotron-3.5-super-vl-120b-a12b . 262000 is a conservative operational cap below the advertised hosted 262K, not an assertion of exact server limit; 8192 is the selected smoke output cap.\"}",
         "PI_NVIDIA_THINKING": "low",
-        "PI_NVIDIA_ENV_NAME": "NGC_API_KEY"
+        "PI_NVIDIA_ENV_NAME": "NGC_API_KEY",
+        "PI_NVIDIA_OBSERVATION_PATH": "/task/observation.png",
+        "PI_NVIDIA_TIME_LIMIT_SEC": "600",
+        "PI_NVIDIA_FINAL_RESERVE_SEC": "90",
+        "PI_NVIDIA_OBSERVATION_SHA256": "058ad92263ca6ac778b8b6485bb58642923311e7c744710c54038c5baf86ee51"
       },
       "secrets": [
         "NGC_API_KEY"

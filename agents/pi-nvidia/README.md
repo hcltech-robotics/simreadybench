@@ -82,18 +82,19 @@ unrepairable faults, reporting unresolved findings and final-validation status.
 This is an **instruction policy**, not an added completion gate or inference-call
 controller. The original benchmark feedback ledger enforces five admitted
 validator calls. An admitted timeout still consumes a call; a busy request does
-not; retrying the same ID/content retrieves the existing result. No turn limit,
-task timeout, retry count or independent verifier budget is added or changed.
+not; retrying the same ID/content retrieves the existing result. No benchmark
+turn limit, task timeout, feedback-ledger rule or independent verifier budget is
+changed. Hosted Pi error/provider retries are disabled separately.
 Visual self-checks are not hidden visual/kinematic fidelity feedback.
 
-## Hosted Hub package (0.2.2)
+## Hosted Hub package (0.2.3)
 
 `harbor-agent.json` implements the documented Python-uv/ACP source contract and
 runs `python -m pi_nvidia.acp`. Use `examples/hosted-agent.template.json` for a
 GitHub source entry with `name: acp`; do not use native `import_path` on Hub.
-The implementation is local and **unpublished** until a separately authorized
-push. The hosted example pins implementation commit
-`07491e32305578d79c1ef0d7ea1bcdbc4fe3759d`; that ref becomes accessible only after publication.
+This revision is local and **unpublished** until a separately authorized push.
+The hosted examples use immutable implementation pins; use the verified revision
+reported in the release handoff, which becomes accessible after publication.
 
 Fill the actual model ID, `env.PI_NVIDIA_PROFILE` JSON and
 `env.PI_NVIDIA_THINKING` in each entry. Those controls are independent per agent.
@@ -108,8 +109,9 @@ is rejected because no NVIDIA gateway route has been verified.
 On startup the wrapper installs checksum-pinned Node and runs `npm ci
 --ignore-scripts` using the packaged npm lock. It verifies Pi and pi-acp versions.
 Installation can be cached; every start rewrites the per-trial model profile,
-thinking settings and launcher. The launcher disables skills, extensions and
-prompt templates; no CAD packages or tool servers are installed. Pi's config,
+thinking settings and launcher. The launcher disables automatic skill, extension and prompt-template discovery,
+then explicitly loads one bundled runtime extension for image receipts and
+budget guidance. No CAD packages, skills or tool servers are installed. Pi's config,
 home/session mapping and native sessions are isolated under this trial's agent
 logs. No auth/config files from another agent home are inspected or retained.
 Harbor's agent-project virtualenv is removed from the child's authoring `PATH`,
@@ -302,3 +304,61 @@ room. This changes two generation settings for a workflow smoke test, not a
 controlled reasoning comparison. Larger response capacity does not guarantee an
 asset, a validation call, quality or lower cost. No increase to the approved
 aggregate budget is implied, and no publication or live trial is performed here.
+
+
+## Frozen image and deadline guidance (0.2.3)
+
+Every hosted initial session prompt attaches the existing public
+`/task/observation.png` as structured image content before model inference. Set
+`PI_NVIDIA_OBSERVATION_PATH` for a different task-provided path; the optional
+`PI_NVIDIA_OBSERVATION_SHA256` pins the expected task bytes. The one-asset examples
+include the original frozen observation hash. Missing/nonregular PNGs and hash
+mismatches fail before inference. Original instruction blocks are preserved and
+an identical already-supplied image is not duplicated. Continuations reuse the
+session's original image. No observation is rendered, cropped, substituted or
+copied into the task package by this agent.
+
+`pi-input-image.json` records source and outgoing ACP payload hashes, not image
+bytes. The bundled Pi `before_provider_request` hook also records PNG hashes
+from the actual provider payload in `pi-image-wire.jsonl`; if the first expected
+image is missing, it aborts the request and the wrapper reports failure. These
+are pre-send payload receipts, not a claim about remote server interpretation.
+Native session records retain the image and actual tool results as before.
+
+The unchanged hosted authoring cap is 600 seconds. Pinned Harbor 0.24.0 does not
+pass its absolute outer deadline into custom ACP processes. The agent therefore
+labels its clock `conservative_adapter_clock`, never an exact outer deadline:
+it starts at adapter entry before runtime installation, subtracts 15 seconds of
+pre-entry startup headroom and provides a 90-second final-validation reserve.
+Harbor can still stop it earlier; the outer timer remains authoritative. The
+exact outer timestamp would require Harbor to expose runtime deadline metadata.
+Do not present the local UTC working deadline as that unavailable timestamp.
+
+The explicit runtime extension uses Pi 1.4.0's supported `context` hook to add a
+fresh elapsed/remaining-time notice before each model request, with phases for
+first candidate, validate/repair, final revalidation and finish-now. The initial
+candidate target is 120 seconds in the 600-second configuration. An entrypoint's
+existence is reported only as existence, not validity. The final phase asks the
+model to stop optional exploration/edits, use an available genuine feedback call
+and leave validated bytes stable. This is advisory agent workflow; the original
+service enforces the five admitted validation calls. It does not invent a model
+turn limit, fake validation, force all five calls or create a new trial controller.
+The clock is not reset by an empty-length continuation. Transient notices are
+retained in `pi-budget-notices.jsonl` for audit alongside native/ACP records.
+
+Set `PI_NVIDIA_TIME_LIMIT_SEC=600` to match the hosted `max_timeout_sec=600`, and
+`PI_NVIDIA_FINAL_RESERVE_SEC=90` for the reserve. Public option names survive
+Harbor's real sensitive-env serialization. The variant rejects declared limits
+above 600. Pi error retries, provider retries and background cache warming are
+disabled; Harbor trial retries remain zero. The existing single bounded
+empty-length continuation is distinct and remains inside the original timer.
+Models, supported reasoning levels, response caps and accounting remain
+independently configurable.
+
+Offline verification includes actual Pi/ACP provider-payload image hashes,
+already-present-image deduplication, bad-hash/no-image rejection before HTTP,
+phase notices, continuation clock preservation and a real native write followed
+by the genuine 2.2.0 feedback client against the unchanged five-call ledger with
+a synthetic evaluator. That workflow uses one call and leaves four available.
+It does not establish live model compliance or claim real NVIDIA validation.
+No paid run, credential change or publication is performed by these checks.
