@@ -22,21 +22,20 @@ def configure(prefix, logs, environ):
         raise ValueError("Hosted model_name and PI_NVIDIA_PROFILE.id must agree")
     if env.get("HOSTED_INFERENCE_URL"):
         raise ValueError("Select direct NVIDIA credentials; this package has no verified gateway route")
-    key_env = env.get("PI_NVIDIA_KEY_ENV", "NVIDIA_API_KEY")
+    # KEY in the legacy selector's name triggers Harbor sensitive-env rewriting.
+    # The replacement is a nonsecret variable-name selector, not a credential.
+    key_env = env.get("PI_NVIDIA_ENV_NAME") or env.get("PI_NVIDIA_KEY_ENV") or "NVIDIA_API_KEY"
     if key_env not in {"NVIDIA_API_KEY", "NGC_API_KEY"}:
-        raise ValueError("PI_NVIDIA_KEY_ENV must select NVIDIA_API_KEY or NGC_API_KEY")
+        raise ValueError("PI_NVIDIA_ENV_NAME (legacy PI_NVIDIA_KEY_ENV) must select NVIDIA_API_KEY or NGC_API_KEY")
     # Only future authorized runs consume the existing injected credential. No
     # value enters a file, command argument, diagnostic or model-profile receipt.
-    if env.get("HOSTED_INFERENCE_TOKEN"):
-        env[key_env] = env["HOSTED_INFERENCE_TOKEN"]
-        key_source = "HOSTED_INFERENCE_TOKEN"
-    elif env.get(key_env):
-        key_source = key_env
-    else:
-        alternate = "NVIDIA_API_KEY" if key_env == "NGC_API_KEY" else "NGC_API_KEY"
-        key_source = alternate if env.get(alternate) else None
-        if key_source:
-            env[key_env] = env[key_source]
+    alternate = "NVIDIA_API_KEY" if key_env == "NGC_API_KEY" else "NGC_API_KEY"
+    sources = [name for name in (key_env, "HOSTED_INFERENCE_TOKEN", alternate) if env.get(name)]
+    if sources and any(env[name] != env[sources[0]] for name in sources[1:]):
+        raise ValueError("Conflicting injected NVIDIA credentials; provide one consistent credential route")
+    key_source = sources[0] if sources else None
+    if key_source:
+        env[key_env] = env[key_source]
     logs, prefix = Path(logs).resolve(), Path(prefix).resolve()
     config = logs / "pi/config"
     config.mkdir(parents=True, exist_ok=True)

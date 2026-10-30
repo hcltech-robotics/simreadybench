@@ -186,7 +186,7 @@ the authorized live check. NVIDIA's official schema documents low/none/high,
 images, tools and streamed usage; Baseten's endpoint capabilities are not substituted.
 
 The example selects the existing Hub `NGC_API_KEY` secret and sets
-`PI_NVIDIA_KEY_ENV=NGC_API_KEY`. This is a reference to an injected environment
+`PI_NVIDIA_ENV_NAME=NGC_API_KEY`. This is a reference to an injected environment
 variable, not a secret value. If Hub metadata instead shows `NVIDIA_API_KEY` as
 the real environment-variable name, select that existing secret and set the knob
 accordingly. No credential creation or environment-file copying is required.
@@ -224,26 +224,38 @@ Sources: [Harbor Pi](https://github.com/harbor-framework/harbor/blob/7d9a0b68889
 
 ## Authentication diagnostics (0.2.1)
 
-The direct credential is resolved from `HOSTED_INFERENCE_TOKEN`, the selected
-`PI_NVIDIA_KEY_ENV`, or the alternate existing NVIDIA/NGC variable, in that order.
+`PI_NVIDIA_ENV_NAME` is an optional nonsecret variable-name selector. A nonempty
+explicit selection is preserved. Without one, the reference defaults to
+`NVIDIA_API_KEY`, with fallback to the existing `NGC_API_KEY` or hosted token.
+Both alias directions work. The legacy `PI_NVIDIA_KEY_ENV` remains supported,
+but new configurations should not use it: Harbor 0.24.0's sensitive-environment
+serializer classifies its KEY-containing name as sensitive and rewrites its
+literal value. The new name survives the actual hosted serializer unchanged.
+The exact backend stage that removed the legacy selector is not visible here.
+
+The selected variable, hosted token and alternate NVIDIA/NGC variable may coexist
+only when their nonempty values agree. Conflicting credentials fail before any
+configuration files or inference request; the error contains no values. The
+selected nonempty variable takes precedence when equivalent aliases exist.
 Aliases are normalized only in the child environment; no key is written into
 `models.json`, launch arguments or logs. `pi-auth-status.json` records only the
-selected variable name, source variable name, presence boolean, endpoint and model.
+selected variable name, source name, presence boolean, endpoint and model.
 No credential value, suffix or hash is retained.
 
-The registry bridge's generic Authentication required response can mean that Pi's
-available-model list is empty; it does not establish a rejected NVIDIA key or an
-HTTP 401. `$NGC_API_KEY` interpolation is supported by the pinned Pi 1.4.0.
-The old adapter omitted the canonical `NVIDIA_API_KEY` alias when an NGC reference
-was selected and no hosted token was present. This omission is reproduced and
-fixed locally. Whether that alias mismatch caused hosted job
-`1c0efefa-ad31-43ae-bb9f-2ae04b6b8935` remains unverified: that run did not retain
-credential-presence diagnostics. Do not treat its candidate-invalid scores as
-model performance, or claim this patch alone proves the hosted failure resolved.
+Sanitized artifacts from job `1c0efefa-ad31-43ae-bb9f-2ae04b6b8935` establish that
+its selector was absent, its effective environment supplied `NGC_API_KEY` and no
+`NVIDIA_API_KEY`, and the old adapter wrote `apiKey: "$NVIDIA_API_KEY"`. The same
+environment replayed against the exact original runtime commit fails at ACP
+session/new with zero inference HTTP requests. This identifies a credential
+reference mismatch, not a rejected NVIDIA API key or model-quality result. Pi
+1.4.0 supports `$NGC_API_KEY` interpolation; no OAuth login is needed.
 
-The regression runs the actual Pi CLI and pi-acp bridge with fake keys against a
-loopback SSE endpoint, checks the Authorization header, exact model, reasoning low,
-8192-token cap and final usage, and verifies missing credentials cannot issue an
-inference request. Both offline and normal startup modes are checked; non-loopback
-fetch is forbidden. This is more coverage than model-profile parsing, but it does
-not verify Hub's deployed secret-delivery layer. No paid API request is made.
+The regression runs the actual Pi CLI and pi-acp bridge with dummy keys against
+a loopback SSE endpoint, after actual Harbor config serialization. It covers the
+exact missing-selector/NGC-only case, both explicit alias directions, an empty
+selector, hosted token and missing credentials in normal and offline startup.
+It verifies the Bearer header, exact model, reasoning low, 8192-token cap and
+final usage; non-loopback fetch is forbidden. Missing credentials cannot issue an
+inference request. Conflict tests verify that no dummy values appear in errors.
+No paid API request is made. Hosted recovery still needs an authorized publication
+and one separately approved retry; no retry is performed by this package.

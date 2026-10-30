@@ -14,12 +14,18 @@ ROOT = Path(__file__).parents[1]
 
 
 @pytest.mark.skipif(not os.environ.get("PI_TEST_PREFIX"), reason="requires pinned real runtime")
-@pytest.mark.parametrize("key_source", ["NGC_API_KEY", "HOSTED_INFERENCE_TOKEN", "NVIDIA_API_KEY", None])
+@pytest.mark.parametrize("selector,key_source", [
+    ("NGC_API_KEY", "NGC_API_KEY"), ("NGC_API_KEY", "NVIDIA_API_KEY"),
+    ("NVIDIA_API_KEY", "NGC_API_KEY"), ("NVIDIA_API_KEY", "NVIDIA_API_KEY"),
+    (None, "NGC_API_KEY"), (None, "NVIDIA_API_KEY"),
+    (None, "HOSTED_INFERENCE_TOKEN"), ("", "NGC_API_KEY"), (None, None)])
 @pytest.mark.parametrize("offline", [True, False])
-def test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, key_source, offline):
+def test_real_pi_auth_gate_and_streamed_request_with_dummy_key(tmp_path, key_source, selector, offline):
     from acp import PROTOCOL_VERSION, spawn_agent_process, text_block
     from acp.schema import ClientCapabilities
     from harbor.agents.installed.acp_runner import HarborAcpClient
+    from harbor.hosted.config import HostedJobConfig
+    from harbor.hosted.submit import dump_hosted_config
 
     requests = []
     class Endpoint(BaseHTTPRequestHandler):
@@ -69,10 +75,14 @@ globalThis.fetch = (url, init) => {
   return originalFetch(url, init);
 };
 ''')
+    declared = {"PI_NVIDIA_PROFILE": json.dumps(profile), "PI_NVIDIA_THINKING": "low"}
+    if selector is not None:
+        declared["PI_NVIDIA_ENV_NAME"] = selector
+    config = HostedJobConfig.model_validate({"agents": [{"name": "acp", "env": declared}]})
+    normalized = dump_hosted_config(config)["agents"][0]["env"]
+    assert normalized == declared  # Real Harbor serialization retains these public options.
     env = {"PATH": os.defpath, "PYTHONPATH": str(ROOT), "NODE_OPTIONS": "--import=" + str(guard),
-           "PI_NVIDIA_PROFILE": json.dumps(profile), "PI_NVIDIA_THINKING": "low",
-           "PI_NVIDIA_KEY_ENV": "NGC_API_KEY",
-           "HARBOR_ACP_REQUESTED_MODEL": "nvidia/" + profile["id"]}
+           **normalized, "HARBOR_ACP_REQUESTED_MODEL": "nvidia/" + profile["id"]}
     if key_source:
         env[key_source] = "offline-dummy-not-real"
     if offline:
@@ -105,6 +115,7 @@ globalThis.fetch = (url, init) => {
         server.server_close()
         thread.join(timeout=2)
     auth = json.loads((logs / "pi-auth-status.json").read_text())
+    assert auth["selected_key_env"] == (selector or "NVIDIA_API_KEY")
     assert auth["credential_present"] == (key_source is not None)
     assert auth["credential_source"] == key_source
     if key_source is None:
