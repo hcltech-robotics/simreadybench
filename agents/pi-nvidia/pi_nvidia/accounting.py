@@ -2,9 +2,30 @@
 
 import hashlib
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from .agent import NvidiaPi
+
+
+def baseten_reference(receipt, model_id):
+    """A reference comparison, never an NVIDIA invoice or ACP billed cost."""
+    if model_id != "nvidia/nemotron-3.5-super-vl-120b-a12b" or receipt.get("status") != "verified":
+        return None
+    usage = receipt.get("usage") or {}
+    prompt, output = usage.get("inputTokens"), usage.get("outputTokens")
+    cached = usage.get("cachedReadTokens", 0)
+    if any(type(n) is not int or n < 0 for n in (prompt, output, cached)) or cached > prompt:
+        return None
+    usd = (Decimal("0.20") * (prompt - cached) + Decimal("0.04") * cached
+           + Decimal("0.50") * output) / 1_000_000
+    return {"provider": "Baseten reference only", "billed": False, "currency": "USD",
+        "usd": format(usd.normalize(), "f"), "model": model_id,
+        "rates_per_million": {"uncached_input": "0.20", "cached_input": "0.04", "output": "0.50"},
+        "verified_date": "2026-10-30", "source": "https://www.baseten.co/library/nemotron-35-super-vl/",
+        "basis": "NVIDIA usage at Baseten reference rates; cached input is a subset; reasoning is included in output",
+        "cache_basis": "reported_cache_read" if "cachedReadTokens" in usage else "missing_cache_charged_uncached",
+        "actual_nvidia_cost": "unknown"}
 
 
 def snapshot(sessions, session_id, profile, effort):
@@ -88,4 +109,7 @@ def snapshot(sessions, session_id, profile, effort):
     result["other_native_session_ids"] = sorted(s for s in other if isinstance(s, str))
     if other:
         result.update(status="unavailable", reason="additional_native_sessions_require_reconciliation")
+    reference = baseten_reference(result, profile.id)
+    if reference is not None:
+        result["reference_inference_estimate"] = reference
     return result

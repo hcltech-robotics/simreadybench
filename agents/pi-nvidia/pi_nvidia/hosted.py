@@ -22,15 +22,18 @@ def configure(prefix, logs, environ):
         raise ValueError("Hosted model_name and PI_NVIDIA_PROFILE.id must agree")
     if env.get("HOSTED_INFERENCE_URL"):
         raise ValueError("Select direct NVIDIA credentials; this package has no verified gateway route")
+    key_env = env.get("PI_NVIDIA_KEY_ENV", "NVIDIA_API_KEY")
+    if key_env not in {"NVIDIA_API_KEY", "NGC_API_KEY"}:
+        raise ValueError("PI_NVIDIA_KEY_ENV must select NVIDIA_API_KEY or NGC_API_KEY")
     # Only future authorized runs consume the existing injected credential. No
     # value enters a file, command argument, diagnostic or model-profile receipt.
     if env.get("HOSTED_INFERENCE_TOKEN"):
-        env["NVIDIA_API_KEY"] = env["HOSTED_INFERENCE_TOKEN"]
+        env[key_env] = env["HOSTED_INFERENCE_TOKEN"]
     logs, prefix = Path(logs).resolve(), Path(prefix).resolve()
     config = logs / "pi/config"
     config.mkdir(parents=True, exist_ok=True)
     models = {"providers": {"harbor-endpoint": {"baseUrl": ENDPOINT,
-        "api": "openai-completions", "apiKey": "$NVIDIA_API_KEY", "authHeader": True,
+        "api": "openai-completions", "apiKey": "$" + key_env, "authHeader": True,
         "models": [profile.pi_model()]}}}
     (config / "models.json").write_text(json.dumps(models, indent=2) + "\n")
     (config / "settings.json").write_text(json.dumps({"defaultProvider": "harbor-endpoint",

@@ -165,8 +165,56 @@ Python environment matches the inspected Harbor Pi source hash.
 Before deployment, select the exact NVIDIA model and verify image/tool input,
 model/thinking parameter behavior, limits, streamed usage and the resolved hosted
 adapter/runtime versions. No run, secret configuration, push or deployment has
-been performed. Publication and the model-specific profile are still required;
+been performed. Publication and live model capability verification are still required;
 the hosted protocol/package integration itself is implemented and tested.
+
+## Selected Nemotron smoke trial
+
+`examples/nemotron35vl-low-one-trial.json` selects the unchanged original NV100
+task `nv100_04ed00317ccc5a90`, one attempt, concurrency one and zero trial retries.
+The plain Pi agent has no CAD packages. The original five-validator-call ledger
+and evaluator remain unchanged. Its 600-second authoring cap is a smoke-test
+condition, not the original full benchmark time budget; setup remains 360 seconds.
+The task's verifier timeout remains 600 seconds and both build timeouts 1200 seconds.
+
+The wire model is `nvidia/nemotron-3.5-super-vl-120b-a12b`; the Harbor model name
+adds its own `nvidia/` provider prefix. The packaged profile selects low reasoning,
+an 8192-token per-request output cap and a conservative 262000-token context cap
+below NVIDIA Build's advertised 262K. Unsupported Pi thinking levels fail rather
+than silently clamp. Model limits and actual image/tool/usage behavior still need
+the authorized live check. NVIDIA's official schema documents low/none/high,
+images, tools and streamed usage; Baseten's endpoint capabilities are not substituted.
+
+The example selects the existing Hub `NGC_API_KEY` secret and sets
+`PI_NVIDIA_KEY_ENV=NGC_API_KEY`. This is a reference to an injected environment
+variable, not a secret value. If Hub metadata instead shows `NVIDIA_API_KEY` as
+the real environment-variable name, select that existing secret and set the knob
+accordingly. No credential creation or environment-file copying is required.
+
+Verified native usage for this exact model gets a separate
+`reference_inference_estimate` in `pi-accounting.json` and ACP metadata. Baseten's
+2026-10-30 reference rates are $0.20 uncached input, $0.04 cached input and $0.50
+output per million tokens. Cached input is subtracted from inclusive input;
+missing cache details receive no discount. Reasoning is already within output
+and is never added again. The estimate is not emitted as ACP billed cost:
+actual NVIDIA cost stays unknown and Harbor compute is separate. The model is
+advertised on NVIDIA's free prototype endpoint; no paid provider fallback is used.
+
+At current Harbor rates the full 10-minute actor/feedback plus 10-minute verifier
+execution scenario is $0.4010424. Charging two full cold 20-minute build windows
+and six minutes of setup at their corresponding resources gives $1.33905024
+before teardown/storage/other overhead. These are conservative scenarios, not
+a platform dollar cap. The approved total actual-spend ceiling for this validation
+work is $200; no trial has been submitted. Inspect existing job state and resolved
+timeouts, secret namespace and source pin in the signed-in Hub browser before the
+one submission; retain its receipt and check uncertain outcomes before retrying.
+
+Reference sources: [NVIDIA API schema](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3_5-super-vl-120b-a12b-infer),
+[NVIDIA Build](https://build.nvidia.com/nvidia/nemotron-3.5-super-vl-120b-a12b),
+[Baseten model pricing](https://www.baseten.co/library/nemotron-35-super-vl/),
+[cached-input accounting](https://docs.baseten.co/inference/model-apis/pricing-and-limits),
+[reasoning accounting](https://docs.baseten.co/inference/model-apis/reasoning),
+[Harbor compute pricing](https://hub.harborframework.com/pricing).
 
 Sources: [Harbor Pi](https://github.com/harbor-framework/harbor/blob/7d9a0b688898a11cd03cf14a21d51a9ab45d3b94/src/harbor/agents/installed/pi.py),
 [Pi model documentation](https://github.com/earendil-works/pi/blob/908aa7b74baa7502321293797313f64c6fec22ee/packages/coding-agent/docs/models.md),

@@ -36,6 +36,20 @@ def test_profile_auth_reference_and_baked_reconfiguration(tmp_path):
             configure(tmp_path / "runtime", tmp_path / "logs", {**source, **bad})
 
 
+def test_existing_ngc_secret_is_referenced_without_serializing_its_value(tmp_path):
+    source = {"PI_NVIDIA_PROFILE": json.dumps(profile()), "PI_NVIDIA_THINKING": "off",
+              "HARBOR_ACP_REQUESTED_MODEL": "nvidia/fixture/vision",
+              "PI_NVIDIA_KEY_ENV": "NGC_API_KEY", "NGC_API_KEY": "synthetic-only-not-a-secret"}
+    env, *_ = configure(tmp_path / "runtime", tmp_path / "logs", source)
+    models = json.loads((Path(env["PI_CODING_AGENT_DIR"]) / "models.json").read_text())
+    assert models["providers"]["harbor-endpoint"]["apiKey"] == "$NGC_API_KEY"
+    assert "NVIDIA_API_KEY" not in env
+    assert all("synthetic-only-not-a-secret" not in p.read_text()
+               for p in (tmp_path / "logs").rglob("*") if p.is_file())
+    with pytest.raises(ValueError, match="PI_NVIDIA_KEY_ENV"):
+        configure(tmp_path / "runtime", tmp_path / "logs", {**source, "PI_NVIDIA_KEY_ENV": "HOME"})
+
+
 @pytest.mark.skipif(not os.environ.get("PI_TASK_PYTHON_DIR"), reason="requires original feedback-client task Python")
 def test_source_venv_does_not_hide_the_genuine_task_feedback_client(tmp_path):
     import shutil
