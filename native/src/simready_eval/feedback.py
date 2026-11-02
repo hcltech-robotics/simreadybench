@@ -344,8 +344,10 @@ class FeedbackService:
             with tempfile.TemporaryDirectory(prefix="simready-feedback-", dir="/tmp") as scratch:
                 base = Path(scratch)
                 base.chmod(0o711)
+                asset_root = base / "asset"
+                asset_root.mkdir(mode=0o711)
                 try:
-                    package = safe_extract(data, base / "candidate")
+                    package = safe_extract(data, asset_root / "candidate")
                 except ValueError:
                     from simready_eval.formal import score_validation
                     score = score_validation(None, candidate_invalid=True)

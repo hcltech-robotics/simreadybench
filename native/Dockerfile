@@ -17,6 +17,8 @@ RUN python -m simready_eval.dependencies --role feedback --output /tmp/feedback.
     python -m pip install --no-cache-dir --require-hashes --no-deps -r /tmp/feedback.requirements.txt
 
 FROM formal AS verifier
+RUN python -m simready_eval.dependencies --role verifier --output /tmp/verifier.requirements.txt && \
+    python -m pip install --no-cache-dir --require-hashes --no-deps -r /tmp/verifier.requirements.txt
 ARG BLENDER_PACKAGE_VERSION=4.3.2+dfsg-2
 RUN apt-get update && \
     apt-get install -y --no-install-recommends "blender=${BLENDER_PACKAGE_VERSION}" && \

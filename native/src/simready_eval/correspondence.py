@@ -4,7 +4,8 @@ from __future__ import annotations
 import collections, hashlib, heapq, json, math
 import numpy as np
 
-VERSION = "neutral-usd-correspondence-v1"
+VERSION = "neutral-usd-correspondence-v1"  # Frozen observation/eligibility identity.
+SCORING_VERSION = "neutral-usd-correspondence-v2"
 DEFAULTS = {
     "enabled": False,
     "samples": 2048,
@@ -60,6 +61,18 @@ def digest(value):
     ).hexdigest()
 
 
+def _cross3(a, b):
+    """Cross product for observer/kernel arrays whose final axis is always XYZ.
+
+    Keep NumPy's multiply/subtract order, avoiding its general axis and 2-D
+    vector dispatch for the many tiny vectors in authored mesh processing.
+    """
+    x = a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]
+    y = a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]
+    z = a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]
+    return np.array((x, y, z)) if np.ndim(x) == 0 else np.stack((x, y, z), axis=-1)
+
+
 def sample(triangles, count, seed=142):
     t = np.asarray(triangles, float)
     if (
@@ -69,7 +82,7 @@ def sample(triangles, count, seed=142):
         or not np.isfinite(t).all()
     ):
         raise ValueError("Finite nonempty surface required")
-    areas = np.linalg.norm(np.cross(t[:, 1] - t[:, 0], t[:, 2] - t[:, 0]), axis=1)
+    areas = np.linalg.norm(_cross3(t[:, 1] - t[:, 0], t[:, 2] - t[:, 0]), axis=1)
     if not np.isfinite(areas).all() or areas.sum() <= 0:
         raise ValueError("Finite nonempty surface required")
     rng = np.random.default_rng(seed)
@@ -101,7 +114,7 @@ def _nearest_bruteforce(points, triangles, *, squared=False):
             a, b, c = tri[:, 0], tri[:, 1], tri[:, 2]
             ab = b - a
             ac = c - a
-            normal = np.cross(ab, ac)
+            normal = _cross3(ab, ac)
             n2 = np.einsum("ij,ij->i", normal, normal)
             nondegenerate = n2 > 0
             denominator = np.where(nondegenerate, n2, 1.0)
@@ -110,8 +123,8 @@ def _nearest_bruteforce(points, triangles, *, squared=False):
             plane = ap - dot[:, :, None] / denominator[None, :, None] * normal
             # Cross-product barycentrics avoid cancellation in the Gram
             # determinant for narrow, nonzero-area authored triangles.
-            u = np.einsum("ntj,tj->nt", np.cross(plane, ac), normal) / denominator
-            v = np.einsum("ntj,tj->nt", np.cross(ab, plane), normal) / denominator
+            u = np.einsum("ntj,tj->nt", _cross3(plane, ac), normal) / denominator
+            v = np.einsum("ntj,tj->nt", _cross3(ab, plane), normal) / denominator
             bary = np.stack((1 - u - v, u, v), axis=2)
             inside = nondegenerate & (u >= 0) & (v >= 0) & (u + v <= 1)
             distances = np.where(inside, dot * dot / denominator, np.inf)
@@ -188,42 +201,62 @@ class _TriangleIndex:
         distances = np.full(len(points), np.inf)
         chosen = np.zeros(len(points), int)
         bary = np.zeros((len(points), 3))
-        for row, point in enumerate(points):
+        # Bound the frontier independently of the caller's sample count.
+        for start in range(0, len(points), 128):
+            stop = start + 128
+            distances[start:stop], chosen[start:stop], bary[start:stop] = self._query_packet(
+                points[start:stop]
+            )
+        return distances, chosen, bary
 
-            def bound(node):
-                lo, hi, _, _, _ = self.nodes[node]
-                delta = np.maximum(np.nextafter(lo, -np.inf) - point, 0) + np.maximum(
-                    point - np.nextafter(hi, np.inf), 0
+    def _query_packet(self, points):
+        distances = np.full(len(points), np.inf)
+        chosen = np.zeros(len(points), int)
+        bary = np.zeros((len(points), 3))
+        # Process all surviving points at a node together. The triangle kernel,
+        # conservative bounds and lowest-source-index tie rule are unchanged;
+        # batching amortizes Python/NumPy setup across queries to the same leaf.
+        best_indices = np.full(len(points), len(self.triangles), int)
+
+        def bounds(node, rows):
+            lo, hi, _, _, _ = self.nodes[node]
+            delta = np.maximum(np.nextafter(lo, -np.inf) - points[rows], 0) + np.maximum(
+                points[rows] - np.nextafter(hi, np.inf), 0
+            )
+            # Conservative rounding allowance only for pruning, not scoring.
+            return np.maximum(
+                0.0,
+                np.einsum("ij,ij->i", delta, delta) * (1 - 32 * np.finfo(float).eps),
+            )
+
+        rows = np.arange(len(points))
+        queue = [(0.0, 0, rows)] if self.nodes and len(rows) else []
+        while queue:
+            _, node, rows = heapq.heappop(queue)
+            rows = rows[bounds(node, rows) <= distances[rows]]
+            if not len(rows):
+                continue
+            _, _, left, right, indices = self.nodes[node]
+            if indices is not None:
+                self.triangle_tests += len(indices) * len(rows)
+                value, index, weights = _nearest_bruteforce(
+                    points[rows], self.triangles[indices], squared=True
                 )
-                # Conservative rounding allowance only for pruning, not scoring.
-                return max(0.0, float(delta @ delta) * (1 - 32 * np.finfo(float).eps))
-
-            queue = [(bound(0), 0)] if self.nodes else []
-            best = np.inf
-            best_index = len(self.triangles)
-            while queue:
-                lower, node = heapq.heappop(queue)
-                if lower > best:
-                    continue
-                _, _, left, right, indices = self.nodes[node]
-                if indices is not None:
-                    self.triangle_tests += len(indices)
-                    value, index, weights = _nearest_bruteforce(
-                        point[None], self.triangles[indices], squared=True
-                    )
-                    actual = int(indices[index[0]])
-                    if value[0] < best or value[0] == best and actual < best_index:
-                        best = float(value[0])
-                        best_index = actual
-                        bary[row] = weights[0]
-                else:
-                    for child in (left, right):
-                        lower = bound(child)
-                        if lower <= best:
-                            heapq.heappush(queue, (lower, child))
-            distances[row] = best
-            if best_index < len(self.triangles):
-                chosen[row] = best_index
+                actual = indices[index]
+                use = (value < distances[rows]) | (
+                    (value == distances[rows]) & (actual < best_indices[rows])
+                )
+                selected = rows[use]
+                distances[selected] = value[use]
+                best_indices[selected] = actual[use]
+                chosen[selected] = actual[use]
+                bary[selected] = weights[use]
+            else:
+                for child in (left, right):
+                    lower = bounds(child, rows)
+                    keep = lower <= distances[rows]
+                    if np.any(keep):
+                        heapq.heappush(queue, (float(lower[keep].min()), child, rows[keep]))
         return np.sqrt(distances), chosen, bary
 
 
@@ -235,22 +268,8 @@ def nearest(points, triangles):
 
 
 def surface(reference, candidate, cfg, band):
-    rp, ri, rb = sample(reference, cfg["samples"])
-    cp, _, _ = sample(candidate, cfg["samples"], 143)
-    rd, ci, cb = nearest(rp, candidate)
-    cd, _, _ = nearest(cp, reference)
-    recall = float(np.mean(rd <= band))
-    precision = float(np.mean(cd <= band))
-    f = 2 * recall * precision / (recall + precision) if recall + precision else 0.0
-    return {
-        "score_percent": 100 * f,
-        "recall": recall,
-        "precision": precision,
-        "rms_m": float(np.sqrt(np.mean(np.r_[rd, cd] ** 2))),
-        "p95_m": float(np.quantile(np.r_[rd, cd], 0.95)),
-        "band_m": band,
-        "samples_each_direction": cfg["samples"],
-    }, (ri, rb, ci, cb, rd)
+    from .cloud_geometry import surface as cloud_surface
+    return cloud_surface(reference, candidate, cfg, band)
 
 
 def assignment(cost):
@@ -982,7 +1001,9 @@ def compare(reference, candidate, cfg, *, candidate_invalid=False):
         "reference_geometry_status": "complete" if complete_reference else "partial",
         "complete_geometry_comparison": bool(complete_reference and complete_candidate),
         "complete_reconstruction_success": None,
-        "schema": VERSION,
+        "schema": SCORING_VERSION,
+        "geometry_scoring_version": "simready-area-cloud-similarity-v1",
+        "alignment_policy": "unchanged global_z_yaw_translation_surface_icp",
         "status": "measured",
         "aggregate_score_percent": None,
         "compliance_weight": None,

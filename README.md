@@ -22,6 +22,8 @@ SimReadyBench turns reference OpenUSD assets into Harbor reconstruction tasks an
 
 ## NV100 tasks and data
 
+The native evaluator is 2.2.0. Its [frozen release record](docs/evaluator-2.2.0.md) binds this source to the published NV100 tasks and accepted wheel.
+
 NV100 contains 100 OpenUSD reconstruction tasks. Each task supplies one reference image, an authoring brief and nominal dimensions. The agent produces a USD package with its geometry, materials, rigid bodies and joints. Evaluation reports formal, visual and kinematic fidelity separately.
 
 The [Harbor Hub dataset](https://hub.harborframework.com/datasets/hcltech-robotics/simreadybench) contains the runnable tasks. [Hugging Face](https://huggingface.co/datasets/hcltech-robotics/simreadybench) contains the source assets, instructions, 100 public observations, 400 verifier comparison images, masks, camera data and licences.

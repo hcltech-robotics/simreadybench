@@ -215,7 +215,40 @@ def _qualified_rule(rule):
     return rule.__module__ + "." + rule.__name__
 
 
-def requirement_outcomes(requirements, buckets, issues):
+NORMALS_DIAGNOSTIC_ADAPTER_ID = "nvidia-vg029-candidate-diagnostic-v1"
+_NORMALS_MODULE = "usd_validation_nvidia.rules._geometry"
+_NORMALS_SOURCE = "50c0ad5afa724488c77f692c258931a005d97b8927c46798874bcf3cf5a3e0b9"
+_NORMALS_VERSIONS = {
+    "simready-foundation-tier-core": "2026.8.0",
+    "simready-validate": "2026.8.0",
+    "usd-validation-nvidia": "1.22.0",
+    "usd-profiles-nvidia": "1.22.0",
+}
+
+
+def is_candidate_normals_diagnostic(issue, *, versions=None, sources=None):
+    """Recognize the pinned CheckPrim _AddError(VG_029) candidate finding.
+
+    The SDK also uses ERROR for caught exceptions. Preserve the raw issue and
+    classify only this exact source/version/message combination as a violation.
+    Missing provenance or a different diagnostic retains execution-error meaning.
+    """
+    if not isinstance(issue, dict) or not isinstance(sources, dict):
+        return False
+    path = issue.get("prim_path")
+    return (
+        versions == _NORMALS_VERSIONS
+        and sources.get(_NORMALS_MODULE) == _NORMALS_SOURCE
+        and issue.get("rule_id") == "com.nvidia.usd.VG.029"
+        and issue.get("requirement_version") == "1.0.0"
+        and issue.get("rule") == _NORMALS_MODULE + ".NormalsWindingsChecker"
+        and issue.get("severity") == "error"
+        and isinstance(path, str) and path.startswith("/") and len(path) > 1
+        and issue.get("message") == f"Mesh '{path}' has normals inconsistent with the face windings."
+    )
+
+
+def requirement_outcomes(requirements, buckets, issues, *, versions=None, sources=None):
     """Project recorded SDK check calls and findings to requirement outcomes."""
     rows = []
     for requirement in requirements:
@@ -234,9 +267,13 @@ def requirement_outcomes(requirements, buckets, issues):
             for issue in issues
             if issue["rule_id"] is None and issue["rule"] == rule
         ]
-        if any(issue["severity"] == "error" for issue in related + unscoped):
+        def candidate_diagnostic(issue):
+            return is_candidate_normals_diagnostic(issue, versions=versions, sources=sources)
+
+        if any(issue["severity"] == "error" and not candidate_diagnostic(issue)
+               for issue in related + unscoped):
             disposition = "infrastructure_error"
-        elif any(issue["severity"] == "failure" for issue in related):
+        elif any(issue["severity"] == "failure" or candidate_diagnostic(issue) for issue in related):
             disposition = "failed"
         elif any(issue["severity"] == "failure" for issue in unscoped):
             disposition = "unscoped_failure"
@@ -373,10 +410,12 @@ def _run_profile(stage, inventory):
         if i["severity"] in ("error", "failure") and i["rule_id"] not in required_codes
     ]
     rows = requirement_outcomes(
-        inventory["mandatory_requirements"], bucket_reports, all_issues
+        inventory["mandatory_requirements"], bucket_reports, all_issues,
+        versions=inventory.get("versions"), sources=source_identity,
     )
     optional_rows = requirement_outcomes(
-        inventory.get("optional_requirements", []), bucket_reports, all_issues
+        inventory.get("optional_requirements", []), bucket_reports, all_issues,
+        versions=inventory.get("versions"), sources=source_identity,
     )
     execution = {
         "schema": "nvidia-rule-execution-v1",
@@ -384,6 +423,7 @@ def _run_profile(stage, inventory):
         "completed": True,
         "sdk_source_sha256": source_identity,
         "compatibility_adapters": [compatibility_identity()],
+        "diagnostic_mapping": NORMALS_DIAGNOSTIC_ADAPTER_ID,
         "buckets": bucket_reports,
         "requirements": rows,
         "optional_requirements": optional_rows,
@@ -518,7 +558,10 @@ def validate_asset(asset_path, report_path=None) -> dict:
                     ]
                     report["infos"] = [i for i in all_issues if i["severity"] == "info"]
                     for issue in all_issues:
-                        if issue["severity"] == "error":
+                        if issue["severity"] == "error" and not is_candidate_normals_diagnostic(
+                            issue, versions=inventory.get("versions"),
+                            sources=execution.get("sdk_source_sha256"),
+                        ):
                             report["infrastructure_errors"].append(
                                 {
                                     "code": "validator_rule_execution_error",

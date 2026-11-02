@@ -21,7 +21,8 @@ from .limits import FEEDBACK_SCRATCH_BYTES
 
 DATASET_NAME = "hcltech-robotics/simreadybench"
 RELEASE_VERSIONS = {"simready-harbor-release-v1": ("v1", "1.0.2"),
-                    "simready-harbor-release-v2": ("v2", "2.0.0")}
+                    "simready-harbor-release-v2": ("v2", "2.0.0"),
+                    "simready-harbor-release-v2-evaluator-2.2.0": ("v2", "2.2.0")}
 
 BASE_IMAGE = "python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704"
 SOURCE_COLLECTION = {"repo_id": "nvidia/simready-assets", "revision": "f4860aa0c75607adb50a78bf96e77510bffc040f"}
@@ -552,7 +553,7 @@ def export_release(release, output, wheel, *, fixture=False, public_assets=None)
                   "README.md": release_readme(release, fixture=fixture).encode(),
                   "THIRD_PARTY_NOTICES.md": ("# Third-party notices\n\nEvaluator code is MIT licensed. Downloaded NVIDIA assets retain their upstream license and provenance; only the frozen public observation PNGs and instructions are bundled; verifier USD, dependencies and comparison images remain external. "
                     "The source collection is nvidia/simready-assets at " + SOURCE_COLLECTION["revision"] + ". "
-                    "Runtime dependencies retain their own licenses, including Blender (GPL-3.0-or-later), OpenUSD (Apache-2.0), Pillow (HPND), NumPy (BSD-3-Clause), and HF Hub/Xet (Apache-2.0). "
+                    "Runtime dependencies retain their own licenses, including Blender (GPL-3.0-or-later), OpenUSD (Apache-2.0), Pillow (HPND), NumPy/SciPy (BSD-3-Clause), and HF Hub/Xet (Apache-2.0). "
                     "Per-asset source and licence provenance accompany the pinned dataset.\n").encode()})
     dataset = f'schema_version = "1.0"\n\n[dataset]\nname = {json.dumps(DATASET_NAME)}\nversion = "{package_version}"\ndescription = "SimReadyBench NV100' + (" fixture" if fixture else "") + '"\n'
     for task in task_refs:

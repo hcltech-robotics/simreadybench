@@ -49,6 +49,13 @@ LEGACY_RECIPE = {
 # Keep the published eight-sample recipe byte-for-byte identifiable. The new
 # default changes only sample count and the explicitly frozen CPU thread count.
 RECIPE = {**json.loads(json.dumps(LEGACY_RECIPE)), 'samples':256, 'threads':4}
+SHADING_ADAPTER = 'simready-preview-surface-semantics-v1'
+SUBDIVISION_PROTOCOL = {
+    'id':'simready-blender-catmull-clark-l3-q3-v1',
+    'subdivision_type':'CATMULL_CLARK','levels':3,'render_levels':3,'quality':3,
+    'use_limit_surface':True,
+    'measurement':'bounded Blender subdivision rendering, not exact mathematical limit certification',
+}
 
 
 def _hash(path):
@@ -210,10 +217,12 @@ class _TextureBridge:
         identifier=node.GetIdAttr().Get()
         if identifier=='UsdPrimvarReader_float2':
             name=str(self._literal(node,'varname',''))
-            if not name: raise ValueError('Missing texture coordinate primvar')
-            return name,np.eye(3)
+            fallback=np.asarray(self._literal(node,'fallback',[0,0]),float)
+            if fallback.shape!=(2,)or not np.isfinite(fallback).all():
+                raise ValueError('Invalid primvar reader fallback')
+            return name,np.eye(3),fallback
         if identifier!='UsdTransform2d': raise ValueError('Unsupported texture coordinate node: '+str(identifier))
-        name,previous=self._st(node.GetInput('in'),(*seen,path))
+        name,previous,fallback=self._st(node.GetInput('in'),(*seen,path))
         scale=np.asarray(self._literal(node,'scale',[1,1]),float)
         translation=np.asarray(self._literal(node,'translation',[0,0]),float)
         angle=math.radians(float(self._literal(node,'rotation',0)))
@@ -222,7 +231,7 @@ class _TextureBridge:
         c,s=math.cos(angle),math.sin(angle)
         transform=np.eye(3);transform[:2,:2]=np.array([[c,-s],[s,c]])@np.diag(scale)
         transform[:2,2]=translation
-        return name,transform@previous
+        return name,transform@previous,fallback
 
     def _read_image(self,file):
         file=Path(file).resolve()
@@ -321,9 +330,9 @@ class _TextureBridge:
             if not resolved:raise ValueError('Unresolved authored UVTexture file')
             descriptor['texture']=self._read_image(resolved)
         if descriptor.get('fallback_only'):
-            name,transform=None,np.eye(3)
-        else:name,transform=self._st(node.GetInput('st'))
-        return descriptor,name,transform
+            name,transform,fallback=None,np.eye(3),np.zeros(2)
+        else:name,transform,fallback=self._st(node.GetInput('st'))
+        return descriptor,name,transform,fallback
 
     def display(self,prim,name,metadata,indices,default):
         from pxr import UsdGeom
@@ -357,7 +366,7 @@ class _TextureBridge:
             else: self.inputs[key]=self._compile(inp)
         value=self.inputs[key]
         if not isinstance(value,tuple): return value
-        descriptor,varname,transform=value
+        descriptor,varname,transform,fallback=value
         if varname is None:
             return {**descriptor,'uv':self.constant_uv,'frame_uv':self.constant_uv}
         # Only the current original-corner row is cached. Material channels
@@ -365,26 +374,107 @@ class _TextureBridge:
         if self.current_metadata is not metadata or self.current_prim!=prim:
             self.current_metadata=metadata;self.current_prim=prim
             self.current_raw_uv={};self.current_uv={}
-        transformed_key=(varname,transform.tobytes())
+        raw_key=(varname,fallback.tobytes())
+        transformed_key=(*raw_key,transform.tobytes())
         if transformed_key not in self.current_uv:
-            if varname not in self.current_raw_uv:
+            if raw_key not in self.current_raw_uv:
                 uvkey=(str(prim.GetPath()),varname)
                 if uvkey not in self.primvars:
-                    pv=UsdGeom.PrimvarsAPI(prim).GetPrimvar(varname)
-                    if not pv:raise ValueError('Missing UV primvar '+varname)
-                    self.primvars[uvkey]=(np.asarray(pv.ComputeFlattened(),float),str(pv.GetInterpolation()))
+                    pv=UsdGeom.PrimvarsAPI(prim).FindPrimvarWithInheritance(varname) if varname else None
+                    self.primvars[uvkey]=(np.asarray(pv.ComputeFlattened(),float),str(pv.GetInterpolation())) if pv and pv.HasValue() else (None,'constant')
                 values,interpolation=self.primvars[uvkey];face=int(metadata[0]);corners=np.asarray(metadata[1:],int)
-                if interpolation=='faceVarying':uv=values[corners]
+                if values is None:uv=np.repeat(fallback[None],3,axis=0)
+                elif interpolation=='faceVarying':uv=values[corners]
                 elif interpolation in('vertex','varying'):uv=values[np.asarray(indices)[corners]]
                 elif interpolation=='uniform':uv=np.repeat(values[face][None],3,axis=0)
                 elif interpolation=='constant':uv=np.repeat(values[0][None],3,axis=0)
                 else:raise ValueError('Unsupported UV interpolation: '+interpolation)
                 if uv.shape!=(3,2)or not np.isfinite(uv).all():raise ValueError('Invalid UV coordinates')
-                self.current_raw_uv[varname]=uv
-            uv=self.current_raw_uv[varname]
+                self.current_raw_uv[raw_key]=uv
+            uv=self.current_raw_uv[raw_key]
             self.current_uv[transformed_key]=uv@transform[:2,:2].T+transform[:2,2]
-        return {**descriptor,'uv':self.current_uv[transformed_key],'frame_uv':self.current_raw_uv[varname]}
+        return {**descriptor,'uv':self.current_uv[transformed_key],'frame_uv':self.current_raw_uv[raw_key]}
 
+
+
+def _subdivision_mesh(prim, alignment):
+    """Preserve a control cage for Blender's bounded subdivision modifier.
+
+    This protocol covers the retained constant-material cases. Unqualified
+    connected shading or sharpness is explicit unknown, never silently dropped.
+    """
+    from pxr import Usd, UsdGeom, UsdShade
+    mesh=UsdGeom.Mesh(prim);stage=prim.GetStage()
+    if mesh.GetSubdivisionSchemeAttr().Get()!='catmullClark':
+        raise ValueError('Subdivision scheme outside bounded Catmull-Clark protocol')
+    if mesh.GetTriangleSubdivisionRuleAttr().Get()!='catmullClark':
+        raise ValueError('Subdivision triangle rule outside bounded protocol')
+    for attr in (mesh.GetCreaseSharpnessesAttr(),mesh.GetCornerSharpnessesAttr()):
+        if any(float(v)!=0 for v in (attr.Get()or[])):
+            raise ValueError('Nonzero subdivision crease/corner sharpness is unqualified in this protocol')
+    boundary={'edgeAndCorner':'PRESERVE_CORNERS','edgeOnly':'ALL'}.get(mesh.GetInterpolateBoundaryAttr().Get())
+    uv_smooth={'none':'SMOOTH_ALL','cornersOnly':'PRESERVE_CORNERS',
+               'cornersPlus1':'PRESERVE_CORNERS_AND_JUNCTIONS',
+               'cornersPlus2':'PRESERVE_CORNERS_JUNCTIONS_AND_CONCAVE',
+               'boundaries':'PRESERVE_BOUNDARIES','all':'NONE'}.get(mesh.GetFaceVaryingLinearInterpolationAttr().Get())
+    if boundary is None or uv_smooth is None:raise ValueError('Unqualified subdivision boundary/interpolation mode')
+    if UsdShade.MaterialBindingAPI(prim).GetMaterialBindSubsets():
+        raise ValueError('Subdivision material subsets are outside the constant-material protocol')
+    counts=np.asarray(mesh.GetFaceVertexCountsAttr().Get(),dtype=np.int64)
+    indices=np.asarray(mesh.GetFaceVertexIndicesAttr().Get(),dtype=np.int64)
+    points=np.asarray(mesh.GetPointsAttr().Get(),float)
+    if points.ndim!=2 or points.shape[1]!=3 or not np.isfinite(points).all() or counts.ndim!=1 or np.any(counts<3) or counts.sum()!=len(indices) or np.any(indices<0) or np.any(indices>=len(points)):
+        raise ValueError('Invalid subdivision control topology')
+    holes=list(mesh.GetHoleIndicesAttr().Get()or[])
+    if any(i<0 or i>=len(counts) for i in holes):raise ValueError('Invalid subdivision hole index')
+    matrix=np.asarray(UsdGeom.XformCache(Usd.TimeCode.Default()).GetLocalToWorldTransform(prim),float)
+    points=(np.c_[points,np.ones(len(points))]@matrix)[:,:3]*UsdGeom.GetStageMetersPerUnit(stage)
+    if UsdGeom.GetStageUpAxis(stage)=='Y':points=points[:,[0,2,1]]*np.array([1,-1,1])
+    points=points@alignment[:3,:3].T+alignment[:3,3]
+    if not np.isfinite(points).all():raise ValueError('Nonfinite subdivision transform')
+    reverse=(mesh.GetOrientationAttr().Get()=='leftHanded')!=(np.linalg.det(matrix[:3,:3])<0)
+    faces=[];offset=0
+    for count in counts:
+        face=indices[offset:offset+count].tolist();offset+=count
+        faces.append(face[::-1]if reverse else face)
+    material,_=UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+    shader=material.ComputeSurfaceSource()[0]if material else None
+    if material and (not shader or shader.GetIdAttr().Get()!='UsdPreviewSurface'):
+        raise ValueError('No supported subdivision PreviewSurface material')
+    if material and material.GetDisplacementOutput()and material.GetDisplacementOutput().HasConnectedSource():raise ValueError('Subdivision displacement is unqualified')
+    defaults={'diffuseColor':[.18,.18,.18],'roughness':.5,'metallic':0.,'opacity':1.,
+              'normal':[0.,0.,1.],'emissiveColor':[0.,0.,0.],'ior':1.5,'opacityThreshold':0.}
+    record={}
+    if shader:
+        for name,default in defaults.items():
+            value=_TextureBridge._literal(shader,name,default)
+            a=np.asarray(value,float)
+            if not np.isfinite(a).all():raise ValueError('Nonfinite subdivision shader value')
+            record[name]=float(a)if a.ndim==0 else a.tolist()
+        benign={'useSpecularWorkflow':0,'clearcoat':0.,'clearcoatRoughness':.01,'occlusion':1.,'displacement':0.}
+        for inp in shader.GetInputs():
+            name=inp.GetBaseName()
+            if name in defaults or name=='specular':continue
+            if name=='specularColor'and _TextureBridge._literal(shader,'useSpecularWorkflow',0)==0:continue
+            if name=='clearcoatRoughness'and _TextureBridge._literal(shader,'clearcoat',0)==0:continue
+            value=inp.Get()
+            if inp.HasConnectedSource()or value is not None and(name not in benign or not np.allclose(value,benign[name])):
+                raise ValueError('Unqualified subdivision shader input: '+name)
+    else:
+        record=dict(defaults)
+        for pvname,field,default in [('displayColor','diffuseColor',[.18,.18,.18]),('displayOpacity','opacity',1.)]:
+            pv=UsdGeom.PrimvarsAPI(prim).FindPrimvarWithInheritance(pvname)
+            if pv and pv.HasValue():
+                if pv.GetInterpolation()!='constant':raise ValueError('Nonconstant unbound subdivision display primvar is unqualified')
+                values=pv.ComputeFlattened();record[field]=np.asarray(values[0],float).tolist()
+    if not np.allclose(record['normal'],[0,0,1]):raise ValueError('Subdivision tangent normal is unqualified')
+    if not isinstance(record['ior'],(int,float))or record['ior']<=0:raise ValueError('Positive subdivision IOR required')
+    record['double_sided']=bool(mesh.GetDoubleSidedAttr().Get())
+    active=sum(int(n)for i,n in enumerate(counts)if i not in set(holes))
+    estimate=2*active*4**(SUBDIVISION_PROTOCOL['levels']-1)
+    return {'prim':str(prim.GetPath()),'points':points.tolist(),'faces':faces,'hole_indices':holes,
+            'material':record,'estimated_triangles':estimate,
+            'protocol':{**SUBDIVISION_PROTOCOL,'boundary_smooth':boundary,'uv_smooth':uv_smooth}}
 
 
 def _extract_scene(source, target, alignment,package_root=None):
@@ -397,13 +487,27 @@ def _extract_scene(source, target, alignment,package_root=None):
     rows, material_rows, lookup, unsupported = [], [], {}, []
     texture_dir=target/'textures';texture_dir.mkdir(parents=True,exist_ok=True)
     diagnostics=[];issues=set();bridge=_TextureBridge(source,package_root,texture_dir=texture_dir)
+    groups=[];blocks=[];offset=0;subdivision_meshes=[];handled_subdivision=set()
+    for start,end,prim,indices,metadata in materials.groups:
+        mesh=UsdGeom.Mesh(prim)
+        if mesh and mesh.GetSubdivisionSchemeAttr().Get()not in('none',None):
+            try:
+                subdivision_meshes.append(_subdivision_mesh(prim,alignment));handled_subdivision.add(str(prim.GetPath()))
+            except (ValueError,RuntimeError,TypeError)as exc:
+                unsupported.append({'prim':str(prim.GetPath()),'reason':str(exc)})
+            continue
+        blocks.append(triangles[start:end]);groups.append((offset,offset+end-start,prim,indices,metadata));offset+=end-start
+    if handled_subdivision or len(groups)!=len(materials.groups):
+        triangles=np.concatenate(blocks)if blocks else np.empty((0,3,3),float)
+    estimated_triangles=len(triangles)+sum(m['estimated_triangles']for m in subdivision_meshes)
+    if estimated_triangles>RECIPE['maximum_triangles']:raise MemoryError('Bounded subdivision exceeds triangle budget')
     triangle_context=[None]*len(triangles)
     material_status={'bound_preview_surface_triangles':0,'unbound_triangles':0}
     xforms=UsdGeom.XformCache(Usd.TimeCode.Default())
     double_sided=np.zeros(len(triangles),bool)
     reversed_winding=np.zeros(len(triangles),bool)
     used_shaders=set()
-    for start,end,prim,indices,metadata in materials.groups:
+    for start,end,prim,indices,metadata in groups:
         gprim=UsdGeom.Gprim(prim)
         double_sided[start:end]=bool(gprim.GetDoubleSidedAttr().Get())
         determinant=np.linalg.det(np.asarray(xforms.GetLocalToWorldTransform(prim),float)[:3,:3])
@@ -431,7 +535,7 @@ def _extract_scene(source, target, alignment,package_root=None):
     # assessing support. Each corner's UV survives triangulation in this API.
     udim_files={};material_templates={}
     fields=[('diffuseColor',[.18,.18,.18]),('roughness',.5),('metallic',0.),('opacity',1.),
-            ('normal',[0.,0.,1.]),('emissiveColor',[0.,0.,0.]),('ior',1.5)]
+            ('normal',[0.,0.,1.]),('emissiveColor',[0.,0.,0.]),('ior',1.5),('opacityThreshold',0.)]
     for index in range(len(triangles)):
         shader,bound,prim,metadata,indices=triangle_context[index]
         if bound and (not shader or shader.GetIdAttr().Get()!='UsdPreviewSurface'):
@@ -493,7 +597,10 @@ def _extract_scene(source, target, alignment,package_root=None):
                     record[name]['file']=str(value['texture'].file.resolve())
 
             elif cached is None:
-                record[name] = value
+                # Absent/default threshold preserves the original scene bytes
+                # and Blender graph for already-supported submissions.
+                if name!='opacityThreshold' or value!=0:
+                    record[name] = value
                 if name=='normal' and not np.allclose(value,[0,0,1]):
                     unsupported.append({'prim':str(shader.GetPath()),'reason':'Constant nondefault tangent normal lacks a qualified tangent frame'})
         record['double_sided']=bool(double_sided[index])
@@ -512,7 +619,8 @@ def _extract_scene(source, target, alignment,package_root=None):
             material_templates[template_key]=(material_index,uv_fields)
         else:material_index=cached[0]
         rows.append({'material':material_index,'uv':uv,**display})
-    unsupported.extend(observation['eligibility'].get('unsupported', []))
+    unsupported.extend(r for r in observation['eligibility'].get('unsupported', [])
+                       if not(r.get('prim')in handled_subdivision and r.get('reason')=='Compared authored polygon control surface; subdivision limit surface is not evaluated'))
     # Refuse unsupported authored shading features rather than quietly losing
     # them while translating the qualified base PreviewSurface subset.
     for prim in materials.stage.Traverse(Usd.TraverseInstanceProxies()):
@@ -520,7 +628,7 @@ def _extract_scene(source, target, alignment,package_root=None):
         if not prim.IsA(UsdShade.Shader): continue
         shader=UsdShade.Shader(prim)
         if shader.GetIdAttr().Get() != 'UsdPreviewSurface': continue
-        allowed={'diffuseColor','roughness','metallic','opacity','normal','emissiveColor','ior'}
+        allowed={'diffuseColor','roughness','metallic','opacity','normal','emissiveColor','ior','opacityThreshold'}
         benign={'useSpecularWorkflow':0,'ior':1.5,'opacityThreshold':0.,
                 'clearcoat':0.,'clearcoatRoughness':.01,'emissiveColor':(0.,0.,0.),
                 'occlusion':1.,'displacement':0.,'normal':(0.,0.,1.)}
@@ -528,6 +636,10 @@ def _extract_scene(source, target, alignment,package_root=None):
             name=inp.GetBaseName()
             if name in allowed: continue
             value=inp.Get()
+            workflow=shader.GetInput('useSpecularWorkflow')
+            if name=='specularColor' and (not workflow or not workflow.HasConnectedSource() and workflow.Get() in (None,0)):
+                diagnostics.append({'prim':str(prim.GetPath()),'reason':'Inactive specularColor because effective useSpecularWorkflow is zero'})
+                continue
             coat=shader.GetInput('clearcoat')
             coat_inactive=not coat or not coat.HasConnectedSource() and coat.Get() in (None,0)
             if name=='specular':
@@ -546,7 +658,7 @@ def _extract_scene(source, target, alignment,package_root=None):
     xforms=UsdGeom.XformCache(Usd.TimeCode.Default())
     up=UsdGeom.GetStageUpAxis(materials.stage)
     canonical=np.array([[1,0,0],[0,0,-1],[0,1,0]]) if up=='Y' else np.eye(3)
-    for start,end,prim,indices,metadata in materials.groups:
+    for start,end,prim,indices,metadata in groups:
         mesh=UsdGeom.Mesh(prim)
         if not mesh: continue
         raw=mesh.GetNormalsAttr().Get()
@@ -585,9 +697,12 @@ def _extract_scene(source, target, alignment,package_root=None):
     scene={'schema':'simready-neutral-scene-v1','triangles':triangles.tolist(),
            'triangle_materials':rows,'materials':material_rows,
            'corner_normals':normals.tolist(),'normal_valid':normal_valid.tolist()}
+    if subdivision_meshes:
+        scene['subdivision_meshes']=subdivision_meshes
+        diagnostics.append({'reason':'Bounded subdivision rendering protocol','protocol':dict(SUBDIVISION_PROTOCOL),'mesh_count':len(subdivision_meshes)})
     return scene, {'status':'supported' if not unsupported else 'unknown',
                    'unsupported':unsupported,'diagnostics':diagnostics,'source_material_status':material_status,'unbound_policy':RECIPE['unbound_material_policy'],'units':'metres/Z-up',
-                   'triangles':len(triangles),'texture_cache':bridge.texture_statistics(),'surface_scope':observation['eligibility'],
+                   'triangles':estimated_triangles,'texture_cache':bridge.texture_statistics(),'surface_scope':observation['eligibility'],
                    'shader_scope':'universal PreviewSurface colour, roughness, metallic, opacity, tangent normal, emission, literal IOR; UsdUVTexture including UDIM and fallback + PrimvarReader + UsdTransform2d; declared unbound display/default policy'}
 
 
@@ -612,6 +727,7 @@ def render_asset(source, cameras_manifest, output_dir, alignment=None, timeout=1
     selected_views=(cameras['views']+[cameras['observation']]if role=='all'else cameras['views']if role=='comparison'else[cameras['observation']])
     output=Path(output_dir).resolve(); output.mkdir(parents=True,exist_ok=True)
     receipt={'schema':'simready-render-receipt-v1','status':'unknown','images':[],
+             'shading_adapter':SHADING_ADAPTER,
              'camera_sha256':_identity(cameras),'recipe':recipe,'recipe_sha256':_identity(recipe),
              'alignment':matrix.tolist(),'variant':'raw' if alignment is None else 'globally_aligned','role':role}
     phase='extract'
@@ -620,7 +736,7 @@ def render_asset(source, cameras_manifest, output_dir, alignment=None, timeout=1
         receipt['support']=support
         if support['status']!='supported':
             receipt['reason']='unsupported_scene'; return receipt
-        if not scene['triangles']:
+        if not scene['triangles']and not scene.get('subdivision_meshes'):
             receipt['reason']='empty_scene'; return receipt
         phase='scene_hash'
         scientific_scene={**scene,'materials':json.loads(json.dumps(scene['materials']))}
