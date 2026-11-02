@@ -2,7 +2,7 @@ import "./vendor/d3-7.9.0/d3.min.js";
 import { availableScore, paretoFrontier } from "./pareto-math.js?v=nv100-20261029";
 import { compactPointLabel, placePointLabels } from "./pareto-labels.js?v=viewer-labels-20261029";
 
-import { markerStyle } from "./pareto-style.js?v=published-results-20261102";
+import { markerStyle } from "./pareto-style.js?v=nv100-deepseek-20261102";
 
 const d3 = globalThis.d3;
 const root = document.getElementById("pareto-root");

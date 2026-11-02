@@ -66,7 +66,7 @@ def check(url, output, payload=None):
             page.select_option('#explorer-object',obj['id'])
             for v in obj['variants']:
                 assert v['run_id'] in data['job_ids'] and v['repetition']==0
-                assert v['run_id'] in v['src'] and v['trial_id'] in v['download_url']
+                assert (v['src'] is None or v['run_id'] in v['src']) and v['trial_id'] in v['download_url']
                 assert delta['pairs'][obj['id']+'/'+v['id']]['source_candidate_sha256']==v['sha256']
                 page.select_option('#explorer-variant',v['id']);variants+=1
         page.select_option('#explorer-object',manifest['objects'][0]['id']);page.select_option('#explorer-variant','sol-medium')

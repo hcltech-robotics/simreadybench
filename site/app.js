@@ -1,4 +1,4 @@
-import {orderRuns, sortFields, valueFor, scoreText} from './leaderboard-math.js?v=cad-leaderboard-20261030';
+import {orderRuns, sortFields, valueFor, scoreText} from './leaderboard-math.js?v=nv100-deepseek-20261102';
 
 const region = document.getElementById('leaderboard-table-region');
 const body = document.getElementById('leaderboard-body');
@@ -60,7 +60,7 @@ function render() {
       }
     }
     for(const field of ['pass_at_1','pass_at_3','pass_all_3']) {
-      const metric=run.pass_rates?.[field];const cell=element('td',numeric(metric?.value),'metric-value');
+      const metric=run.pass_rates?.[field];const cell=element('td',scoreText(metric && {...metric,lower_bound_percent:metric.lower_bound,upper_bound_percent:metric.upper_bound}),'metric-value');
       if(metric)cell.title=`${run.pass_rates.assets} assets · ${run.pass_rates.samples_per_asset || run.pass_rates.n || run.repetitions || 3} attempts per asset`;row.append(cell);
     }
     const tokens=element('td',undefined,'leaderboard-tokens');const t=run.tokens_per_asset;

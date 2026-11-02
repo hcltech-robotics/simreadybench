@@ -158,6 +158,22 @@ Fidelity evaluation normalises units and the up-axis, then aligns the reconstruc
 
 The [results](https://huggingface.co/datasets/hcltech-robotics/simreadybench) compare model configurations on NV100. Formal fidelity is the primary score; visual and kinematic fidelity are shown separately. The [project page](https://hcltech-robotics.github.io/simreadybench/#pareto) includes interactive quality–cost and quality–time comparisons, along with examples from the published reconstructions.
 
+## Published NV100 results
+
+| Model | Reasoning | Harness | Formal % | Optional criteria (%) | Visual % | Kinematic % | pass@1 % | pass@3 % | pass^3 % | Tokens/asset | Inference $/asset | $/formal point | Trial min/asset |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ChatGPT 6.1 Sol | high | Codex | **100.00** | 72.84 | 56.86 | 3.68 | 100.00 | 100.00 | 100.00 | 1,990,604 | $0.7145 | $0.007145 | 14.39 |
+| ChatGPT 6.1 Terra | high | Codex | **100.00** | 70.62–70.64 | 54.03 | 2.79 | 100.00 | 100.00 | 100.00 | 1,653,681 | $0.2735 | $0.002735 | 7.76 |
+| ChatGPT 6.1 Terra | medium | Codex + CAD/build123d | **100.00** | 70.89 | 54.11 | 0.71 | 100.00 | 100.00 | 100.00 | 3,917,477 | $0.3961 | $0.003961 | 8.56 |
+| ChatGPT 6.1 Sol | medium | Codex + CAD/build123d | **100.00** | 73.47 | 55.56 | 3.00 | 100.00 | 100.00 | 100.00 | 3,369,249 | $0.7383 | $0.007383 | 9.45 |
+| ChatGPT 6.1 Sol | medium | Codex | **99.98** | 73.22–73.24 | 53.66 | 3.14 | 99.67 | 100.00 | 99.00 | 1,064,313 | $0.4145 | $0.004146 | 9.32 |
+| ChatGPT 6.1 Sol | low | Codex | **97.69** | 73.58–73.61 | 51.17 | 2.44 | 71.33 | 96.00 | 39.00 | 478,511 | $0.2072 | $0.002121 | 5.86 |
+| ChatGPT 6.1 Terra | low | Codex | **91.13** | 69.90–70.03 | 47.81 | 0.87 | 2.00 | 6.00 | 0.00 | 359,013 | $0.0969 | $0.001064 | 4.40 |
+| DeepSeek V4.1 Flash (1017) | none | Terminus 2 | **86.32** | 71.64–73.23 | 35.36 | 0.052 | 2.33 | 6.00 | 0.00 | 2,242,278 | $0.0274 | $0.000317 | 10.98 |
+| NVIDIA Nemotron 3.5 Super VL | none | Terminus 2 | **76.69** | 68.33–69.63 | 21.52 | 0.005 | 0.00–1.67 | 0.00–5.00 | 0.00 | 2,511,512 | $0.3357 | $0.004377 | 11.18 |
+
+[Full results and coverage](https://huggingface.co/datasets/hcltech-robotics/simreadybench#leaderboard) · [Benchmark JSON](https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/main/leaderboard.json)
+
 ## Authors and citation
 
 Chris von Csefalvay, Pranav Doma, Achyuthan Unni Krishnan and Tamas Foldi, HCLTech. Cite the software using [CITATION.cff](CITATION.cff). The code is licensed under [MIT](LICENSE), and the reference assets use the [NVIDIA SimReady Assets licence](https://huggingface.co/datasets/nvidia/simready-assets).

@@ -21,8 +21,8 @@
       "candidate"
     ]
   },
-  "source_manifest_sha256": "a9eed2df5c89353540234487a489ab546332d12b6a8f344477c3de18ed7a5675",
-  "source_geometry_provenance_sha256": "31af79f12fbe5588f73ecbf783c5c62ed7ebe0136fc9410426be388892da8d10",
+  "source_manifest_sha256": "b399a193562bfdd7f9f439a0979e76b33b1fcb6c01200d058e61cfe644d72062",
+  "source_geometry_provenance_sha256": "946510b70b3e25fb3cf4b356743f2f082843c9fce30f1dc70bc2ba95bb3cf8b4",
   "build_dependencies": {
     "numpy": "2.5.4",
     "scipy": "1.17.1",
@@ -330,6 +330,128 @@
       "source_reference_sha256": "c1cbe27f1fd1412bb52d8408f421c494541c194ac254d90312a2112faddea0bc",
       "source_candidate_sha256": "ab0e32a09dfdbc8ba7b87ada6001cb85f96ef54c566bed8c1bb794441b94829d",
       "alignment_status": "recorded"
+    },
+    "equipment_bench_vise_a01/deepseek-none": {
+      "src": null,
+      "sha256": null,
+      "point_count": 0,
+      "reference_point_count": 0,
+      "max_distance_m": null,
+      "p95_distance_m": null,
+      "reference_diagonal_m": 0.4380706582276505,
+      "source_reference_sha256": "9906f2ad576d42dabb4ed2f079ff08fd6b3dd9e17c8af60feb95f9f3184aab58",
+      "source_candidate_sha256": null,
+      "alignment_status": null,
+      "reason": "Candidate geometry unavailable"
+    },
+    "equipment_bench_vise_a01/nemotron-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/equipment_bench_vise_a01/nemotron-none.bin",
+      "sha256": "9a3610f1c6f6f4cc34e7c07a2d9aa84a7e2c628f0b7e9136094efbaf3b14e50d",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.12662282586097717,
+      "p95_distance_m": 0.05320701003074646,
+      "reference_diagonal_m": 0.4380706582276505,
+      "source_reference_sha256": "9906f2ad576d42dabb4ed2f079ff08fd6b3dd9e17c8af60feb95f9f3184aab58",
+      "source_candidate_sha256": "a676bfc38419587ba18a9629d82bffda54e81cb22f4238b11db345f6f8efd40c",
+      "alignment_status": "recorded"
+    },
+    "handTool_pliers_groove_joint_a01/deepseek-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/handTool_pliers_groove_joint_a01/deepseek-none.bin",
+      "sha256": "a970d6deee9f23200e0892b1400f4002cd9babf9e5a5a0b939a69827638cd115",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.04800441488623619,
+      "p95_distance_m": 0.023108844459056827,
+      "reference_diagonal_m": 0.26204809790980804,
+      "source_reference_sha256": "8d5a342a86189929ab10050a11b5fc259398c1ddc3447563486c1a3b7cd503e4",
+      "source_candidate_sha256": "6a8297ded9919deaaef6036100ee6c0aa80113c16281f28eaf899a6c06eccd9d",
+      "alignment_status": "recorded"
+    },
+    "handTool_pliers_groove_joint_a01/nemotron-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/handTool_pliers_groove_joint_a01/nemotron-none.bin",
+      "sha256": "97436e2bf8f61d99e8021591818f74967f0aff0541d578f29276dfe922d834ef",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.06606163829565048,
+      "p95_distance_m": 0.04875489640980959,
+      "reference_diagonal_m": 0.26204809790980804,
+      "source_reference_sha256": "8d5a342a86189929ab10050a11b5fc259398c1ddc3447563486c1a3b7cd503e4",
+      "source_candidate_sha256": "8beb54f8ebf542fd4607a392236e8722e651b8d81cb5a1b9c19e821903a93e9d",
+      "alignment_status": "recorded"
+    },
+    "wasteManagement_oilyWasteCan_metal_a01/deepseek-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/wasteManagement_oilyWasteCan_metal_a01/deepseek-none.bin",
+      "sha256": "75fc24ed78a1f2d3747590cfd92a8e9feef18e7103e2cd3730620edd3522ed64",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.14320215582847595,
+      "p95_distance_m": 0.06687634252011772,
+      "reference_diagonal_m": 0.9456012640900179,
+      "source_reference_sha256": "f736152708dd6fa76dd239dc3e1f7a80e3e71c443863cbeec426a59268ab195e",
+      "source_candidate_sha256": "7d09625da82d915d367994a4059d66eb557c2bc77d54c656e0af725d8bc081d4",
+      "alignment_status": "recorded"
+    },
+    "wasteManagement_oilyWasteCan_metal_a01/nemotron-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/wasteManagement_oilyWasteCan_metal_a01/nemotron-none.bin",
+      "sha256": "77e4a773379666a7e2076e90c1b11bfab5f4ba726b3270ee9e3da9a9d220b5ef",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.429514616727829,
+      "p95_distance_m": 0.36824130117893217,
+      "reference_diagonal_m": 0.9456012640900179,
+      "source_reference_sha256": "f736152708dd6fa76dd239dc3e1f7a80e3e71c443863cbeec426a59268ab195e",
+      "source_candidate_sha256": "a5c4c7a38a5fa98a686e4af67545ee679a63b47ae095a6696301ef1c99567384",
+      "alignment_status": "recorded"
+    },
+    "ladder_step_folding_a01/deepseek-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/ladder_step_folding_a01/deepseek-none.bin",
+      "sha256": "72e796ed3d02bb7f2b94e2d6f624478fedf30fe9d96aad7c82c9cbecfb49891a",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.1056893840432167,
+      "p95_distance_m": 0.057056240364909167,
+      "reference_diagonal_m": 0.9758488153570555,
+      "source_reference_sha256": "fa0633a3648e406478e4e09bdb75d474c457f7c3bd8718effcb161f093c9b992",
+      "source_candidate_sha256": "bd1dac7fe14349f9dbe7a3d5f8b63f8ed987339789f90f3e90a93f912aca755f",
+      "alignment_status": "recorded"
+    },
+    "ladder_step_folding_a01/nemotron-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/ladder_step_folding_a01/nemotron-none.bin",
+      "sha256": "8a43df496cfbf67f5409ed3168fbd1ac73e89b211404b47bd28327f7d6afaf45",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.252163290977478,
+      "p95_distance_m": 0.1970308855175972,
+      "reference_diagonal_m": 0.9758488153570555,
+      "source_reference_sha256": "fa0633a3648e406478e4e09bdb75d474c457f7c3bd8718effcb161f093c9b992",
+      "source_candidate_sha256": "7e50c29464ac5a6940e125aaa2fc17fcfb658aced266e5cd93041df6bd64e099",
+      "alignment_status": "recorded"
+    },
+    "appliance_toaster_a01/deepseek-none": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/appliance_toaster_a01/deepseek-none.bin",
+      "sha256": "634495c5040165d8fae64425d479d3cbeee3edba449d8746a6e8a9475771aaf6",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.06944739818572998,
+      "p95_distance_m": 0.038707541488111015,
+      "reference_diagonal_m": 0.3873363873021353,
+      "source_reference_sha256": "c1cbe27f1fd1412bb52d8408f421c494541c194ac254d90312a2112faddea0bc",
+      "source_candidate_sha256": "d99102c579324f4daf34d35a44c6b163ca7e5df5b14ffc9fde692b7f65bfe6a1",
+      "alignment_status": "recorded"
+    },
+    "appliance_toaster_a01/nemotron-none": {
+      "src": null,
+      "sha256": null,
+      "point_count": 0,
+      "reference_point_count": 0,
+      "max_distance_m": null,
+      "p95_distance_m": null,
+      "reference_diagonal_m": 0.3873363873021353,
+      "source_reference_sha256": "c1cbe27f1fd1412bb52d8408f421c494541c194ac254d90312a2112faddea0bc",
+      "source_candidate_sha256": null,
+      "alignment_status": null,
+      "reason": "Candidate geometry unavailable"
     }
   }
 }

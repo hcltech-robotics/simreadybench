@@ -23,3 +23,5 @@ The explorer uses `assets/explorer/manifest.json` and `delta-manifest.json`. Eac
 The page uses the [Academic project page template](https://github.com/eliahuhorwitz/Academic-project-page-template/tree/d38af1ccae1ce82c3404d2820c4c646afd409f81), licensed under CC BY-SA 4.0.
 
 Formal pass rates use the explicit mandatory-pass flag in the per-trial evaluator output. pass@3 estimates the probability of at least one pass in three attempts; pass^3 estimates the probability all three pass. Retry executions contribute resource use but do not add pass-rate samples. The table expands token breakdowns and per-metric cost per point. Cached input remains part of input, and total tokens equal input plus output.
+
+Chart markers use model-family colours and initials. An outer ring identifies a custom agent. Filled markers lie on the selected frontier; dominated markers are outlined.

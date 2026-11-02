@@ -319,6 +319,111 @@
           "inference_cost_kind": "harbor_reported_unverified_basis",
           "model_display_name": "ChatGPT 6.1 Terra",
           "reasoning_display": "high"
+        },
+        {
+          "id": "deepseek-none",
+          "label": "DeepSeek V4.1 Flash (1017) \u00b7 Reasoning: none",
+          "model": "openai/deepseek-v4.1-flash-1017",
+          "model_display_name": "DeepSeek V4.1 Flash (1017)",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "0f2b2409-7945-44b8-abb4-c4faef268035:deepseek-v4.1-flash-1017:none:terminus-2",
+          "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
+          "trial_id": "4596b183-1dbd-464a-9998-5628252018e5",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 82.6086956521739,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 14.508680769530486,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 779.093126,
+            "inference_cost_usd": 0.036412833000000006,
+            "total_tokens": 3001200,
+            "input_tokens": 2957366,
+            "output_tokens": 43834
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": null,
+          "sha256": null,
+          "geometry_status": "unavailable",
+          "geometry_note": "A faithful geometry preview is unavailable for this reconstruction.",
+          "render_sha256": "c9578872c1276798f26d8bc2294fafcc6b8fefc353ae70a11453bb773bbfa3b7"
+        },
+        {
+          "id": "nemotron-none",
+          "label": "NVIDIA Nemotron 3.5 Super VL \u00b7 Reasoning: none",
+          "model": "openai/nemotron-3.5-super-vl",
+          "model_display_name": "NVIDIA Nemotron 3.5 Super VL",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4:nemotron-3.5-super-vl:none:terminus-2",
+          "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
+          "trial_id": "3f53404f-887e-42e5-9a5d-26ebf3509c35",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 78.47826086956522,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 43.55208686259163,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 492.742258,
+            "inference_cost_usd": 0.260594555,
+            "total_tokens": 1950365.0,
+            "input_tokens": 1914226.0,
+            "output_tokens": 36139.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/equipment_bench_vise_a01/nemotron-none.glb",
+          "sha256": "a676bfc38419587ba18a9629d82bffda54e81cb22f4238b11db345f6f8efd40c",
+          "bounds_m": [
+            [
+              -0.090147964656353,
+              0.02669907733798027,
+              -0.13641712069511414
+            ],
+            [
+              0.1838415414094925,
+              0.3069649934768677,
+              0.11519725620746613
+            ]
+          ],
+          "source_sha256": "201b1f43073fc4c786d70d5369849d94073cd5e71a1f90e8d520065d3d51c940",
+          "render_sha256": "da076e78da286436213a35343a2414e30c458d8db8a20d3f236ac6d6c956188e"
         }
       ]
     },
@@ -634,6 +739,122 @@
           "inference_cost_kind": "harbor_reported_unverified_basis",
           "model_display_name": "ChatGPT 6.1 Terra",
           "reasoning_display": "high"
+        },
+        {
+          "id": "deepseek-none",
+          "label": "DeepSeek V4.1 Flash (1017) \u00b7 Reasoning: none",
+          "model": "openai/deepseek-v4.1-flash-1017",
+          "model_display_name": "DeepSeek V4.1 Flash (1017)",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "0f2b2409-7945-44b8-abb4-c4faef268035:deepseek-v4.1-flash-1017:none:terminus-2",
+          "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
+          "trial_id": "b47797c6-cffa-4435-990b-9fb99fe9c127",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 92.93478260869566,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 26.698983959928043,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.035498302800815534,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 499.588421,
+            "inference_cost_usd": 0.016554414000000007,
+            "total_tokens": 1751012,
+            "input_tokens": 1728322,
+            "output_tokens": 22690
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/handTool_pliers_groove_joint_a01/deepseek-none.glb",
+          "sha256": "6a8297ded9919deaaef6036100ee6c0aa80113c16281f28eaf899a6c06eccd9d",
+          "bounds_m": [
+            [
+              -0.20347771048545837,
+              -0.0008927781018428504,
+              -0.04744216799736023
+            ],
+            [
+              0.11457651108503342,
+              0.017075223848223686,
+              0.044516511261463165
+            ]
+          ],
+          "source_sha256": "e5ab93971efce17df23aed6ad892ae9484682758cf10d5000569b3b2c0d51b44",
+          "render_sha256": "facc24d5454905742a9a00f92a1ef7f2a2945aa75fac7305c79a6680f6f23785"
+        },
+        {
+          "id": "nemotron-none",
+          "label": "NVIDIA Nemotron 3.5 Super VL \u00b7 Reasoning: none",
+          "model": "openai/nemotron-3.5-super-vl",
+          "model_display_name": "NVIDIA Nemotron 3.5 Super VL",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4:nemotron-3.5-super-vl:none:terminus-2",
+          "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
+          "trial_id": "055de8d4-01c1-4dfa-b310-17e85fbadb75",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 80.54347826086956,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 32.93769630168531,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.001907141437160883,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 695.098735,
+            "inference_cost_usd": 0.22071387,
+            "total_tokens": 1651650.0,
+            "input_tokens": 1620884.0,
+            "output_tokens": 30766.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/handTool_pliers_groove_joint_a01/nemotron-none.glb",
+          "sha256": "8beb54f8ebf542fd4607a392236e8722e651b8d81cb5a1b9c19e821903a93e9d",
+          "bounds_m": [
+            [
+              -0.093049056828022,
+              -0.010247776284813881,
+              -0.009572235867381096
+            ],
+            [
+              0.03704870492219925,
+              0.025950808078050613,
+              0.009395424276590347
+            ]
+          ],
+          "source_sha256": "ad0ab06c84b812de26683a854b1ece7c386d64ee3121c79bb3c664533860c77d",
+          "render_sha256": "0fab6da5b4424f08e7b61e66c19185d56fbfe1362a6cc53d280ecf326dd71f60"
         }
       ]
     },
@@ -949,6 +1170,122 @@
           "inference_cost_kind": "harbor_reported_unverified_basis",
           "model_display_name": "ChatGPT 6.1 Terra",
           "reasoning_display": "high"
+        },
+        {
+          "id": "deepseek-none",
+          "label": "DeepSeek V4.1 Flash (1017) \u00b7 Reasoning: none",
+          "model": "openai/deepseek-v4.1-flash-1017",
+          "model_display_name": "DeepSeek V4.1 Flash (1017)",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "0f2b2409-7945-44b8-abb4-c4faef268035:deepseek-v4.1-flash-1017:none:terminus-2",
+          "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
+          "trial_id": "0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 88.80434782608695,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 35.397173414120964,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 417.699823,
+            "inference_cost_usd": 0.020130687000000005,
+            "total_tokens": 1200767,
+            "input_tokens": 1175541,
+            "output_tokens": 25226
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/wasteManagement_oilyWasteCan_metal_a01/deepseek-none.glb",
+          "sha256": "7d09625da82d915d367994a4059d66eb557c2bc77d54c656e0af725d8bc081d4",
+          "bounds_m": [
+            [
+              -0.25743812322616577,
+              -0.004840603563934565,
+              -0.25266796350479126
+            ],
+            [
+              0.2544361650943756,
+              0.6173458099365234,
+              0.2500363290309906
+            ]
+          ],
+          "source_sha256": "8e6a1b029ab43bfa890fad57b0ae70e7da7c2fe63ef9d9001bf959d103587967",
+          "render_sha256": "142a163194c2f90d29cd4c52b077ff08cc8ea956dcaf3b972b036ea6283ee8da"
+        },
+        {
+          "id": "nemotron-none",
+          "label": "NVIDIA Nemotron 3.5 Super VL \u00b7 Reasoning: none",
+          "model": "openai/nemotron-3.5-super-vl",
+          "model_display_name": "NVIDIA Nemotron 3.5 Super VL",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4:nemotron-3.5-super-vl:none:terminus-2",
+          "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
+          "trial_id": "4021baa1-8acc-48e2-9540-53e7951258cb",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 76.41304347826087,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 4.664273026662166,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 799.399333,
+            "inference_cost_usd": 0.439381215,
+            "total_tokens": 3300927.0,
+            "input_tokens": 3248308.0,
+            "output_tokens": 52619.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/wasteManagement_oilyWasteCan_metal_a01/nemotron-none.glb",
+          "sha256": "a5c4c7a38a5fa98a686e4af67545ee679a63b47ae095a6696301ef1c99567384",
+          "bounds_m": [
+            [
+              0.017826128751039505,
+              0.23028121888637543,
+              -0.02265320159494877
+            ],
+            [
+              0.024237168952822685,
+              0.23692061007022858,
+              -0.016035590320825577
+            ]
+          ],
+          "source_sha256": "b544b8d3e0771c4ce74dbe13b96562c2641de7199586869ef854a9efe099f41b",
+          "render_sha256": "d9148a66cd2c9d36a6b851349ace53a169081997a7d8d54c59bd9db1be700211"
         }
       ]
     },
@@ -1264,6 +1601,122 @@
           "inference_cost_kind": "harbor_reported_unverified_basis",
           "model_display_name": "ChatGPT 6.1 Terra",
           "reasoning_display": "high"
+        },
+        {
+          "id": "deepseek-none",
+          "label": "DeepSeek V4.1 Flash (1017) \u00b7 Reasoning: none",
+          "model": "openai/deepseek-v4.1-flash-1017",
+          "model_display_name": "DeepSeek V4.1 Flash (1017)",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "0f2b2409-7945-44b8-abb4-c4faef268035:deepseek-v4.1-flash-1017:none:terminus-2",
+          "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
+          "trial_id": "5494349a-1147-430b-ade1-975ca8efb632",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 92.93478260869566,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 33.737726235619824,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 636.102507,
+            "inference_cost_usd": 0.028804925999999995,
+            "total_tokens": 3069344,
+            "input_tokens": 3035010,
+            "output_tokens": 34334
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/ladder_step_folding_a01/deepseek-none.glb",
+          "sha256": "bd1dac7fe14349f9dbe7a3d5f8b63f8ed987339789f90f3e90a93f912aca755f",
+          "bounds_m": [
+            [
+              -0.26654160022735596,
+              -0.018197376281023026,
+              -0.061025746166706085
+            ],
+            [
+              0.2571597993373871,
+              0.7984391450881958,
+              0.13563518226146698
+            ]
+          ],
+          "source_sha256": "e12d5a2adfab8fb7e790f87580485a699e58bf109c0d5246066b1268ae0fc837",
+          "render_sha256": "225e8d501aa5d5390f10a6de5c9677e42dad3d13ed4eab3ad974c23645f28853"
+        },
+        {
+          "id": "nemotron-none",
+          "label": "NVIDIA Nemotron 3.5 Super VL \u00b7 Reasoning: none",
+          "model": "openai/nemotron-3.5-super-vl",
+          "model_display_name": "NVIDIA Nemotron 3.5 Super VL",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4:nemotron-3.5-super-vl:none:terminus-2",
+          "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
+          "trial_id": "2a010ca5-f591-417f-9e8f-3011c3b5b6c2",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 84.67391304347827,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 31.497568574649083,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": null,
+              "status": "unknown",
+              "coverage": 0.5714285714285714
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 572.600818,
+            "inference_cost_usd": 0.3693989,
+            "total_tokens": 2744024.0,
+            "input_tokens": 2679020.0,
+            "output_tokens": 65004.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/ladder_step_folding_a01/nemotron-none.glb",
+          "sha256": "7e50c29464ac5a6940e125aaa2fc17fcfb658aced266e5cd93041df6bd64e099",
+          "bounds_m": [
+            [
+              -0.23087099194526672,
+              0.04544403403997421,
+              -0.07833090424537659
+            ],
+            [
+              0.21562573313713074,
+              0.8670805096626282,
+              0.09887976944446564
+            ]
+          ],
+          "source_sha256": "c059e347032ca4231f7216310f0060495b862fd4509b26fd795d881804c5a0c6",
+          "render_sha256": "15e362db7b409c0931fedffefef02259a9ab80b7e3ec5776c3cb423519d11464"
         }
       ]
     },
@@ -1579,6 +2032,111 @@
           "inference_cost_kind": "harbor_reported_unverified_basis",
           "model_display_name": "ChatGPT 6.1 Terra",
           "reasoning_display": "high"
+        },
+        {
+          "id": "deepseek-none",
+          "label": "DeepSeek V4.1 Flash (1017) \u00b7 Reasoning: none",
+          "model": "openai/deepseek-v4.1-flash-1017",
+          "model_display_name": "DeepSeek V4.1 Flash (1017)",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "0f2b2409-7945-44b8-abb4-c4faef268035:deepseek-v4.1-flash-1017:none:terminus-2",
+          "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
+          "trial_id": "ca45b274-d3ee-4d4c-8636-c9bc528ee11a",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 82.6086956521739,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 46.11073478129793,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 853.114052,
+            "inference_cost_usd": 0.038754870000000004,
+            "total_tokens": 2761589,
+            "input_tokens": 2720573,
+            "output_tokens": 41016
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/appliance_toaster_a01/deepseek-none.glb",
+          "sha256": "d99102c579324f4daf34d35a44c6b163ca7e5df5b14ffc9fde692b7f65bfe6a1",
+          "bounds_m": [
+            [
+              -0.1529623121023178,
+              0.00489387521520257,
+              -0.0911916196346283
+            ],
+            [
+              0.15944066643714905,
+              0.18393300473690033,
+              0.08531229197978973
+            ]
+          ],
+          "source_sha256": "7c47d603192bc2cfc3d1f12f854cbc3737e55e3dd5a09e6ce1a2ada9fd64e027",
+          "render_sha256": "866a92ee671a7471b58468a514df14ae233b9d8d2241fec779a703d5a4e63095"
+        },
+        {
+          "id": "nemotron-none",
+          "label": "NVIDIA Nemotron 3.5 Super VL \u00b7 Reasoning: none",
+          "model": "openai/nemotron-3.5-super-vl",
+          "model_display_name": "NVIDIA Nemotron 3.5 Super VL",
+          "harness": "Terminus 2",
+          "reasoning": "none",
+          "reasoning_display": "none",
+          "repetition": 0,
+          "condition_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4:nemotron-3.5-super-vl:none:terminus-2",
+          "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
+          "trial_id": "317d60df-8bf2-4320-ad4b-21be79fd0260",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/317d60df-8bf2-4320-ad4b-21be79fd0260/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/317d60df-8bf2-4320-ad4b-21be79fd0260/candidate-package.zip",
+          "render_url": null,
+          "scores": {
+            "formal": {
+              "value": 78.47826086956522,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 0.5
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 600.978898,
+            "inference_cost_usd": 0.454329655,
+            "total_tokens": 3383617.0,
+            "input_tokens": 3309466.0,
+            "output_tokens": 74151.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": null,
+          "sha256": null,
+          "geometry_status": "unavailable",
+          "geometry_note": "A faithful geometry preview is unavailable for this reconstruction.",
+          "render_sha256": null
         }
       ]
     }

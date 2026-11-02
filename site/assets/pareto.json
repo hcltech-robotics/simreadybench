@@ -3,11 +3,12 @@
   "reference_set": "nv100-v1",
   "reference_count": 100,
   "evaluator_version": "2.2.0",
-  "source_revision": "c943f73ebe4d6dab695fb53f0a62a339b87d3cc5",
+  "source_revision": "14c798b4de6062022e17ec294917a64c86ec08c3",
   "job_ids": [
     "dc30f963-ebba-47f8-a052-535ce8a706f4",
     "e6465830-0d2a-4663-8811-76a32076b78e",
-    "ed242be1-ed4f-4caa-815d-9ce76615afe4"
+    "ed242be1-ed4f-4caa-815d-9ce76615afe4",
+    "0f2b2409-7945-44b8-abb4-c4faef268035"
   ],
   "formal_fidelity_primary": true,
   "runs": [
@@ -62,32 +63,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 97.71518054532056,
+              "value": 97.73144040224786,
               "x_value": 0.20723826033333334,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": true
             },
             "visual": {
-              "value": 51.199890215425135,
+              "value": 50.83207477381618,
               "x_value": 0.20723826033333334,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": true
             },
             "kinematic": {
-              "value": 2.6033951897705343,
+              "value": 2.6265986852291427,
               "x_value": 0.20723826033333334,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": true
             }
@@ -106,32 +107,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 97.71518054532056,
+              "value": 97.73144040224786,
               "x_value": 351.35501172333335,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 51.199890215425135,
+              "value": 50.83207477381618,
               "x_value": 351.35501172333335,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 2.6033951897705343,
+              "value": 2.6265986852291427,
               "x_value": 351.35501172333335,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -150,32 +151,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 97.71518054532056,
+              "value": 97.73144040224786,
               "x_value": 478511.38333333336,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": true
             },
             "visual": {
-              "value": 51.199890215425135,
+              "value": 50.83207477381618,
               "x_value": 478511.38333333336,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": true
             },
             "kinematic": {
-              "value": 2.6033951897705343,
+              "value": 2.6265986852291427,
               "x_value": 478511.38333333336,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": true
             }
@@ -974,32 +975,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 99.97605011053795,
+              "value": 99.9759686483289,
               "x_value": 0.414478093,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 54.25410531139113,
+              "value": 53.87444477284226,
               "x_value": 0.414478093,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 3.3334186655550844,
+              "value": 3.4180296057006734,
               "x_value": 0.414478093,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -1018,32 +1019,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 99.97605011053795,
+              "value": 99.9759686483289,
               "x_value": 559.2767091,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 54.25410531139113,
+              "value": 53.87444477284226,
               "x_value": 559.2767091,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 3.3334186655550844,
+              "value": 3.4180296057006734,
               "x_value": 559.2767091,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -1062,32 +1063,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 99.97605011053795,
+              "value": 99.9759686483289,
               "x_value": 1064313.18,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 54.25410531139113,
+              "value": 53.87444477284226,
               "x_value": 1064313.18,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 3.3334186655550844,
+              "value": 3.4180296057006734,
               "x_value": 1064313.18,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -1888,30 +1889,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 0.714481805,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 57.17626226638162,
+              "value": 56.932205057723436,
               "x_value": 0.714481805,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 3.9266759611728075,
+              "value": 4.03043724418612,
               "x_value": 0.714481805,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -1932,30 +1933,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 863.2201472466667,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 57.17626226638162,
+              "value": 56.932205057723436,
               "x_value": 863.2201472466667,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 3.9266759611728075,
+              "value": 4.03043724418612,
               "x_value": 863.2201472466667,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -1976,30 +1977,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 1990603.8366666667,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 57.17626226638162,
+              "value": 56.932205057723436,
               "x_value": 1990603.8366666667,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 3.9266759611728075,
+              "value": 4.03043724418612,
               "x_value": 1990603.8366666667,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -2798,32 +2799,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 91.10132645541636,
+              "value": 91.13021295474712,
               "x_value": 0.09692058916666667,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 47.29152042754551,
+              "value": 47.33004538565189,
               "x_value": 0.09692058916666667,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 0.9222468995853921,
+              "value": 0.9486133682562952,
               "x_value": 0.09692058916666667,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -2842,32 +2843,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 91.10132645541636,
+              "value": 91.13021295474712,
               "x_value": 263.7662889233333,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 47.29152042754551,
+              "value": 47.33004538565189,
               "x_value": 263.7662889233333,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 0.9222468995853921,
+              "value": 0.9486133682562952,
               "x_value": 263.7662889233333,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -2886,32 +2887,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 91.10132645541636,
+              "value": 91.13021295474712,
               "x_value": 359012.8933333333,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 47.29152042754551,
+              "value": 47.33004538565189,
               "x_value": 359012.8933333333,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 0.9222468995853921,
+              "value": 0.9486133682562952,
               "x_value": 359012.8933333333,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -3712,30 +3713,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 0.27350602183333333,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 54.92311322627721,
+              "value": 54.7426109349975,
               "x_value": 0.27350602183333333,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 2.9957574876315527,
+              "value": 3.065273465178823,
               "x_value": 0.27350602183333333,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -3756,30 +3757,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 465.41184811000005,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 54.92311322627721,
+              "value": 54.7426109349975,
               "x_value": 465.41184811000005,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 2.9957574876315527,
+              "value": 3.065273465178823,
               "x_value": 465.41184811000005,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
               "frontier_provisional": false
             }
@@ -3800,30 +3801,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 1653681.07,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 54.92311322627721,
+              "value": 54.7426109349975,
               "x_value": 1653681.07,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 2.9957574876315527,
+              "value": 3.065273465178823,
               "x_value": 1653681.07,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": false
             }
@@ -4636,30 +4637,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 0.3960623955,
-              "measured_attempts": 295,
-              "eligible_attempts": 400,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": true
             },
             "visual": {
-              "value": 53.79342345244961,
+              "value": 53.48194189368551,
               "x_value": 0.3960623955,
-              "measured_attempts": 200,
-              "eligible_attempts": 400,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": true
             },
             "kinematic": {
-              "value": 0.49673837815205313,
+              "value": 0.5068921265512136,
               "x_value": 0.3960623955,
-              "measured_attempts": 279,
-              "eligible_attempts": 400,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": true
             }
@@ -4681,30 +4682,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 513.6280323474999,
-              "measured_attempts": 295,
-              "eligible_attempts": 400,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 53.79342345244961,
+              "value": 53.48194189368551,
               "x_value": 513.6280323474999,
-              "measured_attempts": 200,
-              "eligible_attempts": 400,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 0.49673837815205313,
+              "value": 0.5068921265512136,
               "x_value": 513.6280323474999,
-              "measured_attempts": 279,
-              "eligible_attempts": 400,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": false
             }
@@ -4725,30 +4726,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 3917476.69,
-              "measured_attempts": 295,
-              "eligible_attempts": 400,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": true
             },
             "visual": {
-              "value": 53.79342345244961,
+              "value": 53.48194189368551,
               "x_value": 3917476.69,
-              "measured_attempts": 200,
-              "eligible_attempts": 400,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": true
             },
             "kinematic": {
-              "value": 0.49673837815205313,
+              "value": 0.5068921265512136,
               "x_value": 3917476.69,
-              "measured_attempts": 279,
-              "eligible_attempts": 400,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": true
             }
@@ -5580,30 +5581,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 0.7382938889999999,
-              "measured_attempts": 295,
-              "eligible_attempts": 400,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": true
             },
             "visual": {
-              "value": 55.47128418100518,
+              "value": 55.19350354858251,
               "x_value": 0.7382938889999999,
-              "measured_attempts": 200,
-              "eligible_attempts": 400,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": true
             },
             "kinematic": {
-              "value": 3.156136840481574,
+              "value": 2.8987035040224516,
               "x_value": 0.7382938889999999,
-              "measured_attempts": 279,
-              "eligible_attempts": 400,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": true
             }
@@ -5625,30 +5626,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 567.08734337,
-              "measured_attempts": 295,
-              "eligible_attempts": 400,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 55.47128418100518,
+              "value": 55.19350354858251,
               "x_value": 567.08734337,
-              "measured_attempts": 200,
-              "eligible_attempts": 400,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": true,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 3.156136840481574,
+              "value": 2.8987035040224516,
               "x_value": 567.08734337,
-              "measured_attempts": 279,
-              "eligible_attempts": 400,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": false
             }
@@ -5669,30 +5670,30 @@
             "formal": {
               "value": 100.0,
               "x_value": 3369249.315,
-              "measured_attempts": 295,
-              "eligible_attempts": 400,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": true
             },
             "visual": {
-              "value": 55.47128418100518,
+              "value": 55.19350354858251,
               "x_value": 3369249.315,
-              "measured_attempts": 200,
-              "eligible_attempts": 400,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": true
             },
             "kinematic": {
-              "value": 3.156136840481574,
+              "value": 2.8987035040224516,
               "x_value": 3369249.315,
-              "measured_attempts": 279,
-              "eligible_attempts": 400,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": true
             }
@@ -6514,32 +6515,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 76.68607221812822,
+              "value": 76.65890269151139,
               "x_value": 0.33568807935,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 22.072283910692992,
+              "value": 21.92115080097153,
               "x_value": 0.33568807935,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 0.0049439378427223405,
+              "value": 0.004992065989401574,
               "x_value": 0.33568807935,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": false
             }
@@ -6558,32 +6559,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 76.68607221812822,
+              "value": 76.65890269151139,
               "x_value": 670.7458901633333,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 22.072283910692992,
+              "value": 21.92115080097153,
               "x_value": 670.7458901633333,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 0.0049439378427223405,
+              "value": 0.004992065989401574,
               "x_value": 670.7458901633333,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": false
             }
@@ -6602,32 +6603,32 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 76.68607221812822,
+              "value": 76.65890269151139,
               "x_value": 2511512.17,
-              "measured_attempts": 295,
+              "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "05f5373a1ecadaf663a7257ffd6af1e0e7293d0e4b3b70d379387679f81cef44",
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
-              "value": 22.072283910692992,
+              "value": 21.92115080097153,
               "x_value": 2511512.17,
-              "measured_attempts": 200,
+              "measured_attempts": 193,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "e2f07a0e4a1cda0e929d10bc141fb5e163fad433804c624b39ea50e30f181d11",
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
               "frontier": false,
               "frontier_provisional": false
             },
             "kinematic": {
-              "value": 0.0049439378427223405,
+              "value": 0.004992065989401574,
               "x_value": 2511512.17,
-              "measured_attempts": 279,
+              "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
-              "cohort_sha256": "3f1de33005f152ef4c8596bfc2c3dbd54477f7670b9919e03017e6ac269252b8",
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
               "frontier_provisional": false
             }
@@ -7368,6 +7369,924 @@
         "source_field": "formal_report.optional_score",
         "retries_excluded": true
       }
+    },
+    {
+      "id": "0f2b2409-7945-44b8-abb4-c4faef268035:deepseek-v4.1-flash-1017:none:terminus-2",
+      "label": "DeepSeek V4.1 Flash (1017) \u00b7 none \u00b7 Terminus 2",
+      "model": "DeepSeek V4.1 Flash (1017)",
+      "model_family": "DeepSeek",
+      "model_display_name": "DeepSeek V4.1 Flash (1017)",
+      "reasoning_display": "none",
+      "requested_model": "openai/deepseek-v4.1-flash-1017",
+      "reasoning": "none",
+      "harness": "Terminus 2",
+      "authoring_label": "Terminus 2",
+      "agent_revision": null,
+      "evaluator_version": "2.2.0",
+      "job_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
+      "frontier_group": "nv100-v1:2.2.0",
+      "reference_count": 100,
+      "final_slots": 300,
+      "execution_count": 301,
+      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035",
+      "scores": {
+        "formal": {
+          "value": 86.3243420095972,
+          "measured_attempts": 299,
+          "eligible_attempts": 300,
+          "complete": false,
+          "status": "partial",
+          "lower_bound_percent": 86.31884057971014,
+          "upper_bound_percent": 86.32572463768116
+        },
+        "visual": {
+          "value": 35.36492790119117,
+          "measured_attempts": 286,
+          "eligible_attempts": 300,
+          "complete": false,
+          "status": "partial",
+          "lower_bound_percent": 33.714564599135585,
+          "upper_bound_percent": 37.290887906656856
+        },
+        "kinematic": {
+          "value": 0.05241736631681492,
+          "measured_attempts": 292,
+          "eligible_attempts": 300,
+          "complete": false,
+          "status": "partial",
+          "lower_bound_percent": 0.05101956988169986,
+          "upper_bound_percent": 0.4795909984531284
+        }
+      },
+      "metrics": {
+        "cost_usd_per_asset": {
+          "value": 0.02739607715,
+          "unit": "USD/asset",
+          "denominator": 300,
+          "measured_attempts": 301,
+          "total_attempts": 301,
+          "unknown_execution_count": 0,
+          "sum_recorded": 8.218823145,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 86.24704229517894,
+              "x_value": 0.02739607715,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
+              "frontier": true,
+              "frontier_provisional": false
+            },
+            "visual": {
+              "value": 35.72850722838225,
+              "x_value": 0.02739607715,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
+              "frontier": true,
+              "frontier_provisional": false
+            },
+            "kinematic": {
+              "value": 0.051288910507209066,
+              "x_value": 0.02739607715,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
+              "frontier": true,
+              "frontier_provisional": false
+            }
+          },
+          "kind": "harbor_reported_unverified_basis"
+        },
+        "elapsed_seconds_per_asset": {
+          "value": 658.7579575766666,
+          "unit": "seconds/asset",
+          "denominator": 300,
+          "measured_attempts": 301,
+          "total_attempts": 301,
+          "unknown_execution_count": 0,
+          "sum_recorded": 197627.387273,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 86.24704229517894,
+              "x_value": 658.7579575766666,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
+              "frontier": false,
+              "frontier_provisional": false
+            },
+            "visual": {
+              "value": 35.72850722838225,
+              "x_value": 658.7579575766666,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
+              "frontier": false,
+              "frontier_provisional": false
+            },
+            "kinematic": {
+              "value": 0.051288910507209066,
+              "x_value": 658.7579575766666,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
+              "frontier": false,
+              "frontier_provisional": false
+            }
+          },
+          "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
+        },
+        "tokens_per_asset": {
+          "value": 2242278.0633333335,
+          "unit": "tokens/asset",
+          "denominator": 300,
+          "measured_attempts": 301,
+          "total_attempts": 301,
+          "unknown_execution_count": 0,
+          "sum_recorded": 672683419.0,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 86.24704229517894,
+              "x_value": 2242278.0633333335,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
+              "frontier": false,
+              "frontier_provisional": false
+            },
+            "visual": {
+              "value": 35.72850722838225,
+              "x_value": 2242278.0633333335,
+              "measured_attempts": 193,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "030378b1b154f33d064154e230647fb70693b3965bd4f47e4d5bb5318222411e",
+              "frontier": false,
+              "frontier_provisional": false
+            },
+            "kinematic": {
+              "value": 0.051288910507209066,
+              "x_value": 2242278.0633333335,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
+              "frontier": false,
+              "frontier_provisional": false
+            }
+          }
+        }
+      },
+      "tokens_per_asset": {
+        "total": {
+          "value": 2242278.0633333335,
+          "sum_recorded": 672683419.0,
+          "denominator": 300,
+          "known_executions": 301,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "input": {
+          "value": 2210364.4166666665,
+          "sum_recorded": 663109325.0,
+          "denominator": 300,
+          "known_executions": 301,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "output": {
+          "value": 31913.646666666667,
+          "sum_recorded": 9574094.0,
+          "denominator": 300,
+          "known_executions": 301,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cached_input": {
+          "value": 2012997.9333333333,
+          "sum_recorded": 603899380.0,
+          "denominator": 300,
+          "known_executions": 301,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        }
+      },
+      "inference_cost_per_asset": {
+        "value": 0.02739607715,
+        "sum_recorded": 8.218823145,
+        "denominator": 300,
+        "known_executions": 301,
+        "unknown_executions": 0,
+        "partial": false,
+        "includes_retries": true
+      },
+      "trial_seconds_per_asset": {
+        "value": 658.7579575766666,
+        "sum_recorded": 197627.387273,
+        "denominator": 300,
+        "known_executions": 301,
+        "unknown_executions": 0,
+        "partial": false,
+        "includes_retries": true
+      },
+      "cost_per_point": {
+        "formal": {
+          "value": 0.00031736213114667253,
+          "status": "known",
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
+        },
+        "visual": {
+          "value": 0.0007746679768878374,
+          "status": "known",
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
+        },
+        "kinematic": {
+          "value": 0.5226526831664116,
+          "status": "known",
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
+        }
+      },
+      "pass_rates": {
+        "criterion": "all_46_mandatory_requirements_pass",
+        "k": 3,
+        "samples_per_asset": 3,
+        "assets": 100,
+        "final_attempts": 300,
+        "pass_at_1": {
+          "value": 2.3333333333333335,
+          "successes": 7.0,
+          "denominator": 300,
+          "unknown": 0,
+          "lower_bound": 2.3333333333333335,
+          "upper_bound": 2.3333333333333335
+        },
+        "pass_at_3": {
+          "value": 6.0,
+          "successes": 6.0,
+          "denominator": 100,
+          "unknown": 0,
+          "lower_bound": 6.0,
+          "upper_bound": 6.0
+        },
+        "pass_all_3": {
+          "value": 0.0,
+          "successes": 0.0,
+          "denominator": 100,
+          "unknown": 0,
+          "lower_bound": 0.0,
+          "upper_bound": 0.0
+        },
+        "successes_per_asset": {
+          "0": 94,
+          "1": 5,
+          "2": 1,
+          "3": 0
+        },
+        "estimators": {
+          "pass_at_k": "1 - C(n-c,k)/C(n,k)",
+          "pass_all_k": "C(c,k)/C(n,k)"
+        },
+        "retries_excluded": true,
+        "by_asset": [
+          {
+            "reference_id": "nv100-v1:nv100_04ed00317ccc5a90",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_0d5a045d08832558",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_0ee38dbeb8dccf6d",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_0fdbdbbf0914a091",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_142ac642d87da17c",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_15d6296b43e32e18",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_17a2f7ce1c73e24b",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_17b98c24982e1657",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_19607166b9604d89",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_198a9e9c4f7ce3f2",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_1d6ca6d90cd58961",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2124cde602dbdcb7",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2442a6f885eb3cc3",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_247345f2a336cc5f",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_277538c0752a1186",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_29738d03bc5d9a68",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2999ac8a4e7af7e7",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2a6a57f1f660128a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2ab1c8d84ebe4eb9",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2af97ae24a8d7fde",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_3084bc1f12b79ce8",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_36db64b13e6813e1",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_381f0169f4c4fbd1",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_382b02d058a48b6a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_3b37b9f58a70ca40",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_47447ae933c565c5",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_4afa194354477c47",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_4b024c41c6d4c2bb",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_4e10782bf98f9405",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_525b65ccbe56ffea",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_56025f338315d66a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_58b1427ce07ba99a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_58fba5a2a836bcef",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_5b8085baf6c090ed",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_5c3d3461fa840d9d",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_5d12c190ef7457d1",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_600fc2ad768f1930",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_6627b65375e93e5d",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_69ecd52a60671756",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_6f6f63bdb94a83b4",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_70a1243908f64ead",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_70c417d940a526ee",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_7777d0b26e69f86a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_7876a753434cf7d3",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_78da45d42fdf538c",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_791e79d947ee35ae",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_7ac8dcd5266e9924",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_80416c2bc0a430eb",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8574b6f4aa22c8e3",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8817a4bd528f5549",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8cfd1e56a0b504ea",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8d81b2987b196041",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8dd6e1f1cbb8b462",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_918619c7fe40bdc5",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9499de2220b36cbe",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_968cd3dfe5ad21c1",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_977905a7f68dc323",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9ba70a69917d2305",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9e3f7dbd969acac5",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9e6234280413cdcb",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a194e402f44013d1",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a2939a17e3444d52",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a3fe4697f3e4c15e",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a7a336d818a3d9d3",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_abb1b470da2eb131",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_adb626df31bf7509",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_af46aeafd295d310",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_b4208a0e4f762579",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_b6aeeb666424ae0d",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_b83324e831779e19",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_bff10216da262e6a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c2f7f1f03e91af9b",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c35d376f74c032a5",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c6c60a8c7081041a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c844b5efec42e5fa",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c87b9d6690f9e687",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c89ec640cbfbd302",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c8a8bac26c7b4874",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c92d6c8478d7758f",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_ca63914168dce803",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_cb8c72f166e90540",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d152ce4f60b45ea9",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d37c0067281cdd26",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d5ddbfeda2fe7ad9",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d9edaf956545bd67",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_dea081707992a622",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_df1e96e685d276d3",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_e006be66e4cc28f9",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_e7a7d6fbf4f2326f",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_e948d0fd08624353",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_eadc1038f3bfd872",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_eb55c976d6cd528f",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_eb6800ce857dc2eb",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_ec0dd39731982fa2",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_ef3a3efa5b480cd0",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_f33ae88933be01fa",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_f7f391c5b6b8e44d",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_fb8ddbbe3dbc2900",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_fbb5620efff99eee",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_fd477c46fa524292",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          }
+        ]
+      },
+      "harness_id": "terminus-2",
+      "agent_version": "2.0.0",
+      "harness_version": "2.0.0",
+      "repetitions": 3,
+      "optional_criteria": {
+        "value": null,
+        "unit": "percent",
+        "status": "partial",
+        "lower_bound_percent": 71.640522875817,
+        "upper_bound_percent": 73.22875816993464,
+        "passed_checks": 10961,
+        "unknown_checks": 243,
+        "total_checks": 15300,
+        "checks_per_attempt": 51,
+        "eligible_attempts": 300,
+        "fully_scored_attempts": 219,
+        "unknown_attempts": 81,
+        "retries_excluded": true
+      }
     }
   ],
   "leaderboard_definitions": {
@@ -7394,12 +8313,12 @@
     "pass_at_3": "pass@3",
     "pass_all_3": "pass^3"
   },
-  "artifact_revision": "3f791f561dd935c8f1d4318b477f2908b7ba22bb",
+  "artifact_revision": "c77d4ae599756ba985001ab126821e1c5ee31f51",
   "harbor_import": {
     "job_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
     "source_url": "https://hub.harborframework.com/jobs/ed242be1-ed4f-4caa-815d-9ce76615afe4",
     "job_finished_at": "2026-11-02T09:26:46.814352+00:00",
     "fetched_at": "2026-11-02T09:30:48.824422+00:00"
   },
-  "publication_source": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/c943f73ebe4d6dab695fb53f0a62a339b87d3cc5/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/leaderboard.json"
+  "publication_source": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/14c798b4de6062022e17ec294917a64c86ec08c3/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/leaderboard.json"
 }

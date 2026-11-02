@@ -202,3 +202,11 @@ def test_csv_export_retains_nulls_and_separates_authoring_configurations(tmp_pat
     record = next(csv.DictReader((tmp_path/'leaderboard.csv').open()))
     assert record['formal_percent'] == '' and record['inference_usd_per_asset'] == ''
     assert record['model'] == 'ChatGPT 6.1 Sol' and record['authoring'] == 'Codex'
+
+
+def test_explicit_failed_requirements_make_pass_false_despite_other_unknown_checks():
+    evidence = {'all_scored_mandatory_pass': False, 'applicable_count': 46,
+                'profile_mandatory_count': 46, 'unknown_count': 1, 'failed_count': 4}
+    assert module.formal_pass_from_report({'scores': {'formal': {'evidence': evidence}}}) is False
+    evidence['failed_count'] = 0
+    assert module.formal_pass_from_report({'scores': {'formal': {'evidence': evidence}}}) is None

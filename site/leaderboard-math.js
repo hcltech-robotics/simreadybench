@@ -49,5 +49,5 @@ export function scoreText(metric) {
     return `${fmt(metric.lower_bound_percent)}–${fmt(metric.upper_bound_percent)}`;
   }
   return Number.isFinite(metric?.value) && metric.value >= 0 && metric.value <= 100
-    ? metric.value.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    ? metric.value.toLocaleString('en-GB',{minimumFractionDigits:metric.value>0 && metric.value<.1?3:2,maximumFractionDigits:metric.value>0 && metric.value<.1?3:2}) : '—';
 }

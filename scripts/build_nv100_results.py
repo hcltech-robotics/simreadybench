@@ -38,7 +38,8 @@ def formal_pass_from_report(report):
             continue
         if evidence.get('applicable_count') != 46 or evidence.get('profile_mandatory_count') != 46:
             raise ValueError('Formal pass requires the complete 46-requirement profile')
-        if evidence.get('unknown_count'):
+        if evidence.get('unknown_count') and not (
+                evidence['all_scored_mandatory_pass'] is False and evidence.get('failed_count', 0) > 0):
             return None
         return evidence['all_scored_mandatory_pass']
     return None
