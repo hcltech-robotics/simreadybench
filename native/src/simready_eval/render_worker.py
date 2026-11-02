@@ -9,7 +9,7 @@ from mathutils import Matrix, Vector
 
 
 IMAGE_CACHE={}
-_UV_FIELDS=frozenset(('diffuseColor','roughness','metallic','opacity','normal','normal_frame','emissiveColor'))
+_UV_FIELDS=frozenset(('diffuseColor','roughness','metallic','opacity','opacityThreshold','normal','normal_frame','emissiveColor'))
 
 
 def _intern_uv_corners(value):
@@ -123,11 +123,36 @@ def make_material(record):
         links.new(encode.outputs[0],normalmap.inputs['Color']);links.new(normalmap.outputs['Normal'],shader.inputs['Normal'])
     transparent=nodes.new('ShaderNodeBsdfTransparent'); mix=nodes.new('ShaderNodeMixShader')
     opacity=record['opacity']
-    if isinstance(opacity,dict): links.new(texture(nodes,links,opacity,'opacity'),mix.inputs[0])
-    else: mix.inputs[0].default_value=opacity
+    if isinstance(opacity,dict):opacity=texture(nodes,links,opacity,'opacity')
     if record.get('source_material_status')=='unbound':
         opacity_attribute=nodes.new('ShaderNodeVertexColor');opacity_attribute.layer_name='displayOpacity'
-        opacity_channel=nodes.new('ShaderNodeSeparateColor');links.new(opacity_attribute.outputs['Color'],opacity_channel.inputs[0]);links.new(opacity_channel.outputs[0],mix.inputs[0])
+        opacity_channel=nodes.new('ShaderNodeSeparateColor');links.new(opacity_attribute.outputs['Color'],opacity_channel.inputs[0]);opacity=opacity_channel.outputs[0]
+    threshold=record.get('opacityThreshold',0.)
+    if isinstance(threshold,dict):threshold=texture(nodes,links,threshold,'opacityThreshold')
+    def scalar(value,target):
+        if isinstance(value,(int,float)):target.default_value=value
+        else:links.new(value,target)
+    if isinstance(opacity,(int,float)) and isinstance(threshold,(int,float)):
+        mix.inputs[0].default_value=float(opacity>=threshold) if threshold>0 else opacity
+    elif isinstance(threshold,(int,float)) and threshold<=0:
+        scalar(opacity,mix.inputs[0])
+    else:
+        # The standard uses >= at the threshold. LESS_THAN followed by 1-x
+        # preserves the equality boundary, including texture-driven inputs.
+        below=nodes.new('ShaderNodeMath');below.operation='LESS_THAN'
+        scalar(opacity,below.inputs[0]);scalar(threshold,below.inputs[1])
+        cutout=nodes.new('ShaderNodeMath');cutout.operation='SUBTRACT'
+        cutout.inputs[0].default_value=1;links.new(below.outputs[0],cutout.inputs[1])
+        result=cutout.outputs[0]
+        if not isinstance(threshold,(int,float)):
+            positive=nodes.new('ShaderNodeMath');positive.operation='GREATER_THAN'
+            scalar(threshold,positive.inputs[0]);positive.inputs[1].default_value=0
+            difference=nodes.new('ShaderNodeMath');difference.operation='SUBTRACT'
+            scalar(result,difference.inputs[0]);scalar(opacity,difference.inputs[1])
+            select=nodes.new('ShaderNodeMath');select.operation='MULTIPLY_ADD'
+            links.new(difference.outputs[0],select.inputs[0]);links.new(positive.outputs[0],select.inputs[1]);scalar(opacity,select.inputs[2])
+            result=select.outputs[0]
+        links.new(result,mix.inputs[0])
     links.new(transparent.outputs[0],mix.inputs[1]); links.new(shader.outputs[0],mix.inputs[2])
     if record.get('double_sided',False):
         links.new(mix.outputs[0],output.inputs['Surface'])
@@ -178,7 +203,7 @@ def main():
             values=row.get(attribute,[default]*3)
             for loop_index,value in zip(polygon.loop_indices,values):
                 layer.data[loop_index].color=(*value,1)if width==3 else(value,value,value,1)
-    for name in ('diffuseColor','roughness','metallic','opacity','normal','normal_frame','emissiveColor'):
+    for name in ('diffuseColor','roughness','metallic','opacity','opacityThreshold','normal','normal_frame','emissiveColor'):
         if not any(name in row['uv'] for row in data['triangle_materials']): continue
         layer=mesh.uv_layers.new(name=name)
         for polygon,row in zip(mesh.polygons,data['triangle_materials']):
@@ -191,6 +216,37 @@ def main():
             polygon.use_smooth=True
             custom.extend(normals if valid else [list(polygon.normal)]*3)
         mesh.normals_split_custom_set(custom)
+    subdivision_receipts=[];triangle_total=len(mesh.polygons)
+    for control in data.get('subdivision_meshes',[]):
+        protocol=control['protocol']
+        fixed={'id':'simready-blender-catmull-clark-l3-q3-v1','subdivision_type':'CATMULL_CLARK',
+               'levels':3,'render_levels':3,'quality':3,'use_limit_surface':True}
+        if any(protocol.get(k)!=v for k,v in fixed.items()):
+            raise ValueError('Unqualified bounded subdivision protocol')
+        if protocol['boundary_smooth']not in('ALL','PRESERVE_CORNERS')or protocol['uv_smooth']not in('NONE','PRESERVE_CORNERS','PRESERVE_CORNERS_AND_JUNCTIONS','PRESERVE_CORNERS_JUNCTIONS_AND_CONCAVE','PRESERVE_BOUNDARIES','SMOOTH_ALL'):
+            raise ValueError('Unqualified subdivision interpolation mode')
+        holes=set(control['hole_indices'])
+        faces=[face for index,face in enumerate(control['faces'])if index not in holes]
+        submesh=bpy.data.meshes.new('SubdivisionControlCage')
+        submesh.from_pydata(control['points'],[],faces);submesh.update()
+        sub_object=bpy.data.objects.new('SubdivisionSurface',submesh);scene.collection.objects.link(sub_object)
+        submesh.materials.append(make_material(control['material']))
+        for polygon in submesh.polygons:polygon.use_smooth=True
+        modifier=sub_object.modifiers.new('DeclaredSubdivision','SUBSURF')
+        for name in ('subdivision_type','levels','render_levels','quality','use_limit_surface','boundary_smooth','uv_smooth'):
+            setattr(modifier,name,protocol[name])
+        modifier.use_custom_normals=False
+        evaluated=sub_object.evaluated_get(bpy.context.evaluated_depsgraph_get())
+        generated=evaluated.to_mesh()
+        try:
+            generated.calc_loop_triangles();count=len(generated.loop_triangles)
+            triangle_total+=count
+            if triangle_total>recipe['maximum_triangles']:raise MemoryError('Subdivision exceeds triangle budget')
+        finally:evaluated.to_mesh_clear()
+        subdivision_receipts.append({'prim':control['prim'],'protocol':protocol,
+                                     'control_vertices':len(control['points']),
+                                     'control_faces':len(control['faces']),'hole_count':len(holes),
+                                     'evaluated_triangles':count})
     # Bpy owns the complete copied mesh, corner attributes and custom normals.
     # Release decoded exchange lists before Cycles allocates its acceleration data.
     del data,points,custom
@@ -222,7 +278,8 @@ def main():
         scene.render.filepath=str(output/(view['id']+'-mask.png')); bpy.ops.render.render(write_still=True)
         bpy.data.objects.remove(camera,do_unlink=True)
     (output/'worker-receipt.json').write_text(json.dumps({'renderer':{'name':'Blender','version':bpy.app.version_string,
-        'engine':'Cycles','device':scene.cycles.device,'threads':scene.render.threads,'samples':scene.cycles.samples,'recipe':recipe}},sort_keys=True))
+        'engine':'Cycles','device':scene.cycles.device,'threads':scene.render.threads,'samples':scene.cycles.samples,'recipe':recipe,
+        **({'subdivision_protocols':subdivision_receipts,'evaluated_triangle_count':triangle_total}if subdivision_receipts else{})}},sort_keys=True))
 
 
 if __name__=='__main__': main()

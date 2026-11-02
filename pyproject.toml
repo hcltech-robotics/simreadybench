@@ -43,7 +43,7 @@ validator = [
 ]
 daytona = ["daytona==0.225.0"]
 publish = ["huggingface-hub==1.33.0", "matplotlib==3.11.2", "pyarrow==26.0.0"]
-test = ["pytest==9.1.1"]
+test = ["pytest==9.1.1", "scipy==1.18.0"]
 
 [tool.setuptools]
 include-package-data = true

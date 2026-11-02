@@ -1,5 +1,16 @@
 # Native SimReadyBench evaluator
 
+Evaluator 2.2.0 matches the frozen NV100 release. Geometry uses 65,536 deterministic
+area-weighted samples per surface and symmetric graded nearest-point similarity,
+with a distance band of 2% of the reference cloud's robust diagonal. Alignment
+retains the exact yaw/translation protocol, without scale fitting. The reported
+geometry protocol is `simready-area-cloud-similarity-v1`; reference eligibility
+retains its separately frozen legacy protocol. SciPy 1.18.0 is a verifier-only
+dependency, available through the `geometry` extra. The CPU renderer, 46 formal
+requirements, five formal feedback calls and 64 authoring turns remain fixed.
+See the [release provenance](../docs/evaluator-2.2.0.md) for exact identities.
+
+
 This independently installable package provides formal validation, geometry,
 appearance and kinematic evaluation, reference rendering and Harbor task export.
 Python 3.12, NumPy 2.5.4, Pillow 13.0.0 and OpenUSD 26.8 are pinned. Fetch and
@@ -19,7 +30,7 @@ kinematic scores are reported separately.
 ## Import existing NV100 v2 reference captures
 
 Run this command in the pinned CPU verifier environment (Blender 4.3.2 and the
-2.0.0 evaluator wheel). It imports five completed RGB/mask pairs without rendering:
+2.2.0 evaluator wheel). It imports five completed RGB/mask pairs without rendering:
 
 ```sh
 python -m simready_eval.capture --task /frozen-v1/tasks/TASK_ID \
@@ -39,8 +50,8 @@ An existing `role-inventory.json` is validated against both original role trees;
 the new sidecar is rebuilt with v2 paths and current image/eligibility hashes.
 
 Store the new tasks under `benchmark/nv100/v2/tasks/` in a new immutable dataset
-revision. Build their Harbor release using `simready-harbor-release-v2` and the
-2.0.0 wheel. V1 remains under its existing revision and uses the 1.0.2 wheel.
+revision. Build their Harbor release using the
+`simready-harbor-release-v2-evaluator-2.2.0` schema and the 2.2.0 wheel. V1 remains under its existing revision and uses the 1.0.2 wheel.
 Role manifests select only their own version, task and role.
 
 The task observation uses a reproducible task/index-seeded viewing angle,
@@ -181,8 +192,10 @@ UDIM inputs use native tiled Blender images with their original tile coordinates
 missing tiles use the authored/default texture fallback. Both indexed and
 unindexed face-varying UVs retain their original corners. An unused MDL graph does not
 invalidate a supported effective universal material. MDL-only materials,
-displacement, subdivision surfaces and unsupported active advanced Preview
-Surface features remain explicit unknowns. Unequal-radius
+displacement and unsupported active advanced Preview Surface features remain
+explicit unknowns. Constant-material Catmull-Clark surfaces use the bounded
+Blender level-3, quality-3 subdivision protocol. Unsupported crease/corner
+sharpness, material subsets and connected subdivision shading remain unknown. Unequal-radius
 Capsule_1 is also unqualified. Do not count an unknown receipt as a clean render.
 
 An unbound surface uses authored `displayColor` and `displayOpacity`, retaining

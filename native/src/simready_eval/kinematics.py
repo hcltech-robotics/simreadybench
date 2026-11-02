@@ -162,7 +162,7 @@ def _probe_interval(kind, data, scale, centre):
     return np.array([bounds[0], bounds[0] + width])
 
 
-def _motion_error(reference, joint, other, cfg, scale, *, swapped):
+def _motion_error(reference, joint, other, cfg, scale, *, swapped, landmarks=None):
     """Compare J0 M(q) J1^-1 on identical reference-body landmarks."""
     target = _joint_data(joint)
     actual = _joint_data(other)
@@ -177,7 +177,8 @@ def _motion_error(reference, joint, other, cfg, scale, *, swapped):
         cx = -cx
         bounds = -bounds[::-1]
     actual = ca, cf, cx, bounds
-    probes = [_landmarks(reference, body) for body in joint["bodies"]]
+    probes = [(landmarks.get(body) if landmarks is not None else _landmarks(reference, body))
+              for body in joint["bodies"]]
     if all(points is None for points in probes):
         return None
     centre = np.vstack([points for points in probes if points is not None]).mean(axis=0)
@@ -310,6 +311,13 @@ def compare_kinematics(
     candidate = candidate or {}
     joints = reference.get("joints", [])
     candidates = candidate.get("joints", [])
+    # Reference-only landmarks are immutable throughout matching and all 17
+    # states. Compute each once; preserve their original arithmetic and order.
+    landmarks = {
+        body: _landmarks(reference, body)
+        for body in sorted({body for joint in joints for body in joint.get("bodies", [])
+                            if body is not None})
+    }
     band = cfg["joint_position_m"] + cfg["joint_position_relative"] * scale
     rows, options = [], []
     for index, joint in enumerate(joints):
@@ -322,7 +330,7 @@ def compare_kinematics(
                 if body is not None
             )
             or not any(
-                _landmarks(reference, body) is not None
+                landmarks.get(body) is not None
                 for body in joint.get("bodies", [])
             )
         )
@@ -359,7 +367,7 @@ def compare_kinematics(
                     reason = "invalid_candidate_joint_parameters"
                 else:
                     measurement = _motion_error(
-                        reference, joint, other, cfg, scale, swapped=swapped
+                        reference, joint, other, cfg, scale, swapped=swapped, landmarks=landmarks
                     )
                     error = measurement["motion_rms_m"]
                     motion_credit = 1 / (1 + (error / band) ** 2)

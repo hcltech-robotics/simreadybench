@@ -516,7 +516,7 @@ def test_exported_role_locks_bound_transitive_runtime_resolution(tmp_path, wheel
         assert "simreadybench-eval" not in closures[role]
     assert len(closures["actor"]) == 18
     assert len(closures["feedback"]) == 13
-    assert closures["verifier"] == closures["actor"] | closures["feedback"]
+    assert closures["verifier"] == closures["actor"] | closures["feedback"] | {"scipy"}
     assert "huggingface-hub" in closures["actor"]
     assert "simready-validate" not in closures["actor"]
     assert "simready-validate" in closures["feedback"]

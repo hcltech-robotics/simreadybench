@@ -31,6 +31,7 @@ packaging==26.3 --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb55
 physx-usd-schemas==25.11.2.72696984 --hash=sha256:44a8671f8d4f0fbdf07c9436b3827f96156e4b094b646d0903937f275eb84f0e
 pillow==13.0.0 --hash=sha256:42d63be3af4f9b951b199b0a9d23365d37ab14687e6d77b74940432c8515c4ca
 PyYAML==6.0.3 --hash=sha256:ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc
+scipy==1.18.0 --hash=sha256:1f55797419e16e7f30cf88ffb3113ce0467f00cfe3f70d5c281730b21769bfc2
 simready-foundation-tier-core==2026.8.0 --hash=sha256:f3bfd5905fdf1b8315ee2f7104404c7baa56f970812695d92aed636839477987
 simready-validate==2026.8.0 --hash=sha256:6313d463e537246ddccbd05d8568cc0d1df71df9cd91b29b80d7d4b3026808c2
 tqdm==4.70.1 --hash=sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73
@@ -46,7 +47,7 @@ FEEDBACK = frozenset("jinja2 markdown-it-py markupsafe materialx mdurl numpy phy
 
 def runtime_lock(role):
     """Return a complete hash-enforced runtime lock for one supported role."""
-    roles = {"actor": ACTOR, "feedback": FEEDBACK, "verifier": ACTOR | FEEDBACK}
+    roles = {"actor": ACTOR, "feedback": FEEDBACK, "verifier": ACTOR | FEEDBACK | {"scipy"}}
     if role not in roles:
         raise ValueError("role must be actor, feedback or verifier")
     lines = [line for line in LOCKED_REQUIREMENTS.splitlines()

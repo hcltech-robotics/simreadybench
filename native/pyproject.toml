@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simreadybench-eval"
-version = "2.0.0"
+version = "2.2.0"
 description = "Independent offline SimReadyBench evaluator and native Harbor task tools"
 readme = "README.md"
 license = "MIT"
@@ -12,6 +12,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = ["numpy==2.5.4", "Pillow==13.0.0", "usd-core==26.8"]
 
 [project.optional-dependencies]
+geometry = ["scipy==1.18.0"]
 fetch = ["huggingface-hub==1.33.0", "hf-xet==1.7.0"]
 validator = [
   "simready-foundation-tier-core==2026.8.0",

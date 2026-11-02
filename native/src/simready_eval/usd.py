@@ -4,7 +4,7 @@ from __future__ import annotations
 import bisect, copy, hashlib, math
 from pathlib import Path
 import numpy as np
-from simready_eval.correspondence import VERSION
+from simready_eval.correspondence import VERSION, _cross3
 
 
 class SampledMaterials:
@@ -559,7 +559,7 @@ def observe(path, *, maximum_triangles=None, maximum_surface_bytes=256 * 1024**2
                     triangle = points[vertices]
                     if (
                         np.linalg.norm(
-                            np.cross(
+                            _cross3(
                                 triangle[1] - triangle[0], triangle[2] - triangle[0]
                             )
                         )
@@ -642,7 +642,7 @@ def triangulate_polygon(face, *, nonplanarity_relative=1e-3):
     if p.ndim != 2 or p.shape[1] != 3 or len(p) < 3 or not np.isfinite(p).all():
         raise ValueError("finite polygon with at least three corners required")
     scale = max(float(np.linalg.norm(np.ptp(p, axis=0))), 1e-12)
-    normal = np.sum(np.cross(p - p[0], np.roll(p, -1, axis=0) - p[0]), axis=0)
+    normal = np.sum(_cross3(p - p[0], np.roll(p, -1, axis=0) - p[0]), axis=0)
     length = np.linalg.norm(normal)
     if length <= 0:
         raise ValueError("degenerate polygon")

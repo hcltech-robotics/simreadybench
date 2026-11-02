@@ -20,7 +20,7 @@ import sys
 import tempfile
 import time
 
-from . import contract
+from . import contract, __version__
 from .package import REFERENCE_LIMIT_BYTES
 from .limits import CANDIDATE_BYTES, MAX_ENTRIES
 
@@ -461,7 +461,8 @@ def _invalid_scores(report):
 def evaluate_submission(submission, fixtures, config, output):
     """Evaluate one declared submission; retain three independent score dimensions."""
     started = time.monotonic()
-    report = {"schema": contract.REPORT_SCHEMA, "candidate_invalid": False,
+    report = {"schema": contract.REPORT_SCHEMA, "evaluator_version": __version__,
+              "geometry_scoring_version": "simready-area-cloud-similarity-v1", "candidate_invalid": False,
               "scores": {name: _unknown("evaluation_unavailable") for name in
                          ("formal", "geometry", "appearance", "visual", "kinematic")}, "errors": []}
     output = Path(output).absolute()
@@ -486,14 +487,19 @@ def evaluate_submission(submission, fixtures, config, output):
             checked = _run_worker("reference", reference_request, scratch / "reference", deadline)
             if checked.get("status") != "verified":
                 raise ValueError("reference_eligibility_unavailable:" + checked.get("reason", "profile_mismatch"))
-            candidate = freeze_candidate(submission, scratch / "candidate", entrypoint=config["entrypoint"], deadline=deadline)
+            # NP.005 uses the entrypoint's grandparent as the asset root. The
+            # fixed public asset.usd contract requires a matching canonical root,
+            # not the random private temporary-directory name.
+            asset_root = scratch / "asset"
+            asset_root.mkdir()
+            candidate = freeze_candidate(submission, asset_root / "candidate", entrypoint=config["entrypoint"], deadline=deadline)
             report["candidate"] = candidate
             if candidate["status"] == "invalid":
                 _invalid_scores(report)
             elif candidate["status"] != "frozen":
                 raise ValueError(candidate.get("reason", "candidate_freeze_error"))
             else:
-                root = scratch / "candidate"
+                root = asset_root / "candidate"
                 formal = _run_worker("formal", {"root": str(root), "entrypoint": config["entrypoint"]},
                                      scratch / "formal", deadline)
                 report["formal_report"] = formal

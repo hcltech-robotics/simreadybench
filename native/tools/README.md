@@ -9,7 +9,9 @@ separate Harbor command. Keep credentials outside the exported directory.
 The canonical input to `simready_eval.export` contains `schema`, `repo_id`,
 `revision`, `source_commit`, `source_collection` and `tasks`. The
 [native evaluator guide](../README.md#native-harbor-export-and-migration)
-describes the versioned asset and runtime interfaces.
+describes the versioned asset and runtime interfaces. The current schema is
+`simready-harbor-release-v2-evaluator-2.2.0`; the original v2 schema still selects
+the historical 2.0.0 evaluator.
 
 - `repo_id` is `hcltech-robotics/simreadybench`; `revision` is a full immutable
   Hugging Face commit.
@@ -35,15 +37,15 @@ bytes must remain unchanged when adding readable labels or packaging metadata.
 
 Build the wheel from the selected source revision and use a Python environment
 with Harbor 0.24.0 and the release's locked dependencies. The example below uses
-the native 2.0.0 wheel; select the wheel matching the asset-release format.
+the native 2.2.0 wheel; select the wheel matching the asset-release format.
 
 ```sh
 python -m build --wheel native
-python -m pip install --no-deps ./native/dist/simreadybench_eval-2.0.0-py3-none-any.whl
+python -m pip install --no-deps ./native/dist/simreadybench_eval-2.2.0-py3-none-any.whl
 harbor --version
 harbor auth status
 python native/tools/prepare_hub_release.py --release ./release-input.json \
-  --wheel ./native/dist/simreadybench_eval-2.0.0-py3-none-any.whl \
+  --wheel ./native/dist/simreadybench_eval-2.2.0-py3-none-any.whl \
   --output ../simreadybench-hub-release --asset-freeze-verified \
   > ../simreadybench-hub-release-receipt.json
 ```
