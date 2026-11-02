@@ -3,7 +3,7 @@ name: Deploy project page
 on:
   push:
     branches: [main]
-    paths: ["site/**", "scripts/build_pareto_data.py", ".github/workflows/pages.yml"]
+    paths: ["site/**", "scripts/build_pareto_data.py", "scripts/sync_published_results.py", ".github/workflows/pages.yml"]
   workflow_dispatch:
   schedule:
     - cron: "17 */6 * * *"
@@ -29,6 +29,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Refresh published benchmark results
+        run: python3 scripts/sync_published_results.py
       - name: Check current results and gallery inputs
         run: |
           python3 - <<'PYCODE'

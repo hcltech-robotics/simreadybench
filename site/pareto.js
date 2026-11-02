@@ -2,6 +2,8 @@ import "./vendor/d3-7.9.0/d3.min.js";
 import { availableScore, paretoFrontier } from "./pareto-math.js?v=nv100-20261029";
 import { compactPointLabel, placePointLabels } from "./pareto-labels.js?v=viewer-labels-20261029";
 
+import { markerStyle } from "./pareto-style.js?v=published-results-20261102";
+
 const d3 = globalThis.d3;
 const root = document.getElementById("pareto-root");
 const scoreTypes = [
@@ -150,12 +152,9 @@ async function initialise() {
   }
 
   const runs = data.runs;
-  const symbols = [d3.symbolCircle, d3.symbolSquare, d3.symbolTriangle, d3.symbolDiamond,
-    d3.symbolCross, d3.symbolStar, d3.symbolWye];
   const familyName = (run) => [run.model_display_name || run.model_family || run.model,
     run.authoring_label || run.harness].filter(Boolean).join(' · ');
   const families = [...new Set(runs.map(familyName))];
-  const familySymbol = new Map(families.map((family, index) => [family, symbols[index % symbols.length]]));
   let selectedScore = "formal";
   let selectedPoint = null;
   let resizeFrame = null;
@@ -293,7 +292,10 @@ async function initialise() {
       const item = element("li");
       item.dataset.family = family;
       const icon = d3.create("svg").attr("viewBox", "-12 -12 24 24").attr("aria-hidden", "true");
-      icon.append("path").attr("d", d3.symbol().type(familySymbol.get(family)).size(65)());
+      const style = markerStyle(runs.find(run => familyName(run) === family));
+      icon.append("circle").attr("r", 6).attr("fill", "white").attr("stroke", style.colour).attr("stroke-width", 1.5);
+      if (style.custom) icon.append("circle").attr("r", 9).attr("fill", "none").attr("stroke", style.colour);
+      icon.append("text").attr("text-anchor", "middle").attr("dy", ".35em").attr("fill", style.colour).attr("stroke", "none").attr("font-size", 8).text(style.initial);
       item.append(icon.node(), element("span", family));
       legend.append(item);
     });
@@ -328,7 +330,7 @@ async function initialise() {
       .attr("width", width).attr("height", height).attr("role", "group")
       .attr("aria-label", `${activeScores.map((score) => score.label).join(", ")} against ${axes[metricId].label.toLowerCase()} per asset`);
     svg.append("title").text("Score and inference efficiency");
-    svg.append("desc").text("Higher scores and lower inference use are better. Focus or select a marker for configuration, measurement coverage and source. Colours identify fidelity scores; shapes identify model families. Shading shows the area attained below each frontier.");
+    svg.append("desc").text("Higher scores and lower inference use are better. Focus or select a marker for configuration, measurement coverage and source. Colours identify model families. Circles carry model initials; an outer ring identifies a custom agent. Filled markers lie on the frontier; outlined markers are dominated.");
     panels.forEach((panelScores, panelIndex) => {
       const panel = svg.append("g").attr("transform", `translate(0,${panelIndex * panelHeight})`);
       const cumulative = panelScores[0].id === "cumulative";
@@ -354,7 +356,7 @@ async function initialise() {
       const panelIds = new Set(panelScores.map((score) => score.id));
       frontiers.filter((frontier) => panelIds.has(frontier.scoreId) && frontier.points.length)
         .forEach((frontier) => {
-          const colour = scoreTypes.find((score) => score.id === frontier.scoreId).colour;
+          const colour = "#64748b";
           const attained = [...frontier.points, { ...frontier.points.at(-1), x: x.domain()[1] }];
           if (!frontier.points.some(point => point.resourceIncomplete)) panel.append("path").attr("class", "pareto-frontier-area")
             .attr("data-score", frontier.scoreId).attr("data-frontier-group", frontier.group)
@@ -373,8 +375,8 @@ async function initialise() {
         .attr("data-score", (point) => point.scoreId).attr("data-point-id", (point) => point.id)
         .attr("data-frontier", (point) => String(Boolean(point.frontier))).attr("data-frontier-provisional", point => String(point.resourceIncomplete)).attr("data-complete", (point) => String(point.complete))
         .attr("transform", (point) => `translate(${x(point.x)},${y(point.y)})`)
-        .attr("fill", (point) => point.resourceIncomplete ? "white" : scoreTypes.find((score) => score.id === point.scoreId).colour)
-        .attr("stroke", (point) => scoreTypes.find((score) => score.id === point.scoreId).colour)
+        .attr("fill", point => point.frontier ? markerStyle(point.run).colour : "white")
+        .attr("stroke", point => markerStyle(point.run).colour)
         .attr("tabindex", isSnapshot ? null : 0).attr("role", isSnapshot ? "img" : "button")
         .attr("aria-label", (point) => `${configLabel(point.run)}. ${scoreTypes.find((score) => score.id === point.scoreId).label}: ${number(point.y)}${point.scoreId === "cumulative" ? " mean z-score" : " / 100"}. ${axes[metricId].label}: ${axes[metricId].format(point.rawX)} per asset. ${metricCoverage(point.metric)}. ${point.resourceIncomplete ? "Provisional frontier position." : point.frontier ? "On frontier." : "Dominated."}`)
         .on("pointerdown", (event) => { event.currentTarget._pointerFocus = true; })
@@ -391,8 +393,13 @@ async function initialise() {
           if (event.key === "Escape") hideTooltip();
         });
       markers.append("circle").attr("class", "pareto-hit").attr("r", 12);
-      markers.append("path").attr("class", "pareto-symbol")
-        .attr("d", (point) => d3.symbol().type(familySymbol.get(familyName(point.run))).size(width < 500 ? 105 : 85)());
+      markers.append("circle").attr("class", "pareto-symbol").attr("r", width < 500 ? 7 : 6.5)
+        .attr("stroke-width", 1.8).attr("stroke-dasharray", point => point.resourceIncomplete ? "3,2" : null);
+      markers.filter(point => markerStyle(point.run).custom).append("circle")
+        .attr("class", "pareto-custom-ring").attr("r", width < 500 ? 10 : 9.5).attr("fill", "none").attr("stroke-width", 1.1);
+      markers.append("text").attr("class", "pareto-initial").attr("text-anchor", "middle").attr("dy", ".35em")
+        .attr("font-size", 8).attr("font-weight", 700).attr("stroke", "none").attr("pointer-events", "none")
+        .attr("fill", point => point.frontier ? "white" : markerStyle(point.run).colour).text(point => markerStyle(point.run).initial);
       if (runs.length <= 12) {
         const labels = markers.append("text").attr("class", "pareto-point-label")
           .attr("font-size", 10).attr("fill", "#344552").attr("text-anchor", "start")

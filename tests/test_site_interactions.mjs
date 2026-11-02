@@ -30,3 +30,11 @@ test('snapshot reset removes saved canvases and false readiness before lazy init
  assert.equal(nodes.readout.hidden,true);assert.equal(nodes.divider.hidden,true);assert.equal(nodes['preview-message'].hidden,false);assert.ok(!nodes.status.textContent.includes('ready'));
  assert.ok(nodes.status.textContent.includes('JavaScript'));
 });
+
+const {markerStyle}=await load('pareto-style.js');
+test('model marker identity stays stable across metrics and custom harnesses',()=>{
+ assert.deepEqual(markerStyle({requested_model:'openai/nemotron-3.5-super-vl',harness:'Terminus 2'}),{colour:'#76b900',initial:'N',custom:false});
+ assert.deepEqual(markerStyle({requested_model:'openai/gpt-6.1-sol',harness:'Codex'}),{colour:'#0072b2',initial:'S',custom:false});
+ assert.equal(markerStyle({requested_model:'openai/gpt-6.1-terra',harness_id:'codex-text2cad-build123d'}).custom,true);
+ assert.equal(markerStyle({requested_model:'openai/deepseek-v4.1-flash-1017',harness:'Terminus 2'}).initial,'D');
+});

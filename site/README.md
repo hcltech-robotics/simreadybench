@@ -8,6 +8,8 @@ Preview locally:
 python3 -m http.server 8765 --directory site
 ```
 
+Every deployment first runs `scripts/sync_published_results.py` to read the leaderboard linked in the Hugging Face dataset card from one pinned dataset commit. It validates the run inventories and refuses to drop existing configurations. This also runs on the existing six-hour deployment schedule.
+
 `assets/leaderboard.json` supplies the sortable leaderboard and secondary charts. It records three separate fidelity scores and per-reconstruction resource use. Formal fidelity is the default. Cost and trial duration include retries; hosted compute is not allocated to configurations. Pareto scores use matched object/repetition slots across configurations. Frontiers minimise cost or time and maximise the selected fidelity score.
 
 Rebuild chart data and static figures from the published leaderboard:

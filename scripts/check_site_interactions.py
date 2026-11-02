@@ -117,7 +117,7 @@ def main():
                     for run in leaderboard['runs'] for score in scores)
                 assert len(labels) == expected
                 for i,a in enumerate(labels):
-                    assert a['text'].startswith('gpt-6.1-') and '/' in a['text'] and 'Reasoning' not in a['text']
+                    assert '/' in a['text'] and 'Reasoning' not in a['text']
                     for b in labels[i+1:]:
                         assert a['right'] <= b['left']+.5 or b['right'] <= a['left']+.5 or a['bottom'] <= b['top']+.5 or b['bottom'] <= a['top']+.5, (name,metric,a,b)
             page.locator('[data-pareto-score="formal"]').click();page.locator('#pareto').screenshot(path=str(args.output/(name+'-pareto.png')))
