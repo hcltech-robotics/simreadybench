@@ -1,7 +1,6 @@
 {
   "schema_version": 1,
-  "job_id": "dc30f963-ebba-47f8-a052-535ce8a706f4",
-  "source_revision": "e586f232e0b1939f84c59956e88eed38c167bd2f",
+  "source_revision": "c77d4ae599756ba985001ab126821e1c5ee31f51",
   "reference_license": {
     "label": "NVIDIA / CC BY 4.0",
     "url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/main/NVIDIA-ASSET-LICENSE.txt"
@@ -333,9 +332,9 @@
           "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
           "trial_id": "4596b183-1dbd-464a-9998-5628252018e5",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/4596b183-1dbd-464a-9998-5628252018e5/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 82.6086956521739,
@@ -380,9 +379,9 @@
           "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
           "trial_id": "3f53404f-887e-42e5-9a5d-26ebf3509c35",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/3f53404f-887e-42e5-9a5d-26ebf3509c35/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 78.47826086956522,
@@ -408,7 +407,7 @@
             "output_tokens": 36139.0
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/equipment_bench_vise_a01/nemotron-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/equipment_bench_vise_a01/nemotron-none.glb",
           "sha256": "a676bfc38419587ba18a9629d82bffda54e81cb22f4238b11db345f6f8efd40c",
           "bounds_m": [
             [
@@ -753,9 +752,9 @@
           "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
           "trial_id": "b47797c6-cffa-4435-990b-9fb99fe9c127",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/b47797c6-cffa-4435-990b-9fb99fe9c127/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 92.93478260869566,
@@ -781,7 +780,7 @@
             "output_tokens": 22690
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/handTool_pliers_groove_joint_a01/deepseek-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/handTool_pliers_groove_joint_a01/deepseek-none.glb",
           "sha256": "6a8297ded9919deaaef6036100ee6c0aa80113c16281f28eaf899a6c06eccd9d",
           "bounds_m": [
             [
@@ -811,9 +810,9 @@
           "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
           "trial_id": "055de8d4-01c1-4dfa-b310-17e85fbadb75",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/055de8d4-01c1-4dfa-b310-17e85fbadb75/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 80.54347826086956,
@@ -839,7 +838,7 @@
             "output_tokens": 30766.0
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/handTool_pliers_groove_joint_a01/nemotron-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/handTool_pliers_groove_joint_a01/nemotron-none.glb",
           "sha256": "8beb54f8ebf542fd4607a392236e8722e651b8d81cb5a1b9c19e821903a93e9d",
           "bounds_m": [
             [
@@ -1184,9 +1183,9 @@
           "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
           "trial_id": "0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/0ecdd05a-c4a3-43e5-a15a-5e0ca412ddf0/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 88.80434782608695,
@@ -1212,7 +1211,7 @@
             "output_tokens": 25226
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/wasteManagement_oilyWasteCan_metal_a01/deepseek-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/wasteManagement_oilyWasteCan_metal_a01/deepseek-none.glb",
           "sha256": "7d09625da82d915d367994a4059d66eb557c2bc77d54c656e0af725d8bc081d4",
           "bounds_m": [
             [
@@ -1242,9 +1241,9 @@
           "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
           "trial_id": "4021baa1-8acc-48e2-9540-53e7951258cb",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/4021baa1-8acc-48e2-9540-53e7951258cb/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 76.41304347826087,
@@ -1270,7 +1269,7 @@
             "output_tokens": 52619.0
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/wasteManagement_oilyWasteCan_metal_a01/nemotron-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/wasteManagement_oilyWasteCan_metal_a01/nemotron-none.glb",
           "sha256": "a5c4c7a38a5fa98a686e4af67545ee679a63b47ae095a6696301ef1c99567384",
           "bounds_m": [
             [
@@ -1615,9 +1614,9 @@
           "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
           "trial_id": "5494349a-1147-430b-ade1-975ca8efb632",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/5494349a-1147-430b-ade1-975ca8efb632/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 92.93478260869566,
@@ -1643,7 +1642,7 @@
             "output_tokens": 34334
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/ladder_step_folding_a01/deepseek-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/ladder_step_folding_a01/deepseek-none.glb",
           "sha256": "bd1dac7fe14349f9dbe7a3d5f8b63f8ed987339789f90f3e90a93f912aca755f",
           "bounds_m": [
             [
@@ -1673,9 +1672,9 @@
           "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
           "trial_id": "2a010ca5-f591-417f-9e8f-3011c3b5b6c2",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/2a010ca5-f591-417f-9e8f-3011c3b5b6c2/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 84.67391304347827,
@@ -1701,7 +1700,7 @@
             "output_tokens": 65004.0
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/ladder_step_folding_a01/nemotron-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/ladder_step_folding_a01/nemotron-none.glb",
           "sha256": "7e50c29464ac5a6940e125aaa2fc17fcfb658aced266e5cd93041df6bd64e099",
           "bounds_m": [
             [
@@ -2046,9 +2045,9 @@
           "run_id": "0f2b2409-7945-44b8-abb4-c4faef268035",
           "trial_id": "ca45b274-d3ee-4d4c-8636-c9bc528ee11a",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/candidate-package.zip",
-          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/renders/isometric.png",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/ca45b274-d3ee-4d4c-8636-c9bc528ee11a/renders/isometric.png",
           "scores": {
             "formal": {
               "value": 82.6086956521739,
@@ -2074,7 +2073,7 @@
             "output_tokens": 41016
           },
           "inference_cost_kind": "harbor_reported_unverified_basis",
-          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/appliance_toaster_a01/deepseek-none.glb",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/appliance_toaster_a01/deepseek-none.glb",
           "sha256": "d99102c579324f4daf34d35a44c6b163ca7e5df5b14ffc9fde692b7f65bfe6a1",
           "bounds_m": [
             [
@@ -2104,8 +2103,8 @@
           "run_id": "ed242be1-ed4f-4caa-815d-9ce76615afe4",
           "trial_id": "317d60df-8bf2-4320-ad4b-21be79fd0260",
           "evaluator_version": "2.2.0",
-          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/317d60df-8bf2-4320-ad4b-21be79fd0260/",
-          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/317d60df-8bf2-4320-ad4b-21be79fd0260/candidate-package.zip",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/317d60df-8bf2-4320-ad4b-21be79fd0260/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/317d60df-8bf2-4320-ad4b-21be79fd0260/candidate-package.zip",
           "render_url": null,
           "scores": {
             "formal": {
@@ -2140,5 +2139,10 @@
         }
       ]
     }
+  ],
+  "job_ids": [
+    "0f2b2409-7945-44b8-abb4-c4faef268035",
+    "dc30f963-ebba-47f8-a052-535ce8a706f4",
+    "ed242be1-ed4f-4caa-815d-9ce76615afe4"
   ]
 }

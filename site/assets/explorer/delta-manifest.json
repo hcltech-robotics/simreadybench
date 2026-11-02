@@ -21,7 +21,7 @@
       "candidate"
     ]
   },
-  "source_manifest_sha256": "b399a193562bfdd7f9f439a0979e76b33b1fcb6c01200d058e61cfe644d72062",
+  "source_manifest_sha256": "ffa63bf3bad3d207df1e15cdeb065dedb2a73dc9fb2eb087dbc407e08693dd1b",
   "source_geometry_provenance_sha256": "946510b70b3e25fb3cf4b356743f2f082843c9fce30f1dc70bc2ba95bb3cf8b4",
   "build_dependencies": {
     "numpy": "2.5.4",
@@ -345,7 +345,7 @@
       "reason": "Candidate geometry unavailable"
     },
     "equipment_bench_vise_a01/nemotron-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/equipment_bench_vise_a01/nemotron-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/equipment_bench_vise_a01/nemotron-none.bin",
       "sha256": "9a3610f1c6f6f4cc34e7c07a2d9aa84a7e2c628f0b7e9136094efbaf3b14e50d",
       "point_count": 24000,
       "reference_point_count": 12000,
@@ -357,7 +357,7 @@
       "alignment_status": "recorded"
     },
     "handTool_pliers_groove_joint_a01/deepseek-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/handTool_pliers_groove_joint_a01/deepseek-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/handTool_pliers_groove_joint_a01/deepseek-none.bin",
       "sha256": "a970d6deee9f23200e0892b1400f4002cd9babf9e5a5a0b939a69827638cd115",
       "point_count": 24000,
       "reference_point_count": 12000,
@@ -369,7 +369,7 @@
       "alignment_status": "recorded"
     },
     "handTool_pliers_groove_joint_a01/nemotron-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/handTool_pliers_groove_joint_a01/nemotron-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/handTool_pliers_groove_joint_a01/nemotron-none.bin",
       "sha256": "97436e2bf8f61d99e8021591818f74967f0aff0541d578f29276dfe922d834ef",
       "point_count": 24000,
       "reference_point_count": 12000,
@@ -381,7 +381,7 @@
       "alignment_status": "recorded"
     },
     "wasteManagement_oilyWasteCan_metal_a01/deepseek-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/wasteManagement_oilyWasteCan_metal_a01/deepseek-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/wasteManagement_oilyWasteCan_metal_a01/deepseek-none.bin",
       "sha256": "75fc24ed78a1f2d3747590cfd92a8e9feef18e7103e2cd3730620edd3522ed64",
       "point_count": 24000,
       "reference_point_count": 12000,
@@ -393,7 +393,7 @@
       "alignment_status": "recorded"
     },
     "wasteManagement_oilyWasteCan_metal_a01/nemotron-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/wasteManagement_oilyWasteCan_metal_a01/nemotron-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/wasteManagement_oilyWasteCan_metal_a01/nemotron-none.bin",
       "sha256": "77e4a773379666a7e2076e90c1b11bfab5f4ba726b3270ee9e3da9a9d220b5ef",
       "point_count": 24000,
       "reference_point_count": 12000,
@@ -405,7 +405,7 @@
       "alignment_status": "recorded"
     },
     "ladder_step_folding_a01/deepseek-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/ladder_step_folding_a01/deepseek-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/ladder_step_folding_a01/deepseek-none.bin",
       "sha256": "72e796ed3d02bb7f2b94e2d6f624478fedf30fe9d96aad7c82c9cbecfb49891a",
       "point_count": 24000,
       "reference_point_count": 12000,
@@ -417,7 +417,7 @@
       "alignment_status": "recorded"
     },
     "ladder_step_folding_a01/nemotron-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/ladder_step_folding_a01/nemotron-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/ed242be1-ed4f-4caa-815d-9ce76615afe4/presentation/assets/explorer/delta/ladder_step_folding_a01/nemotron-none.bin",
       "sha256": "8a43df496cfbf67f5409ed3168fbd1ac73e89b211404b47bd28327f7d6afaf45",
       "point_count": 24000,
       "reference_point_count": 12000,
@@ -429,7 +429,7 @@
       "alignment_status": "recorded"
     },
     "appliance_toaster_a01/deepseek-none": {
-      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/main/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/appliance_toaster_a01/deepseek-none.bin",
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/c77d4ae599756ba985001ab126821e1c5ee31f51/results/harbor/0f2b2409-7945-44b8-abb4-c4faef268035/presentation/assets/explorer/delta/appliance_toaster_a01/deepseek-none.bin",
       "sha256": "634495c5040165d8fae64425d479d3cbeee3edba449d8746a6e8a9475771aaf6",
       "point_count": 24000,
       "reference_point_count": 12000,
