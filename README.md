@@ -170,6 +170,7 @@ The [results](https://huggingface.co/datasets/hcltech-robotics/simreadybench) co
 | ChatGPT 6.1 Sol | low | Codex | **97.69** | 73.58–73.61 | 51.17 | 2.44 | 71.33 | 96.00 | 39.00 | 478,511 | $0.2072 | $0.002121 | 5.86 |
 | ChatGPT 6.1 Terra | low | Codex | **91.13** | 69.90–70.03 | 47.81 | 0.87 | 2.00 | 6.00 | 0.00 | 359,013 | $0.0969 | $0.001064 | 4.40 |
 | DeepSeek V4.1 Flash (1017) | none | Terminus 2 | **86.32** | 71.64–73.23 | 35.36 | 0.052 | 2.33 | 6.00 | 0.00 | 2,242,278 | $0.0274 | $0.000317 | 10.98 |
+| Claude Sonnet 5.5 | low | Claude Code | **83.60** | 70.02 | 50.06 | 0.66 | 0.00 | 0.00 | 0.00 | 93,819 | $0.0578 | $0.000691 | 3.28 |
 | NVIDIA Nemotron 3.5 Super VL | none | Terminus 2 | **76.69** | 68.33–69.63 | 21.52 | 0.005 | 0.00–1.67 | 0.00–5.00 | 0.00 | 2,511,512 | $0.3357 | $0.004377 | 11.18 |
 
 [Full results and coverage](https://huggingface.co/datasets/hcltech-robotics/simreadybench#leaderboard) · [Benchmark JSON](https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/main/leaderboard.json)

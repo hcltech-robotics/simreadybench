@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_revision": "c77d4ae599756ba985001ab126821e1c5ee31f51",
+  "source_revision": "71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af",
   "reference_license": {
     "label": "NVIDIA / CC BY 4.0",
     "url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/main/NVIDIA-ASSET-LICENSE.txt"
@@ -423,6 +423,64 @@
           ],
           "source_sha256": "201b1f43073fc4c786d70d5369849d94073cd5e71a1f90e8d520065d3d51c940",
           "render_sha256": "da076e78da286436213a35343a2414e30c458d8db8a20d3f236ac6d6c956188e"
+        },
+        {
+          "id": "claude-low",
+          "label": "Claude Sonnet 5.5 \u00b7 Reasoning: low",
+          "model": "anthropic/claude-sonnet-5-5",
+          "model_display_name": "Claude Sonnet 5.5",
+          "harness": "Claude Code",
+          "reasoning": "low",
+          "reasoning_display": "low",
+          "repetition": 0,
+          "condition_id": "e03b16cc-bf75-4247-9b96-467a3685c942:claude-sonnet-5-5:low:claude-code",
+          "run_id": "e03b16cc-bf75-4247-9b96-467a3685c942",
+          "trial_id": "7ad068e7-dd88-4c73-8507-086d559cdd90",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/7ad068e7-dd88-4c73-8507-086d559cdd90/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/7ad068e7-dd88-4c73-8507-086d559cdd90/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/7ad068e7-dd88-4c73-8507-086d559cdd90/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 84.67391304347827,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 39.64846413441884,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 187.911048,
+            "inference_cost_usd": 0.0582595,
+            "total_tokens": 89005.0,
+            "input_tokens": 86517.0,
+            "output_tokens": 2488.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/equipment_bench_vise_a01/claude-low.glb",
+          "sha256": "23364d6c02c71929a6374302a50739ef7905571313e37707c6c40417da8c6e19",
+          "bounds_m": [
+            [
+              -0.106826052069664,
+              -0.0056126597337424755,
+              -0.12289685755968094
+            ],
+            [
+              0.20647110044956207,
+              0.17438733577728271,
+              0.1257481575012207
+            ]
+          ],
+          "source_sha256": "233a488dadade5ab54e844ab168c3696779e7ad8dd27e3b17577d3490c9bc9c7",
+          "render_sha256": "d94fbcc1f909db88a1cf925ffb33d94fdd57f28611a6fec75d2cbb267803d79c"
         }
       ]
     },
@@ -854,6 +912,64 @@
           ],
           "source_sha256": "ad0ab06c84b812de26683a854b1ece7c386d64ee3121c79bb3c664533860c77d",
           "render_sha256": "0fab6da5b4424f08e7b61e66c19185d56fbfe1362a6cc53d280ecf326dd71f60"
+        },
+        {
+          "id": "claude-low",
+          "label": "Claude Sonnet 5.5 \u00b7 Reasoning: low",
+          "model": "anthropic/claude-sonnet-5-5",
+          "model_display_name": "Claude Sonnet 5.5",
+          "harness": "Claude Code",
+          "reasoning": "low",
+          "reasoning_display": "low",
+          "repetition": 0,
+          "condition_id": "e03b16cc-bf75-4247-9b96-467a3685c942:claude-sonnet-5-5:low:claude-code",
+          "run_id": "e03b16cc-bf75-4247-9b96-467a3685c942",
+          "trial_id": "09e27c24-f518-4e70-97a8-2251d309eec9",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/09e27c24-f518-4e70-97a8-2251d309eec9/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/09e27c24-f518-4e70-97a8-2251d309eec9/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/09e27c24-f518-4e70-97a8-2251d309eec9/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 84.67391304347827,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 48.948145642140375,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.011620569934558468,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 152.214263,
+            "inference_cost_usd": 0.0543417,
+            "total_tokens": 88431.0,
+            "input_tokens": 86267.0,
+            "output_tokens": 2164.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/handTool_pliers_groove_joint_a01/claude-low.glb",
+          "sha256": "27f1c5de111c2bc25b41ab877bdf17e167b1190c60f517849bc68abfe3df319d",
+          "bounds_m": [
+            [
+              -0.15788009762763977,
+              5.29898788954597e-05,
+              -0.025913026183843613
+            ],
+            [
+              0.12172549217939377,
+              0.015552989207208157,
+              0.029131188988685608
+            ]
+          ],
+          "source_sha256": "7dd8e3237b028e4aded1220f262daf008b1c33c73dfbe5bb6b7872b8adab259f",
+          "render_sha256": "6f8bf6cc96462502fc841c1afdac965dbbfb226efe882e6c9cdc2951c3b8cdba"
         }
       ]
     },
@@ -1285,6 +1401,64 @@
           ],
           "source_sha256": "b544b8d3e0771c4ce74dbe13b96562c2641de7199586869ef854a9efe099f41b",
           "render_sha256": "d9148a66cd2c9d36a6b851349ace53a169081997a7d8d54c59bd9db1be700211"
+        },
+        {
+          "id": "claude-low",
+          "label": "Claude Sonnet 5.5 \u00b7 Reasoning: low",
+          "model": "anthropic/claude-sonnet-5-5",
+          "model_display_name": "Claude Sonnet 5.5",
+          "harness": "Claude Code",
+          "reasoning": "low",
+          "reasoning_display": "low",
+          "repetition": 0,
+          "condition_id": "e03b16cc-bf75-4247-9b96-467a3685c942:claude-sonnet-5-5:low:claude-code",
+          "run_id": "e03b16cc-bf75-4247-9b96-467a3685c942",
+          "trial_id": "2861403e-bc68-409c-b777-258772882c42",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/2861403e-bc68-409c-b777-258772882c42/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/2861403e-bc68-409c-b777-258772882c42/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/2861403e-bc68-409c-b777-258772882c42/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 82.6086956521739,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 39.358327100701786,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.031425938907479585,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 218.1691,
+            "inference_cost_usd": 0.0591399,
+            "total_tokens": 118924.0,
+            "input_tokens": 116679.0,
+            "output_tokens": 2245.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/wasteManagement_oilyWasteCan_metal_a01/claude-low.glb",
+          "sha256": "14e240984a3c1fa40092e0f7343389c01068a5f9c0d1f6ff617319c1c91e2882",
+          "bounds_m": [
+            [
+              -0.2531324028968811,
+              -0.026332255452871323,
+              -0.24351616203784943
+            ],
+            [
+              0.2513026297092438,
+              0.6196677684783936,
+              0.2601192593574524
+            ]
+          ],
+          "source_sha256": "ec0148990f47f22cfe2b4b7af5f9da6dfc980bbd948f5512e09c6d838b476ede",
+          "render_sha256": "056a5ff005cb1e3f399c910bb6a0e2c42ec2b0b7bccbdb0e9a5da87ffb9eca80"
         }
       ]
     },
@@ -1716,6 +1890,64 @@
           ],
           "source_sha256": "c059e347032ca4231f7216310f0060495b862fd4509b26fd795d881804c5a0c6",
           "render_sha256": "15e362db7b409c0931fedffefef02259a9ab80b7e3ec5776c3cb423519d11464"
+        },
+        {
+          "id": "claude-low",
+          "label": "Claude Sonnet 5.5 \u00b7 Reasoning: low",
+          "model": "anthropic/claude-sonnet-5-5",
+          "model_display_name": "Claude Sonnet 5.5",
+          "harness": "Claude Code",
+          "reasoning": "low",
+          "reasoning_display": "low",
+          "repetition": 0,
+          "condition_id": "e03b16cc-bf75-4247-9b96-467a3685c942:claude-sonnet-5-5:low:claude-code",
+          "run_id": "e03b16cc-bf75-4247-9b96-467a3685c942",
+          "trial_id": "8f1fdafc-9e0e-4a97-9c4b-7145e84614bd",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/8f1fdafc-9e0e-4a97-9c4b-7145e84614bd/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/8f1fdafc-9e0e-4a97-9c4b-7145e84614bd/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/8f1fdafc-9e0e-4a97-9c4b-7145e84614bd/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 84.67391304347827,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 43.99649420862032,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 171.552711,
+            "inference_cost_usd": 0.0545712,
+            "total_tokens": 88449.0,
+            "input_tokens": 86270.0,
+            "output_tokens": 2179.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/ladder_step_folding_a01/claude-low.glb",
+          "sha256": "ead0044888baa3b15e2357d9031fefed20cc6f96ed8b23171b989dc4c2fcdb53",
+          "bounds_m": [
+            [
+              -0.2570078670978546,
+              -0.04902411997318268,
+              -0.036420390009880066
+            ],
+            [
+              0.2532212436199188,
+              0.7709758877754211,
+              0.07961638271808624
+            ]
+          ],
+          "source_sha256": "bc6ce19ef2fb3f5a948fbc942e560d9cdb795794f9f2f6422d05b37c41fbdda4",
+          "render_sha256": "74a1433c9c1d2cb2f8fc19f1c740afa76ef0fe83ce4c98a18d902c53ef78207f"
         }
       ]
     },
@@ -2136,6 +2368,64 @@
           "geometry_status": "unavailable",
           "geometry_note": "A faithful geometry preview is unavailable for this reconstruction.",
           "render_sha256": null
+        },
+        {
+          "id": "claude-low",
+          "label": "Claude Sonnet 5.5 \u00b7 Reasoning: low",
+          "model": "anthropic/claude-sonnet-5-5",
+          "model_display_name": "Claude Sonnet 5.5",
+          "harness": "Claude Code",
+          "reasoning": "low",
+          "reasoning_display": "low",
+          "repetition": 0,
+          "condition_id": "e03b16cc-bf75-4247-9b96-467a3685c942:claude-sonnet-5-5:low:claude-code",
+          "run_id": "e03b16cc-bf75-4247-9b96-467a3685c942",
+          "trial_id": "56f925e7-45ff-408a-b654-38b38183ec21",
+          "evaluator_version": "2.2.0",
+          "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/56f925e7-45ff-408a-b654-38b38183ec21/",
+          "download_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/56f925e7-45ff-408a-b654-38b38183ec21/candidate-package.zip",
+          "render_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/56f925e7-45ff-408a-b654-38b38183ec21/renders/isometric.png",
+          "scores": {
+            "formal": {
+              "value": 84.67391304347827,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "visual": {
+              "value": 45.5050182781774,
+              "status": "measured",
+              "coverage": 1.0
+            },
+            "kinematic": {
+              "value": 0.0,
+              "status": "measured",
+              "coverage": 1.0
+            }
+          },
+          "usage": {
+            "elapsed_seconds": 178.575383,
+            "inference_cost_usd": 0.0476395,
+            "total_tokens": 88081.0,
+            "input_tokens": 86221.0,
+            "output_tokens": 1860.0
+          },
+          "inference_cost_kind": "harbor_reported_unverified_basis",
+          "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/appliance_toaster_a01/claude-low.glb",
+          "sha256": "049c17b7b24d08e4b6cc337aecdf82bc759530ea911b561459dd7f2a8084feff",
+          "bounds_m": [
+            [
+              -0.15792983770370483,
+              0.004439387004822493,
+              -0.08670445531606674
+            ],
+            [
+              0.15828995406627655,
+              0.18443939089775085,
+              0.08823634684085846
+            ]
+          ],
+          "source_sha256": "83ee65bb9ffecc27a01f331c3c30a57c62043698b236f65475d13afd1798dad9",
+          "render_sha256": "71c27b97bc2d4eab1bca3811488d50f76fd0c00acb71492bcbdbddea7a5b39f9"
         }
       ]
     }
@@ -2143,6 +2433,7 @@
   "job_ids": [
     "0f2b2409-7945-44b8-abb4-c4faef268035",
     "dc30f963-ebba-47f8-a052-535ce8a706f4",
-    "ed242be1-ed4f-4caa-815d-9ce76615afe4"
+    "ed242be1-ed4f-4caa-815d-9ce76615afe4",
+    "e03b16cc-bf75-4247-9b96-467a3685c942"
   ]
 }

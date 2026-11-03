@@ -21,8 +21,8 @@
       "candidate"
     ]
   },
-  "source_manifest_sha256": "ffa63bf3bad3d207df1e15cdeb065dedb2a73dc9fb2eb087dbc407e08693dd1b",
-  "source_geometry_provenance_sha256": "946510b70b3e25fb3cf4b356743f2f082843c9fce30f1dc70bc2ba95bb3cf8b4",
+  "source_manifest_sha256": "d8009f0e60908acfecda5df4f163e01b58d2157bfbcbbdbfcf60c32836c34451",
+  "source_geometry_provenance_sha256": "e1788f57628de2b096279610d20d92f5c92cc2b45d165c4624e8766e35abe8cf",
   "build_dependencies": {
     "numpy": "2.5.4",
     "scipy": "1.17.1",
@@ -452,6 +452,66 @@
       "source_candidate_sha256": null,
       "alignment_status": null,
       "reason": "Candidate geometry unavailable"
+    },
+    "equipment_bench_vise_a01/claude-low": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/delta/equipment_bench_vise_a01/claude-low.bin",
+      "sha256": "95d56061593af92aad73fc8aebebd01f9684c55f3bf5f91bdbf0e0cf24438c9b",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.06947939842939377,
+      "p95_distance_m": 0.04315461851656434,
+      "reference_diagonal_m": 0.4380706582276505,
+      "source_reference_sha256": "9906f2ad576d42dabb4ed2f079ff08fd6b3dd9e17c8af60feb95f9f3184aab58",
+      "source_candidate_sha256": "23364d6c02c71929a6374302a50739ef7905571313e37707c6c40417da8c6e19",
+      "alignment_status": "recorded"
+    },
+    "handTool_pliers_groove_joint_a01/claude-low": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/delta/handTool_pliers_groove_joint_a01/claude-low.bin",
+      "sha256": "ac5415190858f75a8ae46fc67303f65079c53dc00919db9b4f4b6dd488552f96",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.02663503773510456,
+      "p95_distance_m": 0.009965767292305822,
+      "reference_diagonal_m": 0.26204809790980804,
+      "source_reference_sha256": "8d5a342a86189929ab10050a11b5fc259398c1ddc3447563486c1a3b7cd503e4",
+      "source_candidate_sha256": "27f1c5de111c2bc25b41ab877bdf17e167b1190c60f517849bc68abfe3df319d",
+      "alignment_status": "recorded"
+    },
+    "wasteManagement_oilyWasteCan_metal_a01/claude-low": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/delta/wasteManagement_oilyWasteCan_metal_a01/claude-low.bin",
+      "sha256": "91ce0f6f73f927a75a23daed00fef2ec8d3e914081a4a0aab169900e2382214d",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.1486911177635193,
+      "p95_distance_m": 0.06501853466033936,
+      "reference_diagonal_m": 0.9456012640900179,
+      "source_reference_sha256": "f736152708dd6fa76dd239dc3e1f7a80e3e71c443863cbeec426a59268ab195e",
+      "source_candidate_sha256": "14e240984a3c1fa40092e0f7343389c01068a5f9c0d1f6ff617319c1c91e2882",
+      "alignment_status": "recorded"
+    },
+    "ladder_step_folding_a01/claude-low": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/delta/ladder_step_folding_a01/claude-low.bin",
+      "sha256": "ec8a8291602d07a5fc2cd016b0d4880c84efc985f917b4f0b1774582ec09375e",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.18236872553825378,
+      "p95_distance_m": 0.08979145437479019,
+      "reference_diagonal_m": 0.9758488153570555,
+      "source_reference_sha256": "fa0633a3648e406478e4e09bdb75d474c457f7c3bd8718effcb161f093c9b992",
+      "source_candidate_sha256": "ead0044888baa3b15e2357d9031fefed20cc6f96ed8b23171b989dc4c2fcdb53",
+      "alignment_status": "recorded"
+    },
+    "appliance_toaster_a01/claude-low": {
+      "src": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/resolve/71bc6cbc6e6001aec9a71667f2c60f7aa72aa6af/results/harbor/e03b16cc-bf75-4247-9b96-467a3685c942/presentation/assets/explorer/delta/appliance_toaster_a01/claude-low.bin",
+      "sha256": "393b2824e0ed97c436c2ac69b4161a9c9ea5d77d9b3d3d024c4e9c9ea8389e0e",
+      "point_count": 24000,
+      "reference_point_count": 12000,
+      "max_distance_m": 0.07733521610498428,
+      "p95_distance_m": 0.04261794798076152,
+      "reference_diagonal_m": 0.3873363873021353,
+      "source_reference_sha256": "c1cbe27f1fd1412bb52d8408f421c494541c194ac254d90312a2112faddea0bc",
+      "source_candidate_sha256": "049c17b7b24d08e4b6cc337aecdf82bc759530ea911b561459dd7f2a8084feff",
+      "alignment_status": "recorded"
     }
   }
 }

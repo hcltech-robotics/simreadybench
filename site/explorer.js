@@ -1,7 +1,7 @@
 import { resetExplorerPreview } from "./explorer-state.js?v=viewer-labels-20261029";
 
-const manifestURL = new URL("assets/explorer/manifest.json?v=nv100-deepseek-20261102", document.baseURI);
-const deltaManifestURL = new URL("assets/explorer/delta-manifest.json?v=nv100-deepseek-20261102", document.baseURI);
+const manifestURL = new URL("assets/explorer/manifest.json?v=nv100-claude-20261103", document.baseURI);
+const deltaManifestURL = new URL("assets/explorer/delta-manifest.json?v=nv100-claude-20261103", document.baseURI);
 const root = document.getElementById("explorer");
 const byId = (id) => document.getElementById(`explorer-${id}`);
 const measured = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;

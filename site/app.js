@@ -1,4 +1,4 @@
-import {orderRuns, sortFields, valueFor, scoreText} from './leaderboard-math.js?v=nv100-deepseek-20261102';
+import {orderRuns, sortFields, valueFor, scoreText} from './leaderboard-math.js?v=nv100-claude-20261103';
 
 const region = document.getElementById('leaderboard-table-region');
 const body = document.getElementById('leaderboard-body');
