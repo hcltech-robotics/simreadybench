@@ -3,9 +3,10 @@
   "reference_set": "nv100-v1",
   "reference_count": 100,
   "evaluator_version": "2.2.0",
-  "source_revision": "17efd928573d830706fa6c112b58bd3fdf04ad92",
+  "source_revision": "0d9da764cd008d7802fa27060ea3d02dcf33edfa",
   "job_ids": [
     "0f2b2409-7945-44b8-abb4-c4faef268035",
+    "bb865915-d3cc-400f-bda1-0eaf4b3e4b4a",
     "dc30f963-ebba-47f8-a052-535ce8a706f4",
     "e03b16cc-bf75-4247-9b96-467a3685c942",
     "e6465830-0d2a-4663-8811-76a32076b78e",
@@ -16,7 +17,7 @@
   "runs": [
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-unspecified",
-      "label": "ChatGPT 6.1 Sol · low · Codex",
+      "label": "ChatGPT 6.1 Sol \u00b7 low \u00b7 Codex",
       "model": "ChatGPT 6.1 Sol",
       "model_family": "Sol",
       "model_display_name": "ChatGPT 6.1 Sol",
@@ -129,7 +130,7 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
-              "frontier": true,
+              "frontier": false,
               "frontier_provisional": false
             },
             "kinematic": {
@@ -152,7 +153,7 @@
           "measured_attempts": 302,
           "total_attempts": 303,
           "unknown_execution_count": 1,
-          "sum_recorded": 143553415,
+          "sum_recorded": 143553415.0,
           "complete": false,
           "includes_retries": true,
           "paired_scores": {
@@ -173,7 +174,7 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
-              "frontier": true,
+              "frontier": false,
               "frontier_provisional": true
             },
             "kinematic": {
@@ -192,7 +193,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 478511.38333333336,
-          "sum_recorded": 143553415,
+          "sum_recorded": 143553415.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 1,
@@ -201,7 +202,7 @@
         },
         "input": {
           "value": 470783.68333333335,
-          "sum_recorded": 141235105,
+          "sum_recorded": 141235105.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 1,
@@ -210,7 +211,7 @@
         },
         "output": {
           "value": 7727.7,
-          "sum_recorded": 2318310,
+          "sum_recorded": 2318310.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 1,
@@ -219,7 +220,7 @@
         },
         "cached_input": {
           "value": 436238.10333333333,
-          "sum_recorded": 130871431,
+          "sum_recorded": 130871431.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 1,
@@ -249,17 +250,17 @@
         "formal": {
           "value": 0.0021213347075076682,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.004050363832749003,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.08497862845299406,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -276,20 +277,20 @@
           "upper_bound": 71.33333333333333
         },
         "pass_at_3": {
-          "value": 96,
+          "value": 96.0,
           "successes": 96,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 96,
-          "upper_bound": 96
+          "lower_bound": 96.0,
+          "upper_bound": 96.0
         },
         "pass_all_3": {
-          "value": 39,
+          "value": 39.0,
           "successes": 39,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 39,
-          "upper_bound": 39
+          "lower_bound": 39.0,
+          "upper_bound": 39.0
         },
         "successes_per_asset": {
           "0": 4,
@@ -930,7 +931,7 @@
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-medium",
-      "label": "ChatGPT 6.1 Sol · medium · Codex",
+      "label": "ChatGPT 6.1 Sol \u00b7 medium \u00b7 Codex",
       "model": "ChatGPT 6.1 Sol",
       "model_family": "Sol",
       "model_display_name": "ChatGPT 6.1 Sol",
@@ -1066,7 +1067,7 @@
           "measured_attempts": 302,
           "total_attempts": 302,
           "unknown_execution_count": 0,
-          "sum_recorded": 319293954,
+          "sum_recorded": 319293954.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
@@ -1106,7 +1107,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 1064313.18,
-          "sum_recorded": 319293954,
+          "sum_recorded": 319293954.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 0,
@@ -1115,7 +1116,7 @@
         },
         "input": {
           "value": 1045908.9566666667,
-          "sum_recorded": 313772687,
+          "sum_recorded": 313772687.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 0,
@@ -1124,7 +1125,7 @@
         },
         "output": {
           "value": 18404.22333333333,
-          "sum_recorded": 5521267,
+          "sum_recorded": 5521267.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 0,
@@ -1133,7 +1134,7 @@
         },
         "cached_input": {
           "value": 989904.26,
-          "sum_recorded": 296971278,
+          "sum_recorded": 296971278.0,
           "denominator": 300,
           "known_executions": 302,
           "unknown_executions": 0,
@@ -1163,17 +1164,17 @@
         "formal": {
           "value": 0.004145757285882545,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.007724831967595547,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.13188071356582523,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -1190,20 +1191,20 @@
           "upper_bound": 99.66666666666667
         },
         "pass_at_3": {
-          "value": 100,
+          "value": 100.0,
           "successes": 100,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_3": {
-          "value": 99,
+          "value": 99.0,
           "successes": 99,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 99,
-          "upper_bound": 99
+          "lower_bound": 99.0,
+          "upper_bound": 99.0
         },
         "successes_per_asset": {
           "0": 0,
@@ -1844,7 +1845,7 @@
     },
     {
       "id": "e6465830-0d2a-4663-8811-76a32076b78e:codex-text2cad-build123d:gpt-6.1-sol:medium",
-      "label": "ChatGPT 6.1 Sol · medium · Codex + CAD/build123d",
+      "label": "ChatGPT 6.1 Sol \u00b7 medium \u00b7 Codex + CAD/build123d",
       "model": "ChatGPT 6.1 Sol",
       "model_family": "Sol",
       "model_display_name": "ChatGPT 6.1 Sol",
@@ -1863,13 +1864,13 @@
       "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/3f791f561dd935c8f1d4318b477f2908b7ba22bb/results/harbor/e6465830-0d2a-4663-8811-76a32076b78e",
       "scores": {
         "formal": {
-          "value": 100,
+          "value": 100.0,
           "measured_attempts": 400,
           "eligible_attempts": 400,
           "complete": true,
           "status": "known",
-          "lower_bound_percent": 100,
-          "upper_bound_percent": 100
+          "lower_bound_percent": 100.0,
+          "upper_bound_percent": 100.0
         },
         "visual": {
           "value": 55.5640022459195,
@@ -1903,7 +1904,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 0.7382938889999999,
               "measured_attempts": 294,
               "eligible_attempts": 400,
@@ -1948,7 +1949,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 567.08734337,
               "measured_attempts": 294,
               "eligible_attempts": 400,
@@ -1992,7 +1993,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 3369249.315,
               "measured_attempts": 294,
               "eligible_attempts": 400,
@@ -2027,7 +2028,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 3369249.315,
-          "sum_recorded": 1347699726,
+          "sum_recorded": 1347699726.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -2036,7 +2037,7 @@
         },
         "input": {
           "value": 3351437.9375,
-          "sum_recorded": 1340575175,
+          "sum_recorded": 1340575175.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -2045,7 +2046,7 @@
         },
         "output": {
           "value": 17811.3775,
-          "sum_recorded": 7124551,
+          "sum_recorded": 7124551.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -2054,7 +2055,7 @@
         },
         "cached_input": {
           "value": 3257605.5275,
-          "sum_recorded": 1303042211,
+          "sum_recorded": 1303042211.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -2084,17 +2085,17 @@
         "formal": {
           "value": 0.007382938889999999,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.013287269799831934,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.24574351116953752,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -2104,52 +2105,52 @@
         "assets": 100,
         "final_attempts": 400,
         "pass_at_1": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_1": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_at_3": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_3": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_at_4": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_4": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "successes_per_asset": {
           "4": 100
@@ -2779,7 +2780,7 @@
         "eligible_attempts": 400,
         "fully_scored_attempts": 400,
         "unknown_attempts": 0,
-        "coverage_fraction": 1,
+        "coverage_fraction": 1.0,
         "mean_over_fully_scored_attempts": 73.4656862745098,
         "source_field": "formal_report.optional_score",
         "scope": "all_optional_profile",
@@ -2789,7 +2790,7 @@
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-high",
-      "label": "ChatGPT 6.1 Sol · high · Codex",
+      "label": "ChatGPT 6.1 Sol \u00b7 high \u00b7 Codex",
       "model": "ChatGPT 6.1 Sol",
       "model_family": "Sol",
       "model_display_name": "ChatGPT 6.1 Sol",
@@ -2808,7 +2809,7 @@
       "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4",
       "scores": {
         "formal": {
-          "value": 100,
+          "value": 100.0,
           "measured_attempts": 300,
           "eligible_attempts": 300,
           "complete": true,
@@ -2842,7 +2843,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 0.714481805,
               "measured_attempts": 294,
               "eligible_attempts": 300,
@@ -2886,7 +2887,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 863.2201472466667,
               "measured_attempts": 294,
               "eligible_attempts": 300,
@@ -2925,12 +2926,12 @@
           "measured_attempts": 306,
           "total_attempts": 306,
           "unknown_execution_count": 0,
-          "sum_recorded": 597181151,
+          "sum_recorded": 597181151.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 1990603.8366666667,
               "measured_attempts": 294,
               "eligible_attempts": 300,
@@ -2965,7 +2966,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 1990603.8366666667,
-          "sum_recorded": 597181151,
+          "sum_recorded": 597181151.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -2974,7 +2975,7 @@
         },
         "input": {
           "value": 1959382.44,
-          "sum_recorded": 587814732,
+          "sum_recorded": 587814732.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -2983,7 +2984,7 @@
         },
         "output": {
           "value": 31221.396666666667,
-          "sum_recorded": 9366419,
+          "sum_recorded": 9366419.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -2992,7 +2993,7 @@
         },
         "cached_input": {
           "value": 1873388.4166666667,
-          "sum_recorded": 562016525,
+          "sum_recorded": 562016525.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -3022,17 +3023,17 @@
         "formal": {
           "value": 0.0071448180500000005,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.012565400596282075,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.19432704572338136,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -3041,28 +3042,28 @@
         "assets": 100,
         "final_attempts": 300,
         "pass_at_1": {
-          "value": 100,
+          "value": 100.0,
           "successes": 300,
           "denominator": 300,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_at_3": {
-          "value": 100,
+          "value": 100.0,
           "successes": 100,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_3": {
-          "value": 100,
+          "value": 100.0,
           "successes": 100,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "successes_per_asset": {
           "0": 0,
@@ -3692,7 +3693,7 @@
         "eligible_attempts": 300,
         "fully_scored_attempts": 300,
         "unknown_attempts": 0,
-        "coverage_fraction": 1,
+        "coverage_fraction": 1.0,
         "mean_over_fully_scored_attempts": 72.84313725490196,
         "source_field": "scores.formal.evidence.optional_score",
         "scope": "all_optional_profile",
@@ -3703,7 +3704,7 @@
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-terra-low",
-      "label": "ChatGPT 6.1 Terra · low · Codex",
+      "label": "ChatGPT 6.1 Terra \u00b7 low \u00b7 Codex",
       "model": "ChatGPT 6.1 Terra",
       "model_family": "Terra",
       "model_display_name": "ChatGPT 6.1 Terra",
@@ -3806,7 +3807,7 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
-              "frontier": true,
+              "frontier": false,
               "frontier_provisional": false
             },
             "visual": {
@@ -3826,7 +3827,7 @@
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
-              "frontier": true,
+              "frontier": false,
               "frontier_provisional": false
             }
           },
@@ -3839,7 +3840,7 @@
           "measured_attempts": 300,
           "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 107703868,
+          "sum_recorded": 107703868.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
@@ -3879,7 +3880,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 359012.8933333333,
-          "sum_recorded": 107703868,
+          "sum_recorded": 107703868.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -3888,7 +3889,7 @@
         },
         "input": {
           "value": 353438.25666666665,
-          "sum_recorded": 106031477,
+          "sum_recorded": 106031477.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -3897,7 +3898,7 @@
         },
         "output": {
           "value": 5574.636666666666,
-          "sum_recorded": 1672391,
+          "sum_recorded": 1672391.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -3906,7 +3907,7 @@
         },
         "cached_input": {
           "value": 310615.98333333334,
-          "sum_recorded": 93184795,
+          "sum_recorded": 93184795.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -3936,17 +3937,17 @@
         "formal": {
           "value": 0.0010635665993407896,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.002027360797173999,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.11185355132908992,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -3955,28 +3956,28 @@
         "assets": 100,
         "final_attempts": 300,
         "pass_at_1": {
-          "value": 2,
+          "value": 2.0,
           "successes": 6,
           "denominator": 300,
           "unknown": 0,
-          "lower_bound": 2,
-          "upper_bound": 2
+          "lower_bound": 2.0,
+          "upper_bound": 2.0
         },
         "pass_at_3": {
-          "value": 6,
+          "value": 6.0,
           "successes": 6,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 6,
-          "upper_bound": 6
+          "lower_bound": 6.0,
+          "upper_bound": 6.0
         },
         "pass_all_3": {
-          "value": 0,
+          "value": 0.0,
           "successes": 0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 0,
-          "upper_bound": 0
+          "lower_bound": 0.0,
+          "upper_bound": 0.0
         },
         "successes_per_asset": {
           "0": 94,
@@ -4617,7 +4618,7 @@
     },
     {
       "id": "e6465830-0d2a-4663-8811-76a32076b78e:codex-text2cad-build123d:gpt-6.1-terra:medium",
-      "label": "ChatGPT 6.1 Terra · medium · Codex + CAD/build123d",
+      "label": "ChatGPT 6.1 Terra \u00b7 medium \u00b7 Codex + CAD/build123d",
       "model": "ChatGPT 6.1 Terra",
       "model_family": "Terra",
       "model_display_name": "ChatGPT 6.1 Terra",
@@ -4636,13 +4637,13 @@
       "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/3f791f561dd935c8f1d4318b477f2908b7ba22bb/results/harbor/e6465830-0d2a-4663-8811-76a32076b78e",
       "scores": {
         "formal": {
-          "value": 100,
+          "value": 100.0,
           "measured_attempts": 400,
           "eligible_attempts": 400,
           "complete": true,
           "status": "known",
-          "lower_bound_percent": 100,
-          "upper_bound_percent": 100
+          "lower_bound_percent": 100.0,
+          "upper_bound_percent": 100.0
         },
         "visual": {
           "value": 54.10798611663832,
@@ -4676,7 +4677,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 0.3960623955,
               "measured_attempts": 294,
               "eligible_attempts": 400,
@@ -4721,7 +4722,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 513.6280323474999,
               "measured_attempts": 294,
               "eligible_attempts": 400,
@@ -4765,7 +4766,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 3917476.69,
               "measured_attempts": 294,
               "eligible_attempts": 400,
@@ -4800,7 +4801,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 3917476.69,
-          "sum_recorded": 1566990676,
+          "sum_recorded": 1566990676.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -4809,7 +4810,7 @@
         },
         "input": {
           "value": 3901989.5375,
-          "sum_recorded": 1560795815,
+          "sum_recorded": 1560795815.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -4818,7 +4819,7 @@
         },
         "output": {
           "value": 15487.1525,
-          "sum_recorded": 6194861,
+          "sum_recorded": 6194861.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -4827,7 +4828,7 @@
         },
         "cached_input": {
           "value": 3798976.06,
-          "sum_recorded": 1519590424,
+          "sum_recorded": 1519590424.0,
           "denominator": 400,
           "known_executions": 400,
           "unknown_executions": 1,
@@ -4857,17 +4858,17 @@
         "formal": {
           "value": 0.003960623955,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.007319850985513023,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.5555642523498786,
           "status": "partial_lower_bound",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -4877,52 +4878,52 @@
         "assets": 100,
         "final_attempts": 400,
         "pass_at_1": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_1": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_at_3": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_3": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_at_4": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_4": {
-          "value": 100,
-          "successes": 100,
+          "value": 100.0,
+          "successes": 100.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "successes_per_asset": {
           "4": 100
@@ -5552,7 +5553,7 @@
         "eligible_attempts": 400,
         "fully_scored_attempts": 400,
         "unknown_attempts": 0,
-        "coverage_fraction": 1,
+        "coverage_fraction": 1.0,
         "mean_over_fully_scored_attempts": 70.8921568627451,
         "source_field": "formal_report.optional_score",
         "scope": "all_optional_profile",
@@ -5562,7 +5563,7 @@
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-terra-high",
-      "label": "ChatGPT 6.1 Terra · high · Codex",
+      "label": "ChatGPT 6.1 Terra \u00b7 high \u00b7 Codex",
       "model": "ChatGPT 6.1 Terra",
       "model_family": "Terra",
       "model_display_name": "ChatGPT 6.1 Terra",
@@ -5581,7 +5582,7 @@
       "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/e586f232e0b1939f84c59956e88eed38c167bd2f/results/harbor/dc30f963-ebba-47f8-a052-535ce8a706f4",
       "scores": {
         "formal": {
-          "value": 100,
+          "value": 100.0,
           "measured_attempts": 300,
           "eligible_attempts": 300,
           "complete": true,
@@ -5615,7 +5616,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 0.27350602183333333,
               "measured_attempts": 294,
               "eligible_attempts": 300,
@@ -5659,7 +5660,7 @@
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 465.41184811000005,
               "measured_attempts": 294,
               "eligible_attempts": 300,
@@ -5698,12 +5699,12 @@
           "measured_attempts": 300,
           "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 496104321,
+          "sum_recorded": 496104321.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
             "formal": {
-              "value": 100,
+              "value": 100.0,
               "x_value": 1653681.07,
               "measured_attempts": 294,
               "eligible_attempts": 300,
@@ -5738,7 +5739,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 1653681.07,
-          "sum_recorded": 496104321,
+          "sum_recorded": 496104321.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -5747,7 +5748,7 @@
         },
         "input": {
           "value": 1633905.19,
-          "sum_recorded": 490171557,
+          "sum_recorded": 490171557.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -5756,7 +5757,7 @@
         },
         "output": {
           "value": 19775.88,
-          "sum_recorded": 5932764,
+          "sum_recorded": 5932764.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -5765,7 +5766,7 @@
         },
         "cached_input": {
           "value": 1556437.42,
-          "sum_recorded": 466931226,
+          "sum_recorded": 466931226.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -5795,17 +5796,17 @@
         "formal": {
           "value": 0.0027350602183333333,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.005061951962057474,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.09815649196168845,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -5814,28 +5815,28 @@
         "assets": 100,
         "final_attempts": 300,
         "pass_at_1": {
-          "value": 100,
+          "value": 100.0,
           "successes": 300,
           "denominator": 300,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_at_3": {
-          "value": 100,
+          "value": 100.0,
           "successes": 100,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "pass_all_3": {
-          "value": 100,
+          "value": 100.0,
           "successes": 100,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 100,
-          "upper_bound": 100
+          "lower_bound": 100.0,
+          "upper_bound": 100.0
         },
         "successes_per_asset": {
           "0": 0,
@@ -6475,8 +6476,940 @@
       "repetitions": 3
     },
     {
+      "id": "bb865915-d3cc-400f-bda1-0eaf4b3e4b4a:claude-opus-5-5:low:claude-code",
+      "label": "Claude Opus 5.5 \u00b7 low \u00b7 Claude Code",
+      "model": "anthropic/claude-opus-5-5",
+      "model_family": "Claude",
+      "model_display_name": "Claude Opus 5.5",
+      "reasoning_display": "low",
+      "requested_model": "anthropic/claude-opus-5-5",
+      "reasoning": "low",
+      "harness": "Claude Code",
+      "authoring_label": "Claude Code",
+      "agent_revision": null,
+      "evaluator_version": "2.2.0",
+      "job_id": "bb865915-d3cc-400f-bda1-0eaf4b3e4b4a",
+      "frontier_group": "nv100-v1:2.2.0",
+      "reference_count": 100,
+      "final_slots": 300,
+      "execution_count": 300,
+      "source_url": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/tree/9b4845481387d2ba5f84ad2e7314b754e0c16416/results/harbor/bb865915-d3cc-400f-bda1-0eaf4b3e4b4a",
+      "scores": {
+        "formal": {
+          "value": 97.12463768115941,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true,
+          "status": "known",
+          "lower_bound_percent": 97.12463768115941,
+          "upper_bound_percent": 97.12463768115941
+        },
+        "visual": {
+          "value": 51.19130645044229,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true,
+          "status": "known",
+          "lower_bound_percent": 51.19130645044229,
+          "upper_bound_percent": 51.19130645044229
+        },
+        "kinematic": {
+          "value": 2.4467528124592204,
+          "measured_attempts": 300,
+          "eligible_attempts": 300,
+          "complete": true,
+          "status": "known",
+          "lower_bound_percent": 2.4467528124592204,
+          "upper_bound_percent": 2.4467528124592204
+        }
+      },
+      "metrics": {
+        "cost_usd_per_asset": {
+          "value": 0.312590902,
+          "unit": "USD/asset",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 93.7772706,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 97.06595681750962,
+              "x_value": 0.312590902,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
+              "frontier": false,
+              "frontier_provisional": false
+            },
+            "visual": {
+              "value": 51.30445836077593,
+              "x_value": 0.312590902,
+              "measured_attempts": 185,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
+              "frontier": false,
+              "frontier_provisional": false
+            },
+            "kinematic": {
+              "value": 2.6113888604378994,
+              "x_value": 0.312590902,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
+              "frontier": false,
+              "frontier_provisional": false
+            }
+          },
+          "kind": "harbor_reported_agent_usage"
+        },
+        "elapsed_seconds_per_asset": {
+          "value": 245.72048925666667,
+          "unit": "seconds/asset",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 73716.146777,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 97.06595681750962,
+              "x_value": 245.72048925666667,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
+              "frontier": true,
+              "frontier_provisional": false
+            },
+            "visual": {
+              "value": 51.30445836077593,
+              "x_value": 245.72048925666667,
+              "measured_attempts": 185,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
+              "frontier": true,
+              "frontier_provisional": false
+            },
+            "kinematic": {
+              "value": 2.6113888604378994,
+              "x_value": 245.72048925666667,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
+              "frontier": true,
+              "frontier_provisional": false
+            }
+          },
+          "timing_scope": "sum of individual trial durations, including setup and verification; not job wall time"
+        },
+        "tokens_per_asset": {
+          "value": 381567.0733333333,
+          "unit": "tokens/asset",
+          "denominator": 300,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 114470122.0,
+          "complete": true,
+          "includes_retries": true,
+          "paired_scores": {
+            "formal": {
+              "value": 97.06595681750962,
+              "x_value": 381567.0733333333,
+              "measured_attempts": 294,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
+              "frontier": true,
+              "frontier_provisional": false
+            },
+            "visual": {
+              "value": 51.30445836077593,
+              "x_value": 381567.0733333333,
+              "measured_attempts": 185,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
+              "frontier": true,
+              "frontier_provisional": false
+            },
+            "kinematic": {
+              "value": 2.6113888604378994,
+              "x_value": 381567.0733333333,
+              "measured_attempts": 271,
+              "eligible_attempts": 300,
+              "complete": false,
+              "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
+              "frontier": true,
+              "frontier_provisional": false
+            }
+          }
+        }
+      },
+      "tokens_per_asset": {
+        "total": {
+          "value": 381567.0733333333,
+          "sum_recorded": 114470122.0,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "input": {
+          "value": 374666.4866666667,
+          "sum_recorded": 112399946.0,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "output": {
+          "value": 6900.586666666667,
+          "sum_recorded": 2070176.0,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cached_input": {
+          "value": 353221.31,
+          "sum_recorded": 105966393.0,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        }
+      },
+      "inference_cost_per_asset": {
+        "value": 0.312590902,
+        "sum_recorded": 93.7772706,
+        "denominator": 300,
+        "known_executions": 300,
+        "unknown_executions": 0,
+        "partial": false,
+        "includes_retries": true
+      },
+      "trial_seconds_per_asset": {
+        "value": 245.72048925666667,
+        "sum_recorded": 73716.146777,
+        "denominator": 300,
+        "known_executions": 300,
+        "unknown_executions": 0,
+        "partial": false,
+        "includes_retries": true
+      },
+      "cost_per_point": {
+        "formal": {
+          "value": 0.0032184511516652743,
+          "status": "known",
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
+        },
+        "visual": {
+          "value": 0.006106327884063979,
+          "status": "known",
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
+        },
+        "kinematic": {
+          "value": 0.1277574507764911,
+          "status": "known",
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
+        }
+      },
+      "pass_rates": {
+        "criterion": "all_46_mandatory_requirements_pass",
+        "k": 3,
+        "samples_per_asset": 3,
+        "assets": 100,
+        "final_attempts": 300,
+        "pass_at_1": {
+          "value": 67.0,
+          "successes": 201.0,
+          "denominator": 300,
+          "unknown": 0,
+          "lower_bound": 67.0,
+          "upper_bound": 67.0
+        },
+        "pass_at_3": {
+          "value": 94.0,
+          "successes": 94.0,
+          "denominator": 100,
+          "unknown": 0,
+          "lower_bound": 94.0,
+          "upper_bound": 94.0
+        },
+        "pass_all_3": {
+          "value": 37.0,
+          "successes": 37.0,
+          "denominator": 100,
+          "unknown": 0,
+          "lower_bound": 37.0,
+          "upper_bound": 37.0
+        },
+        "successes_per_asset": {
+          "0": 6,
+          "1": 24,
+          "2": 33,
+          "3": 37
+        },
+        "estimators": {
+          "pass_at_k": "1 - C(n-c,k)/C(n,k)",
+          "pass_all_k": "C(c,k)/C(n,k)"
+        },
+        "retries_excluded": true,
+        "by_asset": [
+          {
+            "reference_id": "nv100-v1:nv100_04ed00317ccc5a90",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_0d5a045d08832558",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_0ee38dbeb8dccf6d",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_0fdbdbbf0914a091",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_142ac642d87da17c",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_15d6296b43e32e18",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_17a2f7ce1c73e24b",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_17b98c24982e1657",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_19607166b9604d89",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_198a9e9c4f7ce3f2",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_1d6ca6d90cd58961",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2124cde602dbdcb7",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2442a6f885eb3cc3",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_247345f2a336cc5f",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_277538c0752a1186",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_29738d03bc5d9a68",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2999ac8a4e7af7e7",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2a6a57f1f660128a",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2ab1c8d84ebe4eb9",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_2af97ae24a8d7fde",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_3084bc1f12b79ce8",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_36db64b13e6813e1",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_381f0169f4c4fbd1",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_382b02d058a48b6a",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_3b37b9f58a70ca40",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_47447ae933c565c5",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_4afa194354477c47",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_4b024c41c6d4c2bb",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_4e10782bf98f9405",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_525b65ccbe56ffea",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_56025f338315d66a",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_58b1427ce07ba99a",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_58fba5a2a836bcef",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_5b8085baf6c090ed",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_5c3d3461fa840d9d",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_5d12c190ef7457d1",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_600fc2ad768f1930",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_6627b65375e93e5d",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_69ecd52a60671756",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_6f6f63bdb94a83b4",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_70a1243908f64ead",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_70c417d940a526ee",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_7777d0b26e69f86a",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_7876a753434cf7d3",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_78da45d42fdf538c",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_791e79d947ee35ae",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_7ac8dcd5266e9924",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_80416c2bc0a430eb",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8574b6f4aa22c8e3",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8817a4bd528f5549",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8cfd1e56a0b504ea",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8d81b2987b196041",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_8dd6e1f1cbb8b462",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_918619c7fe40bdc5",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9499de2220b36cbe",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_968cd3dfe5ad21c1",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_977905a7f68dc323",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9ba70a69917d2305",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9e3f7dbd969acac5",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_9e6234280413cdcb",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a194e402f44013d1",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a2939a17e3444d52",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a3fe4697f3e4c15e",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_a7a336d818a3d9d3",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_abb1b470da2eb131",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_adb626df31bf7509",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_af46aeafd295d310",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_b4208a0e4f762579",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_b6aeeb666424ae0d",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_b83324e831779e19",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_bff10216da262e6a",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c2f7f1f03e91af9b",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c35d376f74c032a5",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c6c60a8c7081041a",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c844b5efec42e5fa",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c87b9d6690f9e687",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c89ec640cbfbd302",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c8a8bac26c7b4874",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_c92d6c8478d7758f",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_ca63914168dce803",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_cb8c72f166e90540",
+            "samples": 3,
+            "successes": 1,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d152ce4f60b45ea9",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d37c0067281cdd26",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d5ddbfeda2fe7ad9",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_d9edaf956545bd67",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_dea081707992a622",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_df1e96e685d276d3",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_e006be66e4cc28f9",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_e7a7d6fbf4f2326f",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_e948d0fd08624353",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_eadc1038f3bfd872",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_eb55c976d6cd528f",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_eb6800ce857dc2eb",
+            "samples": 3,
+            "successes": 0,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_ec0dd39731982fa2",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_ef3a3efa5b480cd0",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_f33ae88933be01fa",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_f7f391c5b6b8e44d",
+            "samples": 3,
+            "successes": 2,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_fb8ddbbe3dbc2900",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_fbb5620efff99eee",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          },
+          {
+            "reference_id": "nv100-v1:nv100_fd477c46fa524292",
+            "samples": 3,
+            "successes": 3,
+            "unknown": 0
+          }
+        ]
+      },
+      "optional_criteria": {
+        "value": 73.77124183006536,
+        "unit": "percent",
+        "status": "known",
+        "lower_bound_percent": 73.77124183006536,
+        "upper_bound_percent": 73.77124183006536,
+        "passed_checks": 11287.0,
+        "unknown_checks": 0.0,
+        "total_checks": 15300.0,
+        "checks_per_attempt": 51,
+        "eligible_attempts": 300,
+        "fully_scored_attempts": 300,
+        "unknown_attempts": 0,
+        "retries_excluded": true
+      },
+      "job_level_costs": {
+        "total_recorded_inference_usd": 93.7772706,
+        "hosted_compute_cost_usd": "16.916789350851357550",
+        "hosted_compute_cost_status": "partial",
+        "reported_combined_cost_usd": "110.694059950851357550",
+        "provider_reported_cost_usd": null,
+        "cost_observed_at": "2026-11-04T02:15:31.109421+00:00"
+      },
+      "reasoning_effort": "low",
+      "output_limit": null,
+      "harness_id": "claude-code",
+      "agent_version": "2.1.317",
+      "harness_version": "2.1.317",
+      "repetitions": 3,
+      "max_authoring_turns": 64,
+      "max_formal_feedback_calls": 5,
+      "max_output_tokens": null,
+      "reasoning_enabled": true
+    },
+    {
       "id": "e03b16cc-bf75-4247-9b96-467a3685c942:claude-sonnet-5-5:low:claude-code",
-      "label": "Claude Sonnet 5.5 · low · Claude Code",
+      "label": "Claude Sonnet 5.5 \u00b7 low \u00b7 Claude Code",
       "model": "Claude Sonnet 5.5",
       "model_family": "Claude",
       "model_display_name": "Claude Sonnet 5.5",
@@ -6618,7 +7551,7 @@
           "measured_attempts": 300,
           "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 28145839,
+          "sum_recorded": 28145839.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
@@ -6658,7 +7591,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 93819.46333333333,
-          "sum_recorded": 28145839,
+          "sum_recorded": 28145839.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -6667,7 +7600,7 @@
         },
         "input": {
           "value": 91460.49666666667,
-          "sum_recorded": 27438149,
+          "sum_recorded": 27438149.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -6676,7 +7609,7 @@
         },
         "output": {
           "value": 2358.9666666666667,
-          "sum_recorded": 707690,
+          "sum_recorded": 707690.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -6685,7 +7618,7 @@
         },
         "cached_input": {
           "value": 80386.76666666666,
-          "sum_recorded": 24116030,
+          "sum_recorded": 24116030.0,
           "denominator": 300,
           "known_executions": 300,
           "unknown_executions": 0,
@@ -6715,17 +7648,17 @@
         "formal": {
           "value": 0.0006912663476874004,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.0011543065020693185,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.0871217125583863,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -6735,28 +7668,28 @@
         "assets": 100,
         "final_attempts": 300,
         "pass_at_1": {
-          "value": 0,
-          "successes": 0,
+          "value": 0.0,
+          "successes": 0.0,
           "denominator": 300,
           "unknown": 0,
-          "lower_bound": 0,
-          "upper_bound": 0
+          "lower_bound": 0.0,
+          "upper_bound": 0.0
         },
         "pass_at_3": {
-          "value": 0,
-          "successes": 0,
+          "value": 0.0,
+          "successes": 0.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 0,
-          "upper_bound": 0
+          "lower_bound": 0.0,
+          "upper_bound": 0.0
         },
         "pass_all_3": {
-          "value": 0,
-          "successes": 0,
+          "value": 0.0,
+          "successes": 0.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 0,
-          "upper_bound": 0
+          "lower_bound": 0.0,
+          "upper_bound": 0.0
         },
         "successes_per_asset": {
           "0": 100,
@@ -7394,7 +8327,7 @@
     },
     {
       "id": "0f2b2409-7945-44b8-abb4-c4faef268035:deepseek-v4.1-flash-1017:none:terminus-2",
-      "label": "DeepSeek V4.1 Flash (1017) · none · Terminus 2",
+      "label": "DeepSeek V4.1 Flash (1017) \u00b7 none \u00b7 Terminus 2",
       "model": "DeepSeek V4.1 Flash (1017)",
       "model_family": "DeepSeek",
       "model_display_name": "DeepSeek V4.1 Flash (1017)",
@@ -7536,7 +8469,7 @@
           "measured_attempts": 301,
           "total_attempts": 301,
           "unknown_execution_count": 0,
-          "sum_recorded": 672683419,
+          "sum_recorded": 672683419.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
@@ -7576,7 +8509,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 2242278.0633333335,
-          "sum_recorded": 672683419,
+          "sum_recorded": 672683419.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -7585,7 +8518,7 @@
         },
         "input": {
           "value": 2210364.4166666665,
-          "sum_recorded": 663109325,
+          "sum_recorded": 663109325.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -7594,7 +8527,7 @@
         },
         "output": {
           "value": 31913.646666666667,
-          "sum_recorded": 9574094,
+          "sum_recorded": 9574094.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -7603,7 +8536,7 @@
         },
         "cached_input": {
           "value": 2012997.9333333333,
-          "sum_recorded": 603899380,
+          "sum_recorded": 603899380.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -7633,17 +8566,17 @@
         "formal": {
           "value": 0.00031736213114667253,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.0007746679768878374,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.5226526831664116,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -7654,27 +8587,27 @@
         "final_attempts": 300,
         "pass_at_1": {
           "value": 2.3333333333333335,
-          "successes": 7,
+          "successes": 7.0,
           "denominator": 300,
           "unknown": 0,
           "lower_bound": 2.3333333333333335,
           "upper_bound": 2.3333333333333335
         },
         "pass_at_3": {
-          "value": 6,
-          "successes": 6,
+          "value": 6.0,
+          "successes": 6.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 6,
-          "upper_bound": 6
+          "lower_bound": 6.0,
+          "upper_bound": 6.0
         },
         "pass_all_3": {
-          "value": 0,
-          "successes": 0,
+          "value": 0.0,
+          "successes": 0.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 0,
-          "upper_bound": 0
+          "lower_bound": 0.0,
+          "upper_bound": 0.0
         },
         "successes_per_asset": {
           "0": 94,
@@ -8312,7 +9245,7 @@
     },
     {
       "id": "f5f94694-fb90-4593-9d21-8c5b1cb75e42:deepseek-v4.1-flash-1017:none:terminus-2-cad",
-      "label": "DeepSeek V4.1 Flash (1017) · none · Terminus 2 + CAD/build123d",
+      "label": "DeepSeek V4.1 Flash (1017) \u00b7 none \u00b7 Terminus 2 + CAD/build123d",
       "model": "openai/deepseek-v4.1-flash-1017",
       "model_family": "DeepSeek",
       "model_display_name": "DeepSeek V4.1 Flash (1017)",
@@ -8454,7 +9387,7 @@
           "measured_attempts": 306,
           "total_attempts": 306,
           "unknown_execution_count": 0,
-          "sum_recorded": 1040695669,
+          "sum_recorded": 1040695669.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
@@ -8494,7 +9427,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 3468985.5633333335,
-          "sum_recorded": 1040695669,
+          "sum_recorded": 1040695669.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -8503,7 +9436,7 @@
         },
         "input": {
           "value": 3434797.42,
-          "sum_recorded": 1030439226,
+          "sum_recorded": 1030439226.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -8512,7 +9445,7 @@
         },
         "output": {
           "value": 34188.14333333333,
-          "sum_recorded": 10256443,
+          "sum_recorded": 10256443.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -8521,7 +9454,7 @@
         },
         "cached_input": {
           "value": 3300037.546666667,
-          "sum_recorded": 990011264,
+          "sum_recorded": 990011264.0,
           "denominator": 300,
           "known_executions": 306,
           "unknown_executions": 0,
@@ -8551,17 +9484,17 @@
         "formal": {
           "value": 0.00029344659219690447,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.0006730718018427327,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.2707362294197204,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -8572,27 +9505,27 @@
         "final_attempts": 300,
         "pass_at_1": {
           "value": 53.666666666666664,
-          "successes": 161,
+          "successes": 161.0,
           "denominator": 300,
           "unknown": 0,
           "lower_bound": 53.666666666666664,
           "upper_bound": 53.666666666666664
         },
         "pass_at_3": {
-          "value": 87,
-          "successes": 87,
+          "value": 87.0,
+          "successes": 87.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 87,
-          "upper_bound": 87
+          "lower_bound": 87.0,
+          "upper_bound": 87.0
         },
         "pass_all_3": {
-          "value": 13,
-          "successes": 13,
+          "value": 13.0,
+          "successes": 13.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 13,
-          "upper_bound": 13
+          "lower_bound": 13.0,
+          "upper_bound": 13.0
         },
         "successes_per_asset": {
           "0": 13,
@@ -9214,9 +10147,9 @@
         "status": "partial",
         "lower_bound_percent": 64.42483660130719,
         "upper_bound_percent": 64.89542483660131,
-        "passed_checks": 9857,
-        "unknown_checks": 72,
-        "total_checks": 15300,
+        "passed_checks": 9857.0,
+        "unknown_checks": 72.0,
+        "total_checks": 15300.0,
         "checks_per_attempt": 51,
         "eligible_attempts": 300,
         "fully_scored_attempts": 276,
@@ -9242,7 +10175,7 @@
     },
     {
       "id": "ed242be1-ed4f-4caa-815d-9ce76615afe4:nemotron-3.5-super-vl:none:terminus-2",
-      "label": "NVIDIA Nemotron 3.5 Super VL · none · Terminus 2",
+      "label": "NVIDIA Nemotron 3.5 Super VL \u00b7 none \u00b7 Terminus 2",
       "model": "NVIDIA Nemotron 3.5 Super VL",
       "model_family": "Nemotron",
       "model_display_name": "NVIDIA Nemotron 3.5 Super VL",
@@ -9378,7 +10311,7 @@
           "measured_attempts": 301,
           "total_attempts": 301,
           "unknown_execution_count": 0,
-          "sum_recorded": 753453651,
+          "sum_recorded": 753453651.0,
           "complete": true,
           "includes_retries": true,
           "paired_scores": {
@@ -9418,7 +10351,7 @@
       "tokens_per_asset": {
         "total": {
           "value": 2511512.17,
-          "sum_recorded": 753453651,
+          "sum_recorded": 753453651.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -9427,7 +10360,7 @@
         },
         "input": {
           "value": 2464376.2866666666,
-          "sum_recorded": 739312886,
+          "sum_recorded": 739312886.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -9436,7 +10369,7 @@
         },
         "output": {
           "value": 47135.88333333333,
-          "sum_recorded": 14140765,
+          "sum_recorded": 14140765.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -9445,7 +10378,7 @@
         },
         "cached_input": {
           "value": 2031610.2933333332,
-          "sum_recorded": 609483088,
+          "sum_recorded": 609483088.0,
           "denominator": 300,
           "known_executions": 301,
           "unknown_executions": 0,
@@ -9475,17 +10408,17 @@
         "formal": {
           "value": 0.004377432167801717,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.015598194096253825,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 67.26833859839688,
           "status": "known",
-          "unit": "USD per fidelity point on a 0–100 scale"
+          "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
       "pass_rates": {
@@ -9496,27 +10429,27 @@
         "final_attempts": 300,
         "pass_at_1": {
           "value": null,
-          "successes": 0,
+          "successes": 0.0,
           "denominator": 300,
           "unknown": 5,
-          "lower_bound": 0,
+          "lower_bound": 0.0,
           "upper_bound": 1.6666666666666667
         },
         "pass_at_3": {
           "value": null,
-          "successes": 0,
+          "successes": 0.0,
           "denominator": 100,
           "unknown": 5,
-          "lower_bound": 0,
-          "upper_bound": 5
+          "lower_bound": 0.0,
+          "upper_bound": 5.0
         },
         "pass_all_3": {
-          "value": 0,
-          "successes": 0,
+          "value": 0.0,
+          "successes": 0.0,
           "denominator": 100,
           "unknown": 0,
-          "lower_bound": 0,
-          "upper_bound": 0
+          "lower_bound": 0.0,
+          "upper_bound": 0.0
         },
         "successes_per_asset": {
           "0": 95,
@@ -10157,7 +11090,7 @@
     "pass_at_1": "mean asset success rate over final attempts",
     "pass_at_3": "estimated probability of at least one formal pass in three attempts",
     "pass_all_3": "estimated probability of three formal passes in three attempts",
-    "cost_per_point": "inference cost per intended reconstruction divided by mean fidelity on the 0–100 scale",
+    "cost_per_point": "inference cost per intended reconstruction divided by mean fidelity on the 0\u2013100 scale",
     "tokens": "total = input + output; cached input is already part of input",
     "resources": "retry-inclusive recorded sums divided by intended reconstruction slots"
   },
@@ -10169,5 +11102,5 @@
     "missing": "null; never imputed as zero",
     "hosted_compute": "job-level only; not allocated to configurations"
   },
-  "publication_source": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/17efd928573d830706fa6c112b58bd3fdf04ad92/results/harbor/f5f94694-fb90-4593-9d21-8c5b1cb75e42/presentation/leaderboard.json"
+  "publication_source": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/0d9da764cd008d7802fa27060ea3d02dcf33edfa/results/harbor/bb865915-d3cc-400f-bda1-0eaf4b3e4b4a/presentation/leaderboard.json"
 }
