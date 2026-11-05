@@ -4,6 +4,7 @@
 No source attempts or scores are written. Download the dataset's README, root
 leaderboards, results/harbor/*/presentation/{leaderboard,pareto}.json and
 viewer/harbor-v1/attempts/*.parquet at --revision into --source first.
+Also supply published job-summary.json and comparison.{json,md} cost mirrors.
 Review --output before publishing with the existing HF connection. The output
 contains only derived reports, a card and source hashes, never model inputs.
 """
@@ -54,6 +55,30 @@ def update_card(text, runs):
     return text
 
 
+def correct_summary(data, runs):
+    """Add final-item accounting while preserving historical spend receipts."""
+    job_runs = [r for r in runs if r['job_id'] == data['job_id']]
+    data['final_output_inference_spend'] = {r['id']: r['inference_spend'] for r in job_runs}
+    for summary in data.get('model_summaries', []):
+        run = next(r for r in job_runs if r['id'] == summary['id'])
+        summary['inference_cost_per_asset'] = run['inference_cost_per_asset']
+        summary['inference_spend'] = run['inference_spend']
+    data['cost_reporting_scope'] = 'Per-item inference costs use final retained outputs; existing job totals remain retry-inclusive recorded spend.'
+    return data
+
+
+def correct_comparison(data, baseline, cad):
+    for key, run in [('baseline', baseline), ('cad', cad)]:
+        resource = data['resources'][key]
+        resource['cost_usd_scope'] = 'retry_inclusive_recorded_spend'
+        resource['final_output_inference_cost'] = run['inference_cost_per_asset']
+        resource['inference_spend'] = run['inference_spend']
+    before = baseline['inference_cost_per_asset']['value']
+    after = cad['inference_cost_per_asset']['value']
+    data['resource_changes_percent']['final_output_inference_cost_usd'] = 100 * (after / before - 1)
+    return data
+
+
 def prepare(source, output, revision):
     rows, inputs = [], {}
     # Only read evaluator-2.2.0 jobs: older evaluator publications are historical.
@@ -93,12 +118,36 @@ def prepare(source, output, revision):
                 (target.parent/f'pareto-cost.{ext}').write_bytes((work/f'pareto-cost.{ext}').read_bytes())
     latest = json.loads((output/latest_path).read_text())
     (output/'README.md').write_text(update_card((source/'README.md').read_text(), latest['runs']))
+
+    for path in source.glob('results/harbor/*/job-summary.json'):
+        data = json.loads(path.read_text())
+        if data.get('job_id') not in latest['job_ids']:
+            continue
+        target = output/path.relative_to(source)
+        target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_text(json.dumps(correct_summary(data, latest['runs']),indent=2,allow_nan=False)+'\n')
+    comparison_path = Path('results/harbor/f5f94694-fb90-4593-9d21-8c5b1cb75e42/comparison.json')
+    if (source/comparison_path).exists():
+        baseline = next(r for r in latest['runs'] if r['job_id'] == '0f2b2409-7945-44b8-abb4-c4faef268035')
+        cad = next(r for r in latest['runs'] if r['job_id'] == 'f5f94694-fb90-4593-9d21-8c5b1cb75e42')
+        data = correct_comparison(json.loads((source/comparison_path).read_text()),baseline,cad)
+        (output/comparison_path).write_text(json.dumps(data,indent=2,allow_nan=False)+'\n')
+        text = (source/comparison_path.with_suffix('.md')).read_text()
+        headline = '| Final-output inference cost / item | $%.8f (300/300 costed) | $%.8f (300/300 costed) |\n' % (baseline['inference_cost_per_asset']['value'],cad['inference_cost_per_asset']['value'])
+        headline += '| Final-output inference cost, total | $%.9f | $%.9f |\n' % (baseline['inference_cost_per_asset']['sum_recorded'],cad['inference_cost_per_asset']['sum_recorded'])
+        text = text.replace('| Reported inference cost |', headline+'| Reported inference cost, retry-inclusive spend |')
+        text = text.replace('reported inference cost falls 7.6%.', 'final-output inference cost falls %.1f%%; retry-inclusive recorded inference spend falls 7.6%%.' % -data['resource_changes_percent']['final_output_inference_cost_usd'])
+        text = text.replace('resource sums include every retry.', 'token, time and recorded-spend sums include every retry. Final-output inference pricing excludes retries; separate retry accounting is retained in comparison.json.')
+        (output/comparison_path.with_suffix('.md')).write_text(text)
+
     report = {'version':'final-retained-outputs-v1','source_revision':revision,'attempt_inputs_sha256':inputs,
               'configurations':len(latest['runs']),'final_items':sum(r['final_slots'] for r in latest['runs']),
               'final_cost_known_items':sum(r['inference_cost_per_asset']['known_executions'] for r in latest['runs']),
               'retry_attempts':sum(r['execution_count']-r['final_slots'] for r in latest['runs']),
               'retry_cost_unknown_attempts':sum(r['inference_spend']['retry_overhead']['unknown_executions'] for r in latest['runs']),
-              'corrected_json_files':count,'scores_and_attempts_changed':False}
+              'corrected_json_files':count,
+              'additional_cost_summary_mirrors':len(list(output.glob('results/harbor/*/job-summary.json'))) + (2 if (output/comparison_path).exists() else 0),
+              'scores_and_attempts_changed':False}
     (output/'results/cost-reporting-audit.json').write_text(json.dumps(report,indent=2)+'\n')
     return report
 

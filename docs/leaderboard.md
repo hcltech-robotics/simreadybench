@@ -71,3 +71,19 @@ recorded spend separately, including known and unknown execution counts. The CSV
 exports the same values. Missing final-item costs retain partial coverage and
 provisional cost-frontier flags; missing retry costs affect only retry accounting.
 The original attempt Parquets and receipts remain the source evidence.
+
+To reproduce the reporting correction, download the card, root leaderboards,
+Harbor presentation JSON, job summaries, comparison reports and attempt Parquets
+from dataset revision `988adfa176c7e788164a8c4d07f32d5c59bf6018`, retaining their
+repository paths in a local directory. Then run:
+
+```sh
+python scripts/correct_published_costs.py --source ./pinned-snapshot \
+  --output ./corrected-reports --revision 988adfa176c7e788164a8c4d07f32d5c59bf6018
+```
+
+The script writes derived reports and an input-hash audit. Review those outputs
+before publishing them. Historical job spend totals retain their original scope;
+final-output cost breakdowns are added separately. The published
+[audit](https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/main/results/cost-reporting-audit.json)
+records 3,800 costed final items and three unknown retry costs.
