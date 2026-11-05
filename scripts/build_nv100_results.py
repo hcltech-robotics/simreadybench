@@ -89,12 +89,12 @@ def pass_summary(final_rows, formal_success, *, k=3):
                          'unknown':sum(v is None for v in trials.values())} for asset,trials in sorted(assets.items())]}
 
 
-def resource_summary(executions, field, intended):
+def resource_summary(executions, field, intended, *, includes_retries=True):
     values = [r[field] for r in executions if known(r.get(field))]
     return {'value':math.fsum(values)/intended if values else None,
             'sum_recorded':math.fsum(values) if values else None, 'denominator':intended,
             'known_executions':len(values), 'unknown_executions':len(executions)-len(values),
-            'partial':len(values)!=len(executions), 'includes_retries':True}
+            'partial':len(values)!=len(executions), 'includes_retries':includes_retries}
 
 
 def cost_per_point(cost, score):
@@ -102,6 +102,82 @@ def cost_per_point(cost, score):
     if score == 0:return {'value':None,'status':'infinite' if cost['value'] > 0 else 'undefined'}
     return {'value':cost['value']/score,'status':'partial_lower_bound' if cost.get('partial') else 'known',
             'unit':'USD per fidelity point on a 0–100 scale'}
+
+
+def correct_cost_reporting(data, rows):
+    """Recompute derived cost fields without changing scores or source attempts.
+
+    This also upgrades previously published snapshots, retaining their own
+    configuration population and score cohorts. Retry missingness belongs to
+    spend accounting, independently of final-item measurement coverage.
+    """
+    runs = data.get('runs', data.get('entries', []))
+    grouped = defaultdict(list)
+    for row in rows:
+        grouped[(row['harbor_job_id'], row['condition_id'])].append(row)
+    for run in runs:
+        selected = grouped[(run['job_id'], run['id'])]
+        # A condition may have a presentation configuration_id distinct from its ID.
+        if not selected:
+            selected = [r for r in rows if r['harbor_job_id'] == run['job_id']
+                        and (r.get('configuration_id') == run['id']
+                             or r['condition_id'] + '@' + run['job_id'] == run['id'])]
+        finals = [r for r in selected if r['is_final_attempt']]
+        if len(finals) != run['final_slots'] or len({r['id'] for r in finals}) != len(finals):
+            raise ValueError('Cost inputs must contain every retained final item exactly once: ' + run['id'])
+        final_ids = {r['id'] for r in finals}
+        retries = [r for r in selected if not r['is_final_attempt']]
+        if any(r['parent_final_result_id'] not in final_ids for r in retries):
+            raise ValueError('Retry cost is not bound to a retained final item')
+        n = len(finals)
+        cost = resource_summary(finals, 'inference_cost_usd', n, includes_retries=False)
+        run['inference_cost_per_asset'] = cost
+        overhead = resource_summary(retries, 'inference_cost_usd', n)
+        if not retries:
+            overhead.update(value=0.0, sum_recorded=0.0)
+        kinds = sorted({r['cost_kind'] for r in finals})
+        run['inference_spend'] = {
+            'final': cost.copy(), 'retry_overhead': overhead,
+            'retry_inclusive': resource_summary(selected, 'inference_cost_usd', n),
+            'cost_kinds': kinds, 'missing_is_zero': False,
+        }
+        if 'usage' in run:
+            run['usage']['inference_cost_usd'] = {
+                'mean': None if cost['partial'] else cost['value'],
+                'measured_mean': cost['sum_recorded'] / cost['known_executions'] if cost['known_executions'] else None,
+                'total': None if cost['partial'] else cost['sum_recorded'],
+                'measured_total': cost['sum_recorded'],
+                'measured_attempts': cost['known_executions'], 'total_attempts': n,
+                'per_reconstruction_mean': cost['value'], 'includes_retries': False,
+            }
+        metric = run['metrics']['cost_usd_per_asset']
+        metric.update(value=cost['value'], sum_recorded=cost['sum_recorded'], denominator=n,
+                      measured_attempts=cost['known_executions'], total_attempts=n,
+                      unknown_execution_count=cost['unknown_executions'], complete=not cost['partial'],
+                      includes_retries=False, scope='final_retained_outputs',
+                      kind=kinds[0] if len(kinds) == 1 else 'mixed', cost_kinds=kinds)
+        for score in METRICS:
+            pair = metric['paired_scores'][score]
+            pair['x_value'] = cost['value']
+            pair['frontier_provisional'] = cost['partial']
+        run['cost_per_point'] = {score: cost_per_point(cost, run['scores'][score]['value']) for score in METRICS}
+    # Re-evaluate cost dominance within this snapshot's original score cohorts.
+    for score in METRICS:
+        points = [{'id':r['id'], 'x':r['metrics']['cost_usd_per_asset']['value'],
+                   'y':r['metrics']['cost_usd_per_asset']['paired_scores'][score]['value']} for r in runs]
+        ids = {p['id'] for p in frontier(points)}
+        for run in runs:
+            run['metrics']['cost_usd_per_asset']['paired_scores'][score]['frontier'] = run['id'] in ids
+    data.setdefault('leaderboard_definitions', {}).update(
+        cost_per_point='final retained inference cost per reconstruction divided by mean fidelity on the 0–100 scale',
+        resources='cost uses final retained reconstructions; tokens and trial time retain retry-inclusive recorded sums per intended reconstruction')
+    data.setdefault('aggregation', {}).update(
+        inference_cost='sum recorded inference cost of final retained outputs divided by final slots',
+        inference_spend='separate final, retry overhead and retry-inclusive recorded spend; missing costs are never zero-filled',
+        resources='cost excludes retries; tokens and trial time retain their published retry-inclusive scope',
+        pricing_basis='measurement coverage is independent of reported versus estimated pricing; no invoice verification is implied')
+    data['cost_reporting_version'] = 'final-retained-outputs-v1'
+    return data
 
 
 def build(rows, *, evaluator, revision, formal_success=None):
@@ -169,14 +245,15 @@ def build(rows, *, evaluator, revision, formal_success=None):
                 'measured_attempts': len(values), 'eligible_attempts': n, 'complete': len(values) == n,
                 'status': 'known' if len(values) == n else 'partial' if values else 'not_applicable' if all(r.get(f'{metric}_fidelity_status') == 'not_applicable' for r in rs) else 'unknown'}
         for axis, (field, label, divisor) in AXES.items():
-            values = [r[field] for r in attempts[identity] if known(r.get(field))]
+            resource_rows = rs if field == 'inference_cost_usd' else attempts[identity]
+            values = [r[field] for r in resource_rows if known(r.get(field))]
             value = math.fsum(values) / n if values else None
             metric = {'value': value, 'unit': {'cost_usd_per_asset':'USD/asset','elapsed_seconds_per_asset':'seconds/asset','tokens_per_asset':'tokens/asset'}[axis], 'denominator': n,
-                      'measured_attempts': len(values), 'total_attempts': len(attempts[identity]),
-                      'unknown_execution_count': len(attempts[identity]) - len(values),
+                      'measured_attempts': len(values), 'total_attempts': len(resource_rows),
+                      'unknown_execution_count': len(resource_rows) - len(values),
                       'sum_recorded': math.fsum(values) if values else None,
-                      'complete': len(values) == len(attempts[identity]),
-                      'includes_retries': True, 'paired_scores': {}}
+                      'complete': len(values) == len(resource_rows),
+                      'includes_retries': field != 'inference_cost_usd', 'paired_scores': {}}
             if field == 'inference_cost_usd':
                 metric['kind'] = first['cost_kind']
             if field == 'elapsed_seconds':
@@ -192,7 +269,7 @@ def build(rows, *, evaluator, revision, formal_success=None):
         execution_rows = attempts[identity]
         run['tokens_per_asset'] = {name:resource_summary(execution_rows, field, n) for name,field in
             [('total','total_tokens'),('input','input_tokens'),('output','output_tokens'),('cached_input','cached_input_tokens')]}
-        run['inference_cost_per_asset'] = resource_summary(execution_rows,'inference_cost_usd',n)
+        run['inference_cost_per_asset'] = resource_summary(rs,'inference_cost_usd',n,includes_retries=False)
         run['trial_seconds_per_asset'] = resource_summary(execution_rows,'elapsed_seconds',n)
         run['cost_per_point'] = {metric:cost_per_point(run['inference_cost_per_asset'],run['scores'][metric]['value']) for metric in METRICS}
         run['pass_rates'] = pass_summary(rs,formal_success) if formal_success else None
@@ -208,12 +285,13 @@ def build(rows, *, evaluator, revision, formal_success=None):
                   'pass_at_1':'mean asset success rate over final attempts',
                   'pass_at_3':'estimated probability of at least one formal pass in three attempts',
                   'pass_all_3':'estimated probability of three formal passes in three attempts',
-                  'cost_per_point':'inference cost per intended reconstruction divided by mean fidelity on the 0–100 scale',
+                  'cost_per_point':'final retained inference cost per reconstruction divided by mean fidelity on the 0–100 scale',
                   'tokens':'total = input + output; cached input is already part of input',
-                  'resources':'retry-inclusive recorded sums divided by intended reconstruction slots'},
+                  'resources':'cost uses final retained reconstructions; tokens and trial time retain retry-inclusive recorded sums per intended reconstruction'},
               'methodology': 'Scores use the same object/repetition pairs across configurations.',
               'aggregation': {'scores': 'means over available final scores', 'pareto_scores': 'common measured object/repetition slots across configurations, separately per fidelity metric',
-                  'resources': 'sum available execution measurements including retries, divided by intended reconstruction slots',
+                  'resources': 'cost sums final retained reconstructions divided by final slots; tokens and trial time include retries per intended slot',
+                  'inference_spend': 'final, retry overhead and retry-inclusive recorded spend have separate sums and missingness; absent retry measurements are not zero',
                   'missing': 'null; never imputed as zero', 'hosted_compute': 'job-level only; not allocated to configurations'}}
     for axis in AXES:
         for metric in METRICS:
@@ -223,7 +301,7 @@ def build(rows, *, evaluator, revision, formal_success=None):
             for run in runs:
                 run['metrics'][axis]['paired_scores'][metric]['frontier'] = run['id'] in ids
                 run['metrics'][axis]['paired_scores'][metric]['frontier_provisional'] = not run['metrics'][axis]['complete']
-    return output
+    return correct_cost_reporting(output, rows)
 
 
 def figures(data, output):
@@ -278,7 +356,10 @@ def write_csv(data, output):
               'kinematic_percent', 'pass_at_1_percent', 'pass_at_3_percent', 'pass_all_3_percent',
               'total_tokens_per_asset', 'input_tokens_per_asset', 'output_tokens_per_asset',
               'cached_input_tokens_per_asset', 'inference_usd_per_asset', 'inference_usd_per_formal_point',
-              'trial_minutes_per_asset', 'resource_measurements_partial']
+              'trial_minutes_per_asset', 'resource_measurements_partial', 'final_cost_measurements_complete',
+              'final_cost_known_items', 'final_cost_items', 'inference_cost_kind',
+              'retry_inference_usd_recorded', 'retry_cost_unknown_executions',
+              'retry_inclusive_inference_usd_recorded', 'retry_inclusive_cost_unknown_executions']
     with output.open('w', newline='') as stream:
         writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
@@ -293,6 +374,15 @@ def write_csv(data, output):
                        inference_usd_per_formal_point=run['cost_per_point']['formal']['value'],
                        trial_minutes_per_asset=run['trial_seconds_per_asset']['value']/60 if run['trial_seconds_per_asset']['value'] is not None else None,
                        resource_measurements_partial=any(metric['partial'] for metric in [run['inference_cost_per_asset'], run['trial_seconds_per_asset'], *run['tokens_per_asset'].values()]))
+            cost = run['inference_cost_per_asset']
+            spend = run.get('inference_spend', {})
+            row.update(final_cost_measurements_complete=not cost['partial'],
+                       final_cost_known_items=cost['known_executions'], final_cost_items=cost['denominator'],
+                       inference_cost_kind=run['metrics']['cost_usd_per_asset'].get('kind'),
+                       retry_inference_usd_recorded=spend.get('retry_overhead', {}).get('sum_recorded'),
+                       retry_cost_unknown_executions=spend.get('retry_overhead', {}).get('unknown_executions'),
+                       retry_inclusive_inference_usd_recorded=spend.get('retry_inclusive', {}).get('sum_recorded'),
+                       retry_inclusive_cost_unknown_executions=spend.get('retry_inclusive', {}).get('unknown_executions'))
             writer.writerow(row)
 
 

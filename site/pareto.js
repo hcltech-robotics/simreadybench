@@ -63,7 +63,7 @@ function metricCoverage(metric) {
   if (!metric) return "Not measured";
   const parts = [];
   if (Number.isInteger(metric.measured_attempts) && Number.isInteger(metric.total_attempts)) {
-    parts.push(`${metric.measured_attempts}/${metric.total_attempts} executions`);
+    parts.push(`${metric.measured_attempts}/${metric.total_attempts} ${metric.includes_retries === false ? "final-item costs" : "executions"}`);
   }
   if (Number.isInteger(metric.measured_assets) && Number.isInteger(metric.total_assets)) {
     parts.push(`${metric.measured_assets}/${metric.total_assets} assets`);
@@ -220,6 +220,7 @@ async function initialise() {
     tooltip.append(measurement);
     tooltip.append(element("p", `${axes[xSelect.value].label}: ${axes[xSelect.value].format(point.rawX)} per asset`));
     tooltip.append(element("p", metricCoverage(point.metric), "table-note"));
+    if (xSelect.value === "cost_usd_per_asset") tooltip.append(element("p", `Retained final outputs; retry spend separate. Cost basis: ${point.metric.kind}.`, "table-note"));
     const measuredScoreCoverage = scoreCoverage(point.score);
     if (measuredScoreCoverage) tooltip.append(element("p", `Score coverage: ${measuredScoreCoverage}`, "table-note"));
     if (cumulative) {
