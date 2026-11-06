@@ -32,7 +32,7 @@ def test_reference_acceptance_requires_real_completed_profile_and_no_infrastruct
 
 
 def test_profile_and_source_confinement_are_explicit(tmp_path):
-    with pytest.raises(ValueError, match="supports"):
+    with pytest.raises(ValueError, match="exact version"):
         check_reference(
             tmp_path / "a.usda", package_root=tmp_path, profile={"id": "invented"}
         )

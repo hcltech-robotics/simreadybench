@@ -23,7 +23,10 @@ class CandidateObserver:
         state_dir,
         expected_hostname,
         execution_enabled=False,
+        scoring_policy=None,
     ):
+        from simready_bench.engine.verifier import validate_policy
+        self.policy = validate_policy(scoring_policy) if scoring_policy is not None else None
         self.python = Path(validator_python).absolute()
         self.source = Path(source_root).absolute()
         self.root = Path(state_dir).absolute()
@@ -45,7 +48,8 @@ class CandidateObserver:
         from simready_bench.engine.nvidia_compat import compatibility_identity
 
         self.identity = {
-            "kind": "NVIDIA_Robotics_Prop_validator",
+            "scoring_policy": self.policy,
+            "kind": "NVIDIA_profile_validator",
             "python": str(self.python),
             "compatibility_adapters": [compatibility_identity()],
             "sources": {
@@ -53,6 +57,8 @@ class CandidateObserver:
                 for name in (
                     "evaluation.py",
                     "scoring.py",
+                    "profiles.py",
+                    "verifier.py",
                     "validator.py",
                     "nvidia_compat.py",
                     "package_checks.py",
@@ -72,6 +78,9 @@ class CandidateObserver:
         verify_frozen_snapshot(snapshot)
         directory = Path(tempfile.mkdtemp(dir=self.root, prefix="observe-"))
         output = directory / "result.json"
+        policy_path = directory / "policy.json"
+        if self.policy is not None:
+            policy_path.write_text(canonical(self.policy))
         env = {
             "PATH": "/usr/bin:/bin",
             "HOME": str(directory),
@@ -99,6 +108,8 @@ class CandidateObserver:
                 "--package-root",
                 str(snapshot.path),
             ]
+            if self.policy is not None:
+                argv.extend(["--scoring-policy", str(policy_path)])
             with (directory / "worker.log").open("xb") as log:
                 process = subprocess.Popen(
                     argv,
@@ -214,7 +225,7 @@ class Evaluator:
         if snapshot.episode_id != episode_id:
             raise ValueError("Snapshot belongs to another episode")
         if "validator_scoring" not in task_config:
-            raise ValueError("Task requires a Robotics-Prop scoring policy")
+            raise ValueError("Task requires a selected NVIDIA scoring policy")
         return evaluate_snapshot(
             self,
             snapshot,

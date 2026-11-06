@@ -105,7 +105,10 @@ RUN export QEMU_CPU=Nehalem && apt-get update && apt-get install -y --no-install
     touch /opt/simready/runtime/simready_bench/__init__.py /opt/simready/runtime/simready_bench/engine/__init__.py && \
     test -z "$(dpkg --audit)"
 COPY verifier.py /opt/simready/runtime/simready_bench/engine/verifier.py
+COPY profiles.py /opt/simready/runtime/simready_bench/engine/profiles.py
+COPY scoring.py /opt/simready/runtime/simready_bench/engine/scoring.py
 COPY nvidia_profile.json /opt/simready/runtime/simready_bench/engine/nvidia_profile.json
+COPY nvidia_optional_profile.json /opt/simready/runtime/simready_bench/engine/nvidia_optional_profile.json
 COPY test.sh /tests/test.sh
 RUN chmod 755 /tests/test.sh
 ENV PYTHONPATH=/opt/simready/runtime PYTHONDONTWRITEBYTECODE=1

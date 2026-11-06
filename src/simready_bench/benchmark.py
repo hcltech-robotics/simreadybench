@@ -1335,6 +1335,7 @@ def benchmark(
     retry_delay_seconds=5,
     maximum_retry_delay_seconds=60,
     dispatch_pending=True,
+    validation_policy=None,
 ):
     from simready_bench.recovery import validate_recovery
 
@@ -1348,7 +1349,15 @@ def benchmark(
         from simready_bench.publishing import validate_publication_ids
 
         validate_publication_ids(hf_repo, hf_run or _absolute(output_dir).name)
+    selected_scoring = None
+    if validation_policy is not None:
+        from simready_bench.engine.verifier import validate_policy as validate_scoring
+        selected_scoring = validate_scoring(read_json(validation_policy))
+        if hf_repo and selected_scoring["schema"].endswith("-v2"):
+            raise ValueError("Custom profiles require local reports; the public leaderboard accepts only the frozen default profile")
     if resume:
+        if selected_scoring is not None and selected_scoring != read_json(_absolute(output_dir) / "experiment.json")["scoring"]:
+            raise ValueError("Resume must preserve the saved validation profile and inventory")
         from simready_bench.resume import resume_benchmark
 
         return resume_benchmark(
@@ -1396,6 +1405,11 @@ def benchmark(
     original = read_json(policy) if policy else None
     validate_native_policy_limits(original, authoring_turns=authoring_turns, max_output_tokens=max_output_tokens)
     source, base, package_inputs = reference_manifest(reference)
+    if selected_scoring is not None:
+        source["scoring"] = selected_scoring
+        source.setdefault("defaults", {})["profile"] = selected_scoring["profile"] if selected_scoring["schema"].endswith("-v2") else {"id": "NVIDIA-Robotics-Prop-4.0.0"}
+    if hf_repo and source.get("scoring", {}).get("schema", "").endswith("-v2"):
+        raise ValueError("Custom profiles require local reports; the public leaderboard accepts only the frozen default profile")
     selected, connection, provider_kind = select_model(
         model, provider=provider, policy=original, metadata=model_metadata
     )

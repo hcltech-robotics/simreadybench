@@ -485,9 +485,8 @@ def _settings(s, limits, *, native=False):
     ):
         raise ValueError("System prompt must be bounded literal text")
     if "profile" in s:
-        _object(s["profile"], {"id"}, "profile")
-        if s["profile"] not in ({"id": "NVIDIA-Robotics-Prop-4.0.0"},):
-            raise ValueError("Unknown pinned benchmark profile")
+        from simready_bench.engine.profiles import selection
+        selection(s["profile"])
     for k, v in _object(s.get("budgets", {}), BUDGETS, "budgets").items():
         if k in ("max_output_tokens", "max_input_tokens") and v is None:
             if not native or limits[k] is not None:
@@ -610,7 +609,7 @@ def validate_manifest(value, *, base_dir, policy=None):
     m.setdefault("seed", 0)
     m.setdefault("repetitions", 4)
     if "scoring" in m:
-        m["defaults"].setdefault("profile", {"id": "NVIDIA-Robotics-Prop-4.0.0"})
+        m["defaults"].setdefault("profile", {"id": "NVIDIA-Robotics-Prop-4.0.0"} if m["scoring"]["schema"].endswith("-v1") else m["scoring"]["profile"])
         m["defaults"].setdefault("acceptance_preset", "nvidia-mandatory-95-5-v1")
     cap = m["defaults"].get("generation", {}).get("max_output_tokens")
     if limits["max_input_tokens"] is not None or (
@@ -887,6 +886,10 @@ def validate_manifest(value, *, base_dir, policy=None):
             override.get("settings", {}), limits, native=True
         )
     settings = [m["defaults"], *(o["settings"] for o in m["overrides"])]
+    if "scoring" in m:
+        from simready_bench.engine.profiles import selection
+        if any("profile" in s and selection(s["profile"]) != m["scoring"]["profile"] for s in settings):
+            raise ValueError("Settings profile must match the experiment scoring policy")
     for s in settings:
         b = s.get("budgets", {})
         if b.get("max_input_tokens") is not None:
@@ -960,6 +963,10 @@ def resolve_experiment(value, *, base_dir, policy=None):
             if all((v == "*" or ids[k] == v for k, v in override["match"].items())):
                 settings = _merge(settings, override["settings"])
         _settings(settings, op["limits"], native=True)
+        if "scoring" in m:
+            from simready_bench.engine.profiles import selection
+            if selection(settings.get("profile")) != m["scoring"]["profile"]:
+                raise ValueError("Condition profile must match the experiment scoring policy")
         if harness["adapter"] not in ("pi", "harbor"):
             raise ValueError("Native output requires an admitted native harness")
         from simready_bench.engine.request_cost import native_output_facts

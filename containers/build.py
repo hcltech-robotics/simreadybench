@@ -33,7 +33,10 @@ def prepare_context(role, destination, *, wheel=None):
             "actor_relay.py",
             "pi_runtime.py",
             "verifier.py",
+            "profiles.py",
+            "scoring.py",
             "nvidia_profile.json",
+            "nvidia_optional_profile.json",
         ):
             path = engine / name
             if path.is_symlink() or not path.is_file():

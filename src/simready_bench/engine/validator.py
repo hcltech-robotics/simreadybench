@@ -136,20 +136,26 @@ def _dependencies():
     return (api, plugin)
 
 
-def _inventory(api, plugin):
+def _inventory(api, plugin, *, profile=None):
+    from simready_bench.engine.profiles import selection
+    selected_profile = selection(profile)
+    profile_id, profile_version = selected_profile["id"], selected_profile["version"]
     from usd_validation_nvidia import ProfileRegistry, RequirementsRegistry
     from simready.validate.api import _copy_capability_with_dependencies
 
     api.initialize([], [], [])
-    profile = ProfileRegistry().find(PROFILE_ID, PROFILE_VERSION)
+    profile = ProfileRegistry().find(profile_id, profile_version)
     if profile is None:
-        raise RuntimeError("Pinned Robotics-Prop 4.0.0 profile did not register")
+        raise ValueError(f"Installed NVIDIA profile not found: {profile_id} {profile_version}")
     distribution = importlib.metadata.distribution("simready-foundation-tier-core")
     root = Path(distribution.locate_file("simready/foundation/tier_core"))
-    manifest = root / "profiles/robotics_prop.toml"
-    parsed = tomllib.loads(manifest.read_text())
+    matches = [(path, tomllib.loads(path.read_text())) for path in sorted((root / "profiles").rglob("*.toml"))]
+    matches = [(path, data) for path, data in matches if profile_version in data.get(profile_id, {})]
+    if len(matches) != 1:
+        raise ValueError("Selected profile needs one installed tier-core manifest")
+    manifest, parsed = matches[0]
     features, optional_features = [], []
-    for item in parsed[PROFILE_ID][PROFILE_VERSION]["features"]:
+    for item in parsed[profile_id][profile_version]["features"]:
         for fid, spec in item.items():
             if fid != "optional":
                 selected = (
@@ -179,8 +185,8 @@ def _inventory(api, plugin):
                     path.read_bytes()
                 ).hexdigest()
     payload = {
-        "profile_id": PROFILE_ID,
-        "profile_version": PROFILE_VERSION,
+        "profile_id": profile_id,
+        "profile_version": profile_version,
         "mandatory_features": sorted(features, key=lambda r: r["id"]),
         "mandatory_requirements": [rows[k] for k in sorted(rows)],
         "mandatory_requirement_count": len(required),
@@ -211,12 +217,12 @@ def _inventory(api, plugin):
     return payload
 
 
-def derive_inventory() -> dict:
-    """Resolve the installed pinned profile; requires the validator environment."""
+def derive_inventory(*, profile=None) -> dict:
+    """Resolve an exact installed profile; requires the validator environment."""
     with _LOCK:
         api, plugin = _dependencies()
         try:
-            return _inventory(api, plugin)
+            return _inventory(api, plugin, profile=profile)
         finally:
             api.destroy()
 
@@ -372,7 +378,7 @@ def _run_profile(stage, inventory):
     )
 
     source_identity = _sdk_source_identity()
-    profile = ProfileRegistry().find(PROFILE_ID, PROFILE_VERSION)
+    profile = ProfileRegistry().find(inventory["profile_id"], inventory["profile_version"])
     buckets, runtime_sets = sdk._bucket_requirements_by_runtime(profile)
     variant_config = sdk._runtime_variant_config(stage, runtime_sets)
     bucket_reports, all_issues, typed_issues = ([], [], [])
@@ -496,8 +502,8 @@ def _run_profile(stage, inventory):
     summary = sdk._build_features_validation_summary(
         typed_hard,
         typed_soft,
-        PROFILE_ID,
-        PROFILE_VERSION,
+        inventory["profile_id"],
+        inventory["profile_version"],
         include_failed_requirements=True,
     )
     return (hard, soft, all_issues, execution, summary)
@@ -518,16 +524,19 @@ class _Capture(logging.Handler):
         )
 
 
-def validate_asset(asset_path, report_path=None) -> dict:
+def validate_asset(asset_path, report_path=None, *, profile=None) -> dict:
     """Validate actual submitted bytes; never repair or stamp candidate metadata.
 
     A private JSON report is written when report_path is supplied. Launch in a
     dedicated process with the installed NVIDIA rule registry.
     """
+    from simready_bench.engine.profiles import selection, DEFAULT_PROFILE
+    selected_profile = selection(profile)
+    profile_id, profile_version = selected_profile["id"], selected_profile["version"]
     asset = Path(asset_path)
     report = {
-        "profile_id": PROFILE_ID,
-        "profile_version": PROFILE_VERSION,
+        "profile_id": profile_id,
+        "profile_version": profile_version,
         "asset_path": str(asset),
         "outcome": "infrastructure_error",
         "passed": False,
@@ -551,11 +560,11 @@ def validate_asset(asset_path, report_path=None) -> dict:
         root.setLevel(min(previous_level, logging.INFO))
         try:
             api, plugin = _dependencies()
-            inventory = _inventory(api, plugin)
+            inventory = _inventory(api, plugin, profile=selected_profile)
             report["inventory"] = inventory
             if inventory["missing_rule_implementations"]:
                 raise RuntimeError("Mandatory rule implementations are unavailable")
-            if inventory["mandatory_requirement_count"] != 46:
+            if selected_profile == DEFAULT_PROFILE and inventory["mandatory_requirement_count"] != 46:
                 raise RuntimeError(
                     "Installed pinned profile requirement inventory changed"
                 )
@@ -573,7 +582,11 @@ def validate_asset(asset_path, report_path=None) -> dict:
                 if stage is None:
                     report["outcome"] = "invalid_submission"
                 else:
-                    if not plugin["physx_native_bindings"]:
+                    uses_rigid_body_rules = any(
+                        row["rule"] and ".physics_rigid_bodies.validation." in row["rule"]
+                        for row in inventory["mandatory_requirements"] + inventory["optional_requirements"]
+                    )
+                    if uses_rigid_body_rules and not plugin["physx_native_bindings"]:
                         merges = [
                             str(p.GetPath())
                             for p in stage.Traverse()
