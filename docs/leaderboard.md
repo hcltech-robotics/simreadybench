@@ -60,3 +60,30 @@ The machine-readable leaderboard retains the resource means and coverage for
 cost, tokens, elapsed time, model requests and validation calls. The score,
 token-efficiency and elapsed-time-efficiency figures are regenerated whenever
 a complete benchmark entry is published.
+
+## Published NV100 inference costs
+
+Inference cost uses final retained outputs, with one cost per final item. Retry inference spend is reported separately in JSON and CSV, including unknown retry costs. Tokens and trial time retain their retry-inclusive scope. Complete cost coverage describes measurement availability, not invoice verification: original Codex amounts are Harbor-reported with an unverified basis; CAD Codex amounts are estimated under openai-standard-global-30m and its retained assumptions. Other configurations retain their recorded cost kinds.
+
+The headline sum and coverage denominator contain only retained final items.
+The `inference_spend` object records final spend, retry overhead and retry-inclusive
+recorded spend separately, including known and unknown execution counts. The CSV
+exports the same values. Missing final-item costs retain partial coverage and
+provisional cost-frontier flags; missing retry costs affect only retry accounting.
+The original attempt Parquets and receipts remain the source evidence.
+
+To reproduce the reporting correction, download the card, root leaderboards,
+Harbor presentation JSON, job summaries, comparison reports and attempt Parquets
+from dataset revision `988adfa176c7e788164a8c4d07f32d5c59bf6018`, retaining their
+repository paths in a local directory. Then run:
+
+```sh
+python scripts/correct_published_costs.py --source ./pinned-snapshot \
+  --output ./corrected-reports --revision 988adfa176c7e788164a8c4d07f32d5c59bf6018
+```
+
+The script writes derived reports and an input-hash audit. Review those outputs
+before publishing them. Historical job spend totals retain their original scope;
+final-output cost breakdowns are added separately. The published
+[audit](https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/main/results/cost-reporting-audit.json)
+records 3,800 costed final items and three unknown retry costs.

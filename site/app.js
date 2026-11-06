@@ -32,6 +32,13 @@ function detail(row, run) {
     efficiency.append(element('p',`${name[0].toUpperCase()+name.slice(1)}: ${metric.status==='infinite'?'∞':money(metric,6)}`));
   }
   efficiency.append(element('p','Inference $/asset ÷ mean fidelity on the 0–100 scale.','leaderboard-detail-note'));
+  const spend=run.inference_spend;
+  if(spend) {
+    const final=spend.final, retry=spend.retry_overhead;
+    efficiency.append(element('p',`Final-item costs: ${final.known_executions}/${final.denominator}.`));
+    efficiency.append(element('p',`Recorded retry inference spend: ${money({value:retry.sum_recorded})}; ${retry.unknown_executions} unknown retry costs.`));
+    efficiency.append(element('p',`Cost basis: ${spend.cost_kinds.join(', ')}.`, 'leaderboard-detail-note'));
+  }
   const pass=element('div');pass.append(element('h4','Formal passes'));
   for(const [name,label] of [['pass_at_1','pass@1'],['pass_at_3','pass@3'],['pass_all_3','pass^3']]) {
     const metric=run.pass_rates?.[name];pass.append(element('p',`${label}: ${numeric(metric?.value)}${Number.isFinite(metric?.value)?'%':''}`));
@@ -69,7 +76,9 @@ function render() {
     tokens.append(element('span',`Cached input ${token(t.cached_input)}`,'leaderboard-submetric'));
     tokens.title='Total = input + output. Cached input is already included in input.';row.append(tokens);
     const cost=element('td',money(run.inference_cost_per_asset),'metric-value');
-    if(run.inference_cost_per_asset.partial)cost.title='Lower bound from available execution costs.';row.append(cost);
+    const finalCost=run.inference_cost_per_asset;
+    cost.title=`${finalCost.known_executions}/${finalCost.denominator} final-item costs; retries reported separately. Basis: ${run.metrics?.cost_usd_per_asset?.kind || "unrecorded"}.`;
+    if(finalCost.partial)cost.title+=' Lower bound from incomplete final-item costs.';row.append(cost);
     const ratio=run.cost_per_point.formal;const point=element('td',ratio.status==='infinite'?'∞':money(ratio,6),'metric-value');
     point.title='Inference cost per asset divided by mean formal fidelity, on the 0–100 scale.';row.append(point);
     row.append(element('td',numeric(Number.isFinite(run.trial_seconds_per_asset.value)?run.trial_seconds_per_asset.value/60:null),'metric-value'));

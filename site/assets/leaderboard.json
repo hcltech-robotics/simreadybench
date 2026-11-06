@@ -3,7 +3,7 @@
   "reference_set": "nv100-v1",
   "reference_count": 100,
   "evaluator_version": "2.2.0",
-  "source_revision": "0d9da764cd008d7802fa27060ea3d02dcf33edfa",
+  "source_revision": "32ffc4e519d8488e1639ed891b0acda119bd41b1",
   "job_ids": [
     "0f2b2409-7945-44b8-abb4-c4faef268035",
     "bb865915-d3cc-400f-bda1-0eaf4b3e4b4a",
@@ -59,48 +59,52 @@
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.20723826033333334,
+          "value": 0.206476566,
           "unit": "USD/asset",
           "denominator": 300,
-          "measured_attempts": 302,
-          "total_attempts": 303,
-          "unknown_execution_count": 1,
-          "sum_recorded": 62.1714781,
-          "complete": false,
-          "includes_retries": true,
+          "measured_attempts": 300,
+          "total_attempts": 300,
+          "unknown_execution_count": 0,
+          "sum_recorded": 61.9429698,
+          "complete": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 97.73144040224786,
-              "x_value": 0.20723826033333334,
+              "x_value": 0.206476566,
               "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": true,
-              "frontier_provisional": true
+              "frontier_provisional": false
             },
             "visual": {
               "value": 51.0778083430746,
-              "x_value": 0.20723826033333334,
+              "x_value": 0.206476566,
               "measured_attempts": 185,
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
               "frontier": true,
-              "frontier_provisional": true
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 2.6265986852291427,
-              "x_value": 0.20723826033333334,
+              "x_value": 0.206476566,
               "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
               "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": true,
-              "frontier_provisional": true
+              "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 351.35501172333335,
@@ -229,13 +233,13 @@
         }
       },
       "inference_cost_per_asset": {
-        "value": 0.20723826033333334,
-        "sum_recorded": 62.1714781,
+        "value": 0.206476566,
+        "sum_recorded": 61.9429698,
         "denominator": 300,
-        "known_executions": 302,
-        "unknown_executions": 1,
-        "partial": true,
-        "includes_retries": true
+        "known_executions": 300,
+        "unknown_executions": 0,
+        "partial": false,
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 351.35501172333335,
@@ -248,18 +252,18 @@
       },
       "cost_per_point": {
         "formal": {
-          "value": 0.0021213347075076682,
-          "status": "partial_lower_bound",
+          "value": 0.0021135378430521714,
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
-          "value": 0.004050363832749003,
-          "status": "partial_lower_bound",
+          "value": 0.004035476913825919,
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
-          "value": 0.08497862845299406,
-          "status": "partial_lower_bound",
+          "value": 0.08466629356057133,
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
@@ -927,7 +931,40 @@
         "profile_inventory_sha256": "e47935d0d76c63b5e5dbe8b79a53408a8234544f6bbd5246686a65691a3231a9",
         "retries_excluded": true
       },
-      "repetitions": 3
+      "repetitions": 3,
+      "inference_spend": {
+        "final": {
+          "value": 0.206476566,
+          "sum_recorded": 61.9429698,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.0007616943333333333,
+          "sum_recorded": 0.2285083,
+          "denominator": 300,
+          "known_executions": 2,
+          "unknown_executions": 1,
+          "partial": true,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.20723826033333334,
+          "sum_recorded": 62.1714781,
+          "denominator": 300,
+          "known_executions": 302,
+          "unknown_executions": 1,
+          "partial": true,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
+      }
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-sol-medium",
@@ -973,19 +1010,19 @@
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.414478093,
+          "value": 0.4125363053333333,
           "unit": "USD/asset",
           "denominator": 300,
-          "measured_attempts": 302,
-          "total_attempts": 302,
+          "measured_attempts": 300,
+          "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 124.3434279,
+          "sum_recorded": 123.7608916,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 99.9759686483289,
-              "x_value": 0.414478093,
+              "x_value": 0.4125363053333333,
               "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
@@ -995,7 +1032,7 @@
             },
             "visual": {
               "value": 53.77637860958809,
-              "x_value": 0.414478093,
+              "x_value": 0.4125363053333333,
               "measured_attempts": 185,
               "eligible_attempts": 300,
               "complete": false,
@@ -1005,7 +1042,7 @@
             },
             "kinematic": {
               "value": 3.4180296057006734,
-              "x_value": 0.414478093,
+              "x_value": 0.4125363053333333,
               "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
@@ -1014,7 +1051,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 559.2767091,
@@ -1143,13 +1184,13 @@
         }
       },
       "inference_cost_per_asset": {
-        "value": 0.414478093,
-        "sum_recorded": 124.3434279,
+        "value": 0.4125363053333333,
+        "sum_recorded": 123.7608916,
         "denominator": 300,
-        "known_executions": 302,
+        "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 559.2767091,
@@ -1162,17 +1203,17 @@
       },
       "cost_per_point": {
         "formal": {
-          "value": 0.004145757285882545,
+          "value": 0.004126334835087973,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
-          "value": 0.007724831967595547,
+          "value": 0.0076886419163115826,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
-          "value": 0.13188071356582523,
+          "value": 0.1312628658498705,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
@@ -1841,7 +1882,40 @@
         "profile_inventory_sha256": "e47935d0d76c63b5e5dbe8b79a53408a8234544f6bbd5246686a65691a3231a9",
         "retries_excluded": true
       },
-      "repetitions": 3
+      "repetitions": 3,
+      "inference_spend": {
+        "final": {
+          "value": 0.4125363053333333,
+          "sum_recorded": 123.7608916,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.0019417876666666667,
+          "sum_recorded": 0.5825363,
+          "denominator": 300,
+          "known_executions": 2,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.414478093,
+          "sum_recorded": 124.3434279,
+          "denominator": 300,
+          "known_executions": 302,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
+      }
     },
     {
       "id": "e6465830-0d2a-4663-8811-76a32076b78e:codex-text2cad-build123d:gpt-6.1-sol:medium",
@@ -1897,11 +1971,11 @@
           "unit": "USD/asset",
           "denominator": 400,
           "measured_attempts": 400,
-          "total_attempts": 401,
-          "unknown_execution_count": 1,
+          "total_attempts": 400,
+          "unknown_execution_count": 0,
           "sum_recorded": 295.3175556,
-          "complete": false,
-          "includes_retries": true,
+          "complete": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 100.0,
@@ -1911,7 +1985,7 @@
               "complete": false,
               "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
-              "frontier_provisional": true
+              "frontier_provisional": false
             },
             "visual": {
               "value": 55.242529196066215,
@@ -1921,7 +1995,7 @@
               "complete": false,
               "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
               "frontier": false,
-              "frontier_provisional": true
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 2.8987035040224516,
@@ -1931,11 +2005,15 @@
               "complete": false,
               "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
-              "frontier_provisional": true
+              "frontier_provisional": false
             }
           },
           "kind": "estimated",
-          "pricing_policy": "openai-standard-global-30m"
+          "pricing_policy": "openai-standard-global-30m",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "estimated"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 567.08734337,
@@ -2068,9 +2146,9 @@
         "sum_recorded": 295.3175556,
         "denominator": 400,
         "known_executions": 400,
-        "unknown_executions": 1,
-        "partial": true,
-        "includes_retries": true
+        "unknown_executions": 0,
+        "partial": false,
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 567.08734337,
@@ -2084,17 +2162,17 @@
       "cost_per_point": {
         "formal": {
           "value": 0.007382938889999999,
-          "status": "partial_lower_bound",
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.013287269799831934,
-          "status": "partial_lower_bound",
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.24574351116953752,
-          "status": "partial_lower_bound",
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
@@ -2786,6 +2864,39 @@
         "scope": "all_optional_profile",
         "profile_inventory_sha256": "e47935d0d76c63b5e5dbe8b79a53408a8234544f6bbd5246686a65691a3231a9",
         "retries_excluded": true
+      },
+      "inference_spend": {
+        "final": {
+          "value": 0.7382938889999999,
+          "sum_recorded": 295.3175556,
+          "denominator": 400,
+          "known_executions": 400,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": null,
+          "sum_recorded": null,
+          "denominator": 400,
+          "known_executions": 0,
+          "unknown_executions": 1,
+          "partial": true,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.7382938889999999,
+          "sum_recorded": 295.3175556,
+          "denominator": 400,
+          "known_executions": 400,
+          "unknown_executions": 1,
+          "partial": true,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "estimated"
+        ],
+        "missing_is_zero": false
       }
     },
     {
@@ -2832,19 +2943,19 @@
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.714481805,
+          "value": 0.7072036666666667,
           "unit": "USD/asset",
           "denominator": 300,
-          "measured_attempts": 306,
-          "total_attempts": 306,
+          "measured_attempts": 300,
+          "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 214.3445415,
+          "sum_recorded": 212.1611,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 100.0,
-              "x_value": 0.714481805,
+              "x_value": 0.7072036666666667,
               "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
@@ -2854,7 +2965,7 @@
             },
             "visual": {
               "value": 57.04415354292353,
-              "x_value": 0.714481805,
+              "x_value": 0.7072036666666667,
               "measured_attempts": 185,
               "eligible_attempts": 300,
               "complete": false,
@@ -2864,7 +2975,7 @@
             },
             "kinematic": {
               "value": 4.03043724418612,
-              "x_value": 0.714481805,
+              "x_value": 0.7072036666666667,
               "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
@@ -2873,7 +2984,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 863.2201472466667,
@@ -3002,13 +3117,13 @@
         }
       },
       "inference_cost_per_asset": {
-        "value": 0.714481805,
-        "sum_recorded": 214.3445415,
+        "value": 0.7072036666666667,
+        "sum_recorded": 212.1611,
         "denominator": 300,
-        "known_executions": 306,
+        "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 863.2201472466667,
@@ -3021,17 +3136,17 @@
       },
       "cost_per_point": {
         "formal": {
-          "value": 0.0071448180500000005,
+          "value": 0.007072036666666667,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
-          "value": 0.012565400596282075,
+          "value": 0.012437401922119212,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
-          "value": 0.19432704572338136,
+          "value": 0.19234751438922407,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
@@ -3700,7 +3815,40 @@
         "profile_inventory_sha256": "e47935d0d76c63b5e5dbe8b79a53408a8234544f6bbd5246686a65691a3231a9",
         "retries_excluded": true
       },
-      "repetitions": 3
+      "repetitions": 3,
+      "inference_spend": {
+        "final": {
+          "value": 0.7072036666666667,
+          "sum_recorded": 212.1611,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.007278138333333333,
+          "sum_recorded": 2.1834415,
+          "denominator": 300,
+          "known_executions": 6,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.714481805,
+          "sum_recorded": 214.3445415,
+          "denominator": 300,
+          "known_executions": 306,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
+      }
     },
     {
       "id": "harbor-evaluator-2.2.0-gpt-6.1-terra-low",
@@ -3754,7 +3902,7 @@
           "unknown_execution_count": 0,
           "sum_recorded": 29.07617675,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 91.13021295474712,
@@ -3787,7 +3935,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 263.7662889233333,
@@ -3922,7 +4074,7 @@
         "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 263.7662889233333,
@@ -4614,7 +4766,40 @@
         "profile_inventory_sha256": "e47935d0d76c63b5e5dbe8b79a53408a8234544f6bbd5246686a65691a3231a9",
         "retries_excluded": true
       },
-      "repetitions": 3
+      "repetitions": 3,
+      "inference_spend": {
+        "final": {
+          "value": 0.09692058916666667,
+          "sum_recorded": 29.07617675,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.0,
+          "sum_recorded": 0.0,
+          "denominator": 300,
+          "known_executions": 0,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.09692058916666667,
+          "sum_recorded": 29.07617675,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
+      }
     },
     {
       "id": "e6465830-0d2a-4663-8811-76a32076b78e:codex-text2cad-build123d:gpt-6.1-terra:medium",
@@ -4670,11 +4855,11 @@
           "unit": "USD/asset",
           "denominator": 400,
           "measured_attempts": 400,
-          "total_attempts": 401,
-          "unknown_execution_count": 1,
+          "total_attempts": 400,
+          "unknown_execution_count": 0,
           "sum_recorded": 158.4249582,
-          "complete": false,
-          "includes_retries": true,
+          "complete": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 100.0,
@@ -4684,7 +4869,7 @@
               "complete": false,
               "cohort_sha256": "4e53410325d3ac6e5f08fb30428374e33acc21444f8af7416e4c13641402d387",
               "frontier": false,
-              "frontier_provisional": true
+              "frontier_provisional": false
             },
             "visual": {
               "value": 53.63888790693596,
@@ -4694,7 +4879,7 @@
               "complete": false,
               "cohort_sha256": "7602539a46804224b0ee9f20cea6db87f087ab8476ca08e7faba9c8a05768216",
               "frontier": false,
-              "frontier_provisional": true
+              "frontier_provisional": false
             },
             "kinematic": {
               "value": 0.5068921265512136,
@@ -4704,11 +4889,15 @@
               "complete": false,
               "cohort_sha256": "b13e8506252996c6df05fca0fb6eec2b1edabd0a6dfb7038258d2d7f83ecda9e",
               "frontier": false,
-              "frontier_provisional": true
+              "frontier_provisional": false
             }
           },
           "kind": "estimated",
-          "pricing_policy": "openai-standard-global-30m"
+          "pricing_policy": "openai-standard-global-30m",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "estimated"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 513.6280323474999,
@@ -4841,9 +5030,9 @@
         "sum_recorded": 158.4249582,
         "denominator": 400,
         "known_executions": 400,
-        "unknown_executions": 1,
-        "partial": true,
-        "includes_retries": true
+        "unknown_executions": 0,
+        "partial": false,
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 513.6280323474999,
@@ -4857,17 +5046,17 @@
       "cost_per_point": {
         "formal": {
           "value": 0.003960623955,
-          "status": "partial_lower_bound",
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
           "value": 0.007319850985513023,
-          "status": "partial_lower_bound",
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
           "value": 0.5555642523498786,
-          "status": "partial_lower_bound",
+          "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
       },
@@ -5559,6 +5748,39 @@
         "scope": "all_optional_profile",
         "profile_inventory_sha256": "e47935d0d76c63b5e5dbe8b79a53408a8234544f6bbd5246686a65691a3231a9",
         "retries_excluded": true
+      },
+      "inference_spend": {
+        "final": {
+          "value": 0.3960623955,
+          "sum_recorded": 158.4249582,
+          "denominator": 400,
+          "known_executions": 400,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": null,
+          "sum_recorded": null,
+          "denominator": 400,
+          "known_executions": 0,
+          "unknown_executions": 1,
+          "partial": true,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.3960623955,
+          "sum_recorded": 158.4249582,
+          "denominator": 400,
+          "known_executions": 400,
+          "unknown_executions": 1,
+          "partial": true,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "estimated"
+        ],
+        "missing_is_zero": false
       }
     },
     {
@@ -5613,7 +5835,7 @@
           "unknown_execution_count": 0,
           "sum_recorded": 82.05180655,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 100.0,
@@ -5646,7 +5868,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 465.41184811000005,
@@ -5781,7 +6007,7 @@
         "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 465.41184811000005,
@@ -6473,7 +6699,40 @@
         "profile_inventory_sha256": "e47935d0d76c63b5e5dbe8b79a53408a8234544f6bbd5246686a65691a3231a9",
         "retries_excluded": true
       },
-      "repetitions": 3
+      "repetitions": 3,
+      "inference_spend": {
+        "final": {
+          "value": 0.27350602183333333,
+          "sum_recorded": 82.05180655,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.0,
+          "sum_recorded": 0.0,
+          "denominator": 300,
+          "known_executions": 0,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.27350602183333333,
+          "sum_recorded": 82.05180655,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
+      }
     },
     {
       "id": "bb865915-d3cc-400f-bda1-0eaf4b3e4b4a:claude-opus-5-5:low:claude-code",
@@ -6533,7 +6792,7 @@
           "unknown_execution_count": 0,
           "sum_recorded": 93.7772706,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 97.06595681750962,
@@ -6566,7 +6825,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_agent_usage"
+          "kind": "harbor_reported_agent_usage",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_agent_usage"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 245.72048925666667,
@@ -6701,7 +6964,7 @@
         "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 245.72048925666667,
@@ -7405,7 +7668,40 @@
       "max_authoring_turns": 64,
       "max_formal_feedback_calls": 5,
       "max_output_tokens": null,
-      "reasoning_enabled": true
+      "reasoning_enabled": true,
+      "inference_spend": {
+        "final": {
+          "value": 0.312590902,
+          "sum_recorded": 93.7772706,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.0,
+          "sum_recorded": 0.0,
+          "denominator": 300,
+          "known_executions": 0,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.312590902,
+          "sum_recorded": 93.7772706,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_agent_usage"
+        ],
+        "missing_is_zero": false
+      }
     },
     {
       "id": "e03b16cc-bf75-4247-9b96-467a3685c942:claude-sonnet-5-5:low:claude-code",
@@ -7465,7 +7761,7 @@
           "unknown_execution_count": 0,
           "sum_recorded": 17.33696,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 83.61320615202602,
@@ -7498,7 +7794,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 196.79211168666666,
@@ -7633,7 +7933,7 @@
         "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 196.79211168666666,
@@ -8323,6 +8623,39 @@
         "fully_scored_attempts": 300,
         "unknown_attempts": 0,
         "retries_excluded": true
+      },
+      "inference_spend": {
+        "final": {
+          "value": 0.05778986666666667,
+          "sum_recorded": 17.33696,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.0,
+          "sum_recorded": 0.0,
+          "denominator": 300,
+          "known_executions": 0,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.05778986666666667,
+          "sum_recorded": 17.33696,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
       }
     },
     {
@@ -8375,19 +8708,19 @@
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.02739607715,
+          "value": 0.027378095849999996,
           "unit": "USD/asset",
           "denominator": 300,
-          "measured_attempts": 301,
-          "total_attempts": 301,
+          "measured_attempts": 300,
+          "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 8.218823145,
+          "sum_recorded": 8.213428754999999,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 86.24704229517894,
-              "x_value": 0.02739607715,
+              "x_value": 0.027378095849999996,
               "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
@@ -8397,7 +8730,7 @@
             },
             "visual": {
               "value": 35.70945276410248,
-              "x_value": 0.02739607715,
+              "x_value": 0.027378095849999996,
               "measured_attempts": 185,
               "eligible_attempts": 300,
               "complete": false,
@@ -8407,7 +8740,7 @@
             },
             "kinematic": {
               "value": 0.051288910507209066,
-              "x_value": 0.02739607715,
+              "x_value": 0.027378095849999996,
               "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
@@ -8416,7 +8749,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 658.7579575766666,
@@ -8545,13 +8882,13 @@
         }
       },
       "inference_cost_per_asset": {
-        "value": 0.02739607715,
-        "sum_recorded": 8.218823145,
+        "value": 0.027378095849999996,
+        "sum_recorded": 8.213428754999999,
         "denominator": 300,
-        "known_executions": 301,
+        "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 658.7579575766666,
@@ -8564,17 +8901,17 @@
       },
       "cost_per_point": {
         "formal": {
-          "value": 0.00031736213114667253,
+          "value": 0.00031715383184682957,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
-          "value": 0.0007746679768878374,
+          "value": 0.0007741595268197292,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
-          "value": 0.5226526831664116,
+          "value": 0.5223096422762736,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
@@ -9241,6 +9578,39 @@
         "fully_scored_attempts": 219,
         "unknown_attempts": 81,
         "retries_excluded": true
+      },
+      "inference_spend": {
+        "final": {
+          "value": 0.027378095849999996,
+          "sum_recorded": 8.213428754999999,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 1.7981300000000003e-05,
+          "sum_recorded": 0.005394390000000001,
+          "denominator": 300,
+          "known_executions": 1,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.02739607715,
+          "sum_recorded": 8.218823145,
+          "denominator": 300,
+          "known_executions": 301,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
       }
     },
     {
@@ -9293,19 +9663,19 @@
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.02531348982,
+          "value": 0.02504988907,
           "unit": "USD/asset",
           "denominator": 300,
-          "measured_attempts": 306,
-          "total_attempts": 306,
+          "measured_attempts": 300,
+          "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 7.594046946,
+          "sum_recorded": 7.514966721,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 86.09361135758651,
-              "x_value": 0.02531348982,
+              "x_value": 0.02504988907,
               "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
@@ -9315,7 +9685,7 @@
             },
             "visual": {
               "value": 37.5413181732723,
-              "x_value": 0.02531348982,
+              "x_value": 0.02504988907,
               "measured_attempts": 185,
               "eligible_attempts": 300,
               "complete": false,
@@ -9325,7 +9695,7 @@
             },
             "kinematic": {
               "value": 0.10308233583583999,
-              "x_value": 0.02531348982,
+              "x_value": 0.02504988907,
               "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
@@ -9334,7 +9704,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_usage_times_recorded_tariff"
+          "kind": "harbor_reported_usage_times_recorded_tariff",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_usage_times_recorded_tariff"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 835.2293441633333,
@@ -9463,13 +9837,13 @@
         }
       },
       "inference_cost_per_asset": {
-        "value": 0.02531348982,
-        "sum_recorded": 7.594046946,
+        "value": 0.02504988907,
+        "sum_recorded": 7.514966721,
         "denominator": 300,
-        "known_executions": 306,
+        "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 835.2293441633333,
@@ -9482,17 +9856,17 @@
       },
       "cost_per_point": {
         "formal": {
-          "value": 0.00029344659219690447,
+          "value": 0.0002903908009038789,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
-          "value": 0.0006730718018427327,
+          "value": 0.0006660628025687798,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
-          "value": 0.2707362294197204,
+          "value": 0.26791693134447736,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
@@ -10171,7 +10545,40 @@
       "max_authoring_turns": 64,
       "max_formal_feedback_calls": 5,
       "max_output_tokens": 4096,
-      "reasoning_enabled": false
+      "reasoning_enabled": false,
+      "inference_spend": {
+        "final": {
+          "value": 0.02504988907,
+          "sum_recorded": 7.514966721,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 0.00026360075,
+          "sum_recorded": 0.079080225,
+          "denominator": 300,
+          "known_executions": 6,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.02531348982,
+          "sum_recorded": 7.594046946,
+          "denominator": 300,
+          "known_executions": 306,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_usage_times_recorded_tariff"
+        ],
+        "missing_is_zero": false
+      }
     },
     {
       "id": "ed242be1-ed4f-4caa-815d-9ce76615afe4:nemotron-3.5-super-vl:none:terminus-2",
@@ -10217,19 +10624,19 @@
       },
       "metrics": {
         "cost_usd_per_asset": {
-          "value": 0.33568807935,
+          "value": 0.33568559526666664,
           "unit": "USD/asset",
           "denominator": 300,
-          "measured_attempts": 301,
-          "total_attempts": 301,
+          "measured_attempts": 300,
+          "total_attempts": 300,
           "unknown_execution_count": 0,
-          "sum_recorded": 100.706423805,
+          "sum_recorded": 100.70567858,
           "complete": true,
-          "includes_retries": true,
+          "includes_retries": false,
           "paired_scores": {
             "formal": {
               "value": 76.65890269151139,
-              "x_value": 0.33568807935,
+              "x_value": 0.33568559526666664,
               "measured_attempts": 294,
               "eligible_attempts": 300,
               "complete": false,
@@ -10239,7 +10646,7 @@
             },
             "visual": {
               "value": 22.192776399087606,
-              "x_value": 0.33568807935,
+              "x_value": 0.33568559526666664,
               "measured_attempts": 185,
               "eligible_attempts": 300,
               "complete": false,
@@ -10249,7 +10656,7 @@
             },
             "kinematic": {
               "value": 0.004992065989401574,
-              "x_value": 0.33568807935,
+              "x_value": 0.33568559526666664,
               "measured_attempts": 271,
               "eligible_attempts": 300,
               "complete": false,
@@ -10258,7 +10665,11 @@
               "frontier_provisional": false
             }
           },
-          "kind": "harbor_reported_unverified_basis"
+          "kind": "harbor_reported_unverified_basis",
+          "scope": "final_retained_outputs",
+          "cost_kinds": [
+            "harbor_reported_unverified_basis"
+          ]
         },
         "elapsed_seconds_per_asset": {
           "value": 670.7458901633333,
@@ -10387,13 +10798,13 @@
         }
       },
       "inference_cost_per_asset": {
-        "value": 0.33568807935,
-        "sum_recorded": 100.706423805,
+        "value": 0.33568559526666664,
+        "sum_recorded": 100.70567858,
         "denominator": 300,
-        "known_executions": 301,
+        "known_executions": 300,
         "unknown_executions": 0,
         "partial": false,
-        "includes_retries": true
+        "includes_retries": false
       },
       "trial_seconds_per_asset": {
         "value": 670.7458901633333,
@@ -10406,17 +10817,17 @@
       },
       "cost_per_point": {
         "formal": {
-          "value": 0.004377432167801717,
+          "value": 0.004377399774913914,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "visual": {
-          "value": 0.015598194096253825,
+          "value": 0.015598078670010332,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         },
         "kinematic": {
-          "value": 67.26833859839688,
+          "value": 67.26784081438531,
           "status": "known",
           "unit": "USD per fidelity point on a 0\u2013100 scale"
         }
@@ -11081,6 +11492,39 @@
         "eligible_attempts": 300,
         "source_field": "formal_report.optional_score",
         "retries_excluded": true
+      },
+      "inference_spend": {
+        "final": {
+          "value": 0.33568559526666664,
+          "sum_recorded": 100.70567858,
+          "denominator": 300,
+          "known_executions": 300,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": false
+        },
+        "retry_overhead": {
+          "value": 2.4840833333333334e-06,
+          "sum_recorded": 0.000745225,
+          "denominator": 300,
+          "known_executions": 1,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "retry_inclusive": {
+          "value": 0.33568807935,
+          "sum_recorded": 100.706423805,
+          "denominator": 300,
+          "known_executions": 301,
+          "unknown_executions": 0,
+          "partial": false,
+          "includes_retries": true
+        },
+        "cost_kinds": [
+          "harbor_reported_unverified_basis"
+        ],
+        "missing_is_zero": false
       }
     }
   ],
@@ -11090,17 +11534,22 @@
     "pass_at_1": "mean asset success rate over final attempts",
     "pass_at_3": "estimated probability of at least one formal pass in three attempts",
     "pass_all_3": "estimated probability of three formal passes in three attempts",
-    "cost_per_point": "inference cost per intended reconstruction divided by mean fidelity on the 0\u2013100 scale",
+    "cost_per_point": "final retained inference cost per reconstruction divided by mean fidelity on the 0\u2013100 scale",
     "tokens": "total = input + output; cached input is already part of input",
-    "resources": "retry-inclusive recorded sums divided by intended reconstruction slots"
+    "resources": "cost uses final retained reconstructions; tokens and trial time retain retry-inclusive recorded sums per intended reconstruction"
   },
   "methodology": "Scores use the same object/repetition pairs across configurations.",
   "aggregation": {
     "scores": "means over available final scores",
     "pareto_scores": "common measured object/repetition slots across configurations, separately per fidelity metric",
-    "resources": "sum available execution measurements including retries, divided by intended reconstruction slots",
+    "resources": "cost excludes retries; tokens and trial time retain their published retry-inclusive scope",
     "missing": "null; never imputed as zero",
-    "hosted_compute": "job-level only; not allocated to configurations"
+    "hosted_compute": "job-level only; not allocated to configurations",
+    "inference_cost": "sum recorded inference cost of final retained outputs divided by final slots",
+    "inference_spend": "separate final, retry overhead and retry-inclusive recorded spend; missing costs are never zero-filled",
+    "pricing_basis": "measurement coverage is independent of reported versus estimated pricing; no invoice verification is implied"
   },
-  "publication_source": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/0d9da764cd008d7802fa27060ea3d02dcf33edfa/results/harbor/bb865915-d3cc-400f-bda1-0eaf4b3e4b4a/presentation/leaderboard.json"
+  "cost_reporting_version": "final-retained-outputs-v1",
+  "cost_source_revision": "988adfa176c7e788164a8c4d07f32d5c59bf6018",
+  "publication_source": "https://huggingface.co/datasets/hcltech-robotics/simreadybench/blob/32ffc4e519d8488e1639ed891b0acda119bd41b1/results/harbor/bb865915-d3cc-400f-bda1-0eaf4b3e4b4a/presentation/leaderboard.json"
 }

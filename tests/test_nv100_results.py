@@ -17,10 +17,12 @@ def row(condition, reference, score, cost, *, retry=False):
             'inference_cost_usd': cost, 'elapsed_seconds': 60, 'total_tokens': 10}
 
 
-def test_retry_cost_uses_intended_reconstructions_and_does_not_change_final_scores():
+def test_final_cost_excludes_positive_retry_spend_and_does_not_change_final_scores():
     data = module.build([row('low','a',90,2),row('low','b',100,4),row('low','a',0,3,retry=True)], evaluator='2.2.0',revision='test')
     r = data['runs'][0]
-    assert r['metrics']['cost_usd_per_asset']['value'] == 4.5
+    assert r['metrics']['cost_usd_per_asset']['value'] == 3
+    assert r['inference_spend']['retry_overhead']['sum_recorded'] == 3
+    assert r['inference_spend']['retry_inclusive']['sum_recorded'] == 9
     assert r['metrics']['elapsed_seconds_per_asset']['value'] == 90
     assert r['scores']['formal']['value'] == 95
 
@@ -189,7 +191,8 @@ def test_three_and_four_attempt_configurations_keep_own_means_and_match_chart_sl
     assert new['metrics']['cost_usd_per_asset']['paired_scores']['formal']['value'] == 100
     assert old['metrics']['cost_usd_per_asset']['paired_scores']['formal']['cohort_sha256'] == new['metrics']['cost_usd_per_asset']['paired_scores']['formal']['cohort_sha256']
     assert new['inference_cost_per_asset']['denominator'] == 4
-    assert new['inference_cost_per_asset']['unknown_executions'] == 1
+    assert new['inference_cost_per_asset']['unknown_executions'] == 0
+    assert new['inference_spend']['retry_overhead']['unknown_executions'] == 1
     assert new['execution_count'] == 5
     assert new['pass_rates']['final_attempts'] == 4
     assert new['authoring_label'] == 'Codex / build123d'
@@ -210,3 +213,48 @@ def test_explicit_failed_requirements_make_pass_false_despite_other_unknown_chec
     assert module.formal_pass_from_report({'scores': {'formal': {'evidence': evidence}}}) is False
     evidence['failed_count'] = 0
     assert module.formal_pass_from_report({'scores': {'formal': {'evidence': evidence}}}) is None
+
+
+def test_setup_only_missing_cost_does_not_make_final_item_cost_provisional():
+    rows = [row('low','a',90,2), row('low','b',100,4), row('low','a',0,None,retry=True)]
+    run = module.build(rows,evaluator='2.2.0',revision='test')['runs'][0]
+    metric = run['metrics']['cost_usd_per_asset']
+    assert metric['value'] == 3 and metric['complete'] and not metric['includes_retries']
+    assert metric['measured_attempts'] == metric['total_attempts'] == metric['denominator'] == 2
+    assert not metric['paired_scores']['formal']['frontier_provisional']
+    assert run['cost_per_point']['formal']['status'] == 'known'
+    assert run['inference_spend']['retry_inclusive']['partial']
+    assert run['inference_spend']['retry_overhead']['sum_recorded'] is None
+
+
+def test_cost_correction_is_idempotent_and_preserves_scores_and_basis():
+    import copy
+    rows = [row('low','a',90,2),row('low','a',0,None,retry=True)]
+    data = module.build(rows,evaluator='2.2.0',revision='test')
+    original = copy.deepcopy(data)
+    assert module.correct_cost_reporting(data,rows) == original
+    assert data['runs'][0]['metrics']['cost_usd_per_asset']['kind'] == 'test'
+    assert data['runs'][0]['scores']['formal']['value'] == 90
+
+
+def test_published_headline_cost_denominators_and_retry_accounting_agree():
+    import json
+    data = json.loads((Path(__file__).parents[1] / 'site/assets/leaderboard.json').read_text())
+    assert data['cost_reporting_version'] == 'final-retained-outputs-v1'
+    for run in data['runs']:
+        cost = run['inference_cost_per_asset']
+        metric = run['metrics']['cost_usd_per_asset']
+        spend = run['inference_spend']
+        assert cost['denominator'] == metric['denominator'] == metric['total_attempts'] == run['final_slots']
+        assert cost['known_executions'] + cost['unknown_executions'] == run['final_slots']
+        assert metric['complete'] == (not cost['partial'])
+        assert not cost['includes_retries'] and not metric['includes_retries']
+        assert metric['value'] == cost['value']
+        assert spend['retry_inclusive']['known_executions'] + spend['retry_inclusive']['unknown_executions'] == run['execution_count']
+        retry = spend['retry_overhead']
+        assert retry['known_executions'] + retry['unknown_executions'] == run['execution_count'] - run['final_slots']
+        known_retry = retry['sum_recorded'] or 0
+        assert spend['retry_inclusive']['sum_recorded'] == pytest.approx(cost['sum_recorded'] + known_retry)
+        for score in module.METRICS:
+            assert metric['paired_scores'][score]['x_value'] == metric['value']
+            assert metric['paired_scores'][score]['frontier_provisional'] == cost['partial']
