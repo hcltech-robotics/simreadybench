@@ -83,9 +83,9 @@ RUN export QEMU_CPU=Nehalem && mv /root/.nvm /opt/nvm && \
     ln -s /opt/simready/pi/node_modules/.bin/pi /usr/local/bin/pi && \
     ln -s /opt/simready/opencode/node_modules/opencode-linux-x64/bin/opencode /usr/local/bin/opencode && \
     chown 1000:1000 /home/actor /output /installed-agent
-COPY actor_mcp.py /opt/simready/runtime/simready_bench/engine/actor_mcp.py
-COPY actor_relay.py /opt/simready/runtime/simready_bench/engine/actor_relay.py
-COPY pi_runtime.py /opt/simready/runtime/simready_bench/engine/pi_runtime.py
+COPY --chmod=0444 actor_mcp.py /opt/simready/runtime/simready_bench/engine/actor_mcp.py
+COPY --chmod=0444 actor_relay.py /opt/simready/runtime/simready_bench/engine/actor_relay.py
+COPY --chmod=0444 pi_runtime.py /opt/simready/runtime/simready_bench/engine/pi_runtime.py
 ENV HOME=/home/actor NVM_DIR=/opt/nvm \
     PYTHONPATH=/opt/simready/runtime \
     PATH=/opt/nvm/versions/node/v22.23.3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -104,11 +104,11 @@ RUN export QEMU_CPU=Nehalem && apt-get update && apt-get install -y --no-install
     mkdir -p /tests /output /logs/verifier /opt/simready/runtime/simready_bench/engine && \
     touch /opt/simready/runtime/simready_bench/__init__.py /opt/simready/runtime/simready_bench/engine/__init__.py && \
     test -z "$(dpkg --audit)"
-COPY verifier.py /opt/simready/runtime/simready_bench/engine/verifier.py
-COPY profiles.py /opt/simready/runtime/simready_bench/engine/profiles.py
-COPY scoring.py /opt/simready/runtime/simready_bench/engine/scoring.py
-COPY nvidia_profile.json /opt/simready/runtime/simready_bench/engine/nvidia_profile.json
-COPY nvidia_optional_profile.json /opt/simready/runtime/simready_bench/engine/nvidia_optional_profile.json
+COPY --chmod=0444 verifier.py /opt/simready/runtime/simready_bench/engine/verifier.py
+COPY --chmod=0444 profiles.py /opt/simready/runtime/simready_bench/engine/profiles.py
+COPY --chmod=0444 scoring.py /opt/simready/runtime/simready_bench/engine/scoring.py
+COPY --chmod=0444 nvidia_profile.json /opt/simready/runtime/simready_bench/engine/nvidia_profile.json
+COPY --chmod=0444 nvidia_optional_profile.json /opt/simready/runtime/simready_bench/engine/nvidia_optional_profile.json
 COPY test.sh /tests/test.sh
 RUN chmod 755 /tests/test.sh
 ENV PYTHONPATH=/opt/simready/runtime PYTHONDONTWRITEBYTECODE=1
