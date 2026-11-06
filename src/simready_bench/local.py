@@ -820,6 +820,7 @@ async def _condition(condition, prepared, resolved, root, controller, *, shared_
         tool_protocol=condition.get("tool_protocol", "legacy"),
     )
     cpu = CandidateObserver(
+        scoring_policy=cfg["validator_scoring"],
         validator_python=runtime["validator_python"],
         source_root=runtime["source_root"],
         state_dir=root / "private/cpu",

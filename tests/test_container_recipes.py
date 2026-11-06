@@ -28,10 +28,14 @@ def test_actor_and_verifier_stage_current_clients_without_source_duplicates(tmp_
         "actor_relay.py",
         "pi_runtime.py",
         "verifier.py",
+        "profiles.py",
+        "scoring.py",
         "nvidia_profile.json",
+        "nvidia_optional_profile.json",
     ):
         source = ROOT / "src/simready_bench/engine" / name
         assert (context / name).read_bytes() == source.read_bytes()
+        assert "!" + name in (context / ".dockerignore").read_text().splitlines()
         assert not (ROOT / "containers/actor" / name).exists()
     assert "--target" in build.build_command(
         "actor", tag="simreadybench/actor:1.0.0", context=context

@@ -235,7 +235,7 @@ def _canonical_invalid_score(row):
             "results": [
                 {
                     "simready": score_validation(
-                        None, scoring_policy(), candidate_invalid=True
+                        None, (primary.get("scoring_policy") or scoring_policy()) if isinstance(primary, dict) else scoring_policy(), candidate_invalid=True
                     )
                 }
             ],

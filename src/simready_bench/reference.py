@@ -9,8 +9,8 @@ PROFILE = {"id": "Robotics-Prop", "version": "4.0.0"}
 
 def check_reference(source, *, package_root, profile=None):
     """Inspect dependencies before composing USD; never author, repair or stamp it."""
-    if profile is not None and profile != PROFILE:
-        raise ValueError("Installed validator supports Robotics-Prop 4.0.0")
+    from simready_bench.engine.profiles import selection
+    selected = selection(profile)
     source = Path(source).absolute()
     package = Path(package_root).absolute()
     if (
@@ -27,7 +27,7 @@ def check_reference(source, *, package_root, profile=None):
     )
     from simready_bench.engine.validator import validate_asset
 
-    report = validate_asset(source)
+    report = validate_asset(source, **({"profile": selected} if selected != PROFILE else {}))
     # An infrastructure error cannot be accepted as a successful profile check.
     accepted = (
         report.get("passed") is True
@@ -36,7 +36,7 @@ def check_reference(source, *, package_root, profile=None):
     )
     result = {
         "schema": "simready-bench-reference-check-v1",
-        "profile": dict(PROFILE),
+        "profile": selected,
         "accepted": accepted,
         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "dependency_manifest": manifest,

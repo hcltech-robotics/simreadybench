@@ -14,5 +14,8 @@
 !actor_mcp.py
 !pi_runtime.py
 !verifier.py
+!profiles.py
+!scoring.py
 !nvidia_profile.json
+!nvidia_optional_profile.json
 !test.sh

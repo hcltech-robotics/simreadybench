@@ -354,6 +354,7 @@ def compact_report(value):
         "fidelity_" + component + "_eligible" for component in FIDELITY_COMPONENTS
     )
     score_fields = {
+        "scoring_policy",
         "schema",
         "policy_id",
         "policy_sha256",
@@ -739,6 +740,8 @@ def render_html(summary):
     """Render exported measurements and artefact links for benchmark readers."""
     esc = lambda value: html.escape(_display(value))
     conditions = summary.get("results", [])
+    names = {((c.get("simready") or {}).get("official_conformance") or {}).get("profile", {}).get("id", "Robotics-Prop") for c in conditions}
+    optional_heading = "SimReady " + (next(iter(names)) if len(names) == 1 else "profile") + " optional"
     headings = [
         "Asset",
         "Model",
@@ -749,7 +752,7 @@ def render_html(summary):
         "Formal fidelity (%)",
         "Visual fidelity (%)",
         "Kinematic fidelity (%)",
-        "SimReady Robotics-Prop optional",
+        optional_heading,
         "Shape (%)",
         "Rigid parts (%)",
         "Joints (%)",
@@ -812,7 +815,7 @@ def render_html(summary):
                 "Formal fidelity (%)",
                 "Visual fidelity (%)",
                 "Kinematic fidelity (%)",
-                "SimReady Robotics-Prop optional",
+                optional_heading,
                 "Shape (%)",
                 "Rigid parts (%)",
                 "Joints (%)",
@@ -835,6 +838,9 @@ def render_html(summary):
                 + esc(primary["applicable_count"])
                 + " mandatory requirements passed.</p>"
             )
+        selected_profile = (primary.get("official_conformance") or {}).get("profile")
+        if primary.get("scoring_policy") and selected_profile:
+            scores += "<p>Validation profile: " + esc(selected_profile["id"]) + " " + esc(selected_profile["version"]) + "; policy SHA256: " + esc(primary.get("policy_sha256")) + ".</p>"
         fidelity = condition.get("fidelity") or {}
         if fidelity:
             measurements = []
@@ -1380,7 +1386,7 @@ def export_report(work_dir, output_dir, *, results=None):
     summary.update(
         schema="simready-bench-portable-report-v1",
         results=conditions,
-        scoring_notice=SCORING_NOTICE,
+        scoring_notice=SCORING_NOTICE if not any((c.get("simready") or {}).get("scoring_policy") for c in conditions) else SCORING_NOTICE.replace("Robotics-Prop", "selected profile"),
     )
     summary = compact_report(summary)
     (out / "results.json").write_text(

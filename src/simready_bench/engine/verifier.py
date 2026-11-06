@@ -31,8 +31,11 @@ def pinned_profile():
     return json.loads(PROFILE_FILE.read_text())
 
 
-def scoring_policy(*, excluded_rules=None):
-    p = pinned_profile()
+def scoring_policy(*, excluded_rules=None, inventory=None, optional_inventory=None):
+    p = pinned_profile() if inventory is None else inventory
+    if inventory is not None:
+        from simready_bench.engine.profiles import validate_inventories
+        validate_inventories(p, optional_inventory)
     codes = [r["code"] for r in p["mandatory_requirements"]]
     if excluded_rules is None:
         excluded_rules = []
@@ -46,7 +49,7 @@ def scoring_policy(*, excluded_rules=None):
         or (not set(excluded_rules) <= set(codes))
     ):
         raise ValueError("Explicit unique mandatory exclusions required")
-    return {
+    result = {
         "schema": "simready-validator-scoring-policy-v1",
         "policy_id": POLICY_ID,
         "profile": {"id": p["profile_id"], "version": p["profile_version"]},
@@ -67,11 +70,25 @@ def scoring_policy(*, excluded_rules=None):
         "early_stop_penalty_percent": 0,
     }
 
+    if inventory is not None:
+        result.update(schema="simready-validator-scoring-policy-v2",
+                      policy_id=f"NVIDIA-{p['profile_id']}-{p['profile_version']}-mandatory-95-plus-5-v2",
+                      profile_inventory=deepcopy(p), optional_inventory=deepcopy(optional_inventory))
+    return result
+
 
 def validate_policy(p):
-    if not isinstance(p, dict) or p != scoring_policy(
-        excluded_rules=p.get("report_only_mandatory_ids")
-    ):
+    if not isinstance(p, dict):
+        raise ValueError("Exact pinned versioned mandatory scoring policy required")
+    try:
+        expected = scoring_policy(
+            excluded_rules=p.get("report_only_mandatory_ids"),
+            inventory=p.get("profile_inventory"),
+            optional_inventory=p.get("optional_inventory"),
+        )
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ValueError("Malformed NVIDIA profile inventory") from exc
+    if p != expected:
         raise ValueError("Exact pinned versioned mandatory scoring policy required")
     if not p["applicable_requirement_ids"]:
         raise ValueError("Nonempty fixed mandatory scoring scope required")
@@ -101,15 +118,25 @@ def validate_wire(wire):
         raise ValueError("Exact versioned validator wire required")
     score = wire["simready"]
     rows = score.get("checks", [])
-    roster = pinned_profile()["mandatory_requirements"]
+    from simready_bench.engine.profiles import inventories
+    policy = validate_policy(score["scoring_policy"]) if "scoring_policy" in score else scoring_policy()
+    roster = inventories(policy)[0]["mandatory_requirements"]
     if len(rows) != len(roster) or [r.get("requirement_id") for r in rows] != [
         r["code"] for r in roster
     ]:
         raise ValueError("Exact pinned mandatory ID roster required")
+    if "scoring_policy" in score and (
+        any(row.get("requirement_version") != requirement["version"]
+            or row.get("mandatory") is not True
+            for row, requirement in zip(rows, roster))
+        or score.get("official_conformance", {}).get("profile") != policy["profile"]
+    ):
+        raise ValueError("Selected profile requirement versions and identity differ")
     excluded = [r["requirement_id"] for r in rows if r.get("scoring") is False]
-    policy = scoring_policy(excluded_rules=excluded)
+    if excluded:
+        raise ValueError("Filtered profiles are not supported")
     if (
-        score.get("policy_id") != POLICY_ID
+        score.get("policy_id") != policy["policy_id"]
         or score.get("policy_sha256") != digest(policy)
         or score.get("scope") != policy["scope"]
     ):
@@ -147,7 +174,7 @@ def validate_wire(wire):
     if "optional_score" in score:
         from simready_bench.engine.scoring import validate_optional_score
 
-        validate_optional_score(score["optional_score"])
+        validate_optional_score(score["optional_score"], policy=policy)
     if type(wire["reward"]) is bool or (
         wire["reward"] is not None
         and (

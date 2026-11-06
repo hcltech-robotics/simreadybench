@@ -58,6 +58,65 @@ The explicit selection includes the USD, listed dependencies and reference obser
 
 An asset manifest can also supply nominal dimensions. The NV25 manifest defines these fields and each asset's dependency paths. The agent receives the reference image, brief and dimensions for each reconstruction.
 
+## Validation profiles
+
+Simulation readiness depends on the use case. Custom reconstruction experiments
+can select a different installed NVIDIA profile and exact version. The task
+remains reconstruction from the supplied image and dimensions; reference USDs
+parameterise each instance and stay private.
+
+In the isolated NVIDIA validator environment, list registered profiles and freeze
+the desired policy:
+
+```sh
+simready-bench profiles
+simready-bench profiles --id Open-Taxonomy-COCO --version 0.1.0 --output coco-policy.json
+```
+
+The command resolves the installed tier-core TOML, expanded requirements and
+actual validator implementations. Unknown IDs, unavailable versions, missing
+rules and empty mandatory scopes are rejected. A listed profile is supported by
+the adapter when its inventory resolves; individual assets can still produce
+unknown checks or runtime errors. This does not certify every profile for every
+asset. The pinned NVIDIA package versions from the `validator` extra are required.
+External profile files and unqualified tiers are not silently loaded.
+
+Copy the resulting policy to the coordinator and select it explicitly:
+
+```sh
+simready-bench benchmark ./references.json --assets-root ./references \
+  --validation-policy ./coco-policy.json --provider openai --model gpt-6.1-sol \
+  --harness pi --deploy local --repetitions 1 --output-dir ../runs/coco-custom
+```
+
+The coordinator needs no NVIDIA imports to read a frozen policy. Each reference
+must pass the selected profile before authoring begins. The worker checks its
+installed manifests, requirements, SDK dispatch and rule source hashes against
+the policy. A different or unavailable installation cannot generate a measured
+score. Use a runtime containing this version of the benchmark; previously built
+executor wheels and images do not gain profile support automatically.
+
+All selected mandatory requirement IDs retain the 95/5 scoring formula with that
+profile's fixed denominator. Optional requirements have an independent score;
+an empty optional scope is `not_applicable` with a null score. Unexecuted checks
+remain unknown. Instructions, interim feedback, final wire and portable reports
+carry the selected roster and policy identity. The policy includes both
+inventories and their hashes, and is bound into the saved experiment and run
+specification. Resume reuses it and rejects a changed `--validation-policy`.
+
+In full experiment manifests, set `scoring` to the generated policy object and
+`defaults.profile` to its `profile` object, for example
+`{"id": "Open-Taxonomy-COCO", "version": "0.1.0"}`. Overrides must agree with
+the experiment policy; compare different profiles in separate experiments.
+
+Omitting `--validation-policy` preserves Robotics-Prop 4.0.0, its frozen v1 policy,
+46 mandatory IDs and 51 optional IDs. The frozen NV100 native evaluator and its
+release files are unchanged. A different profile creates a custom protocol even
+when using the same reference assets. Its scores must not be pooled with NV25 or
+NV100 default-profile scores. Custom profiles produce local reports; the existing
+public leaderboard/publication contract continues to accept only the frozen
+default. No historical results are rewritten or rescored by profile selection.
+
 ## Model connections
 
 The model endpoint must accept image inputs and tool calls. `--model` selects its model identifier, while `--provider` selects the built-in OpenAI or Hugging Face connection. An operator policy supplies other OpenAI-compatible endpoints.

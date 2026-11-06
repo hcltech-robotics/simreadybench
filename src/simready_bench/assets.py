@@ -38,8 +38,39 @@ The final submission freezes the authored files for evaluation.
 TOOLS = '# Authoring tools\n\nget_task_thumbnail returns the reference image. validate_candidate accepts {"request_id":"check-1"} and returns the current score, remaining validation calls and nvidia_validator_report.file_path. Search that JSON file with rg for a requirement ID or candidate prim path. get_validation_report reads a selected range of the same report.\n\nUse a new request ID after each repair. submit_asset accepts {"request_id":"final"} and stops authoring. The model has {inference_requests} inference requests, with provider-native output limits. Captures appear in the final report.\n'
 
 
-def _metadata(source, package, runtime, output):
-    code = "import json,resource,sys\nresource.setrlimit(resource.RLIMIT_AS,(8*1024**3,8*1024**3))\nfrom pathlib import Path\nfrom simready_bench.reference import check_reference\nfrom pxr import Usd,UsdGeom\np=json.load(sys.stdin);result=check_reference(p['source'],package_root=p['package'])\nif not result['accepted']:raise RuntimeError('Source does not pass the pinned NVIDIA profile')\ns=Usd.Stage.Open(p['source']);box=UsdGeom.BBoxCache(Usd.TimeCode.Default(),['default','render'],useExtentsHint=False).ComputeWorldBound(s.GetDefaultPrim()).ComputeAlignedRange()\nresult['visible_bounds_m']=[list(box.GetMin()),list(box.GetMax())]\nPath(p['output']).write_text(json.dumps(result,allow_nan=False))\n"
+def profile_contract(policy):
+    from simready_bench.engine.profiles import inventories
+    if policy["schema"] == "simready-validator-scoring-policy-v1":
+        return CONTRACT
+    mandatory, optional = inventories(policy)
+    n = mandatory["mandatory_requirement_count"]
+    return CONTRACT.replace("Robotics-Prop 4.0.0", f"{mandatory['profile_id']} {mandatory['profile_version']}").replace(
+        "46 mandatory", f"{n} mandatory").replace("passed / 46", f"passed / {n}").replace(
+        "51 optional", f"{optional['optional_requirement_count']} optional")
+
+
+def _metadata(source, package, runtime, output, *, profile=None, scoring_policy=None):
+    code = """import json, resource, sys
+from pathlib import Path
+from simready_bench.reference import check_reference
+from simready_bench.engine.scoring import verify_validator_installation
+from simready_bench.engine.verifier import digest
+from pxr import Usd, UsdGeom
+resource.setrlimit(resource.RLIMIT_AS, (8 * 1024**3, 8 * 1024**3))
+p = json.load(sys.stdin)
+policy = p.get("scoring_policy")
+result = check_reference(p["source"], package_root=p["package"], profile=p.get("profile"))
+verify_validator_installation(result["conformance"]["inventory"], policy=policy)
+if not result["accepted"]:
+    raise RuntimeError("Source does not pass the selected NVIDIA profile")
+if policy is not None and policy["schema"].endswith("-v2"):
+    result["scoring_policy_sha256"] = digest(policy)
+s = Usd.Stage.Open(p["source"])
+box = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render"], useExtentsHint=False)
+bounds = box.ComputeWorldBound(s.GetDefaultPrim()).ComputeAlignedRange()
+result["visible_bounds_m"] = [list(bounds.GetMin()), list(bounds.GetMax())]
+Path(p["output"]).write_text(json.dumps(result, allow_nan=False))
+"""
     env = {
         "PATH": "/usr/bin:/bin",
         "PYTHONPATH": runtime["source_root"],
@@ -50,7 +81,7 @@ def _metadata(source, package, runtime, output):
     run = subprocess.run(
         [runtime["validator_python"], "-B", "-c", code],
         input=json.dumps(
-            {"source": str(source), "package": str(package), "output": str(output)}
+            {"source": str(source), "package": str(package), "output": str(output), "profile": profile, "scoring_policy": scoring_policy}
         ),
         env=env,
         capture_output=True,
@@ -109,9 +140,14 @@ def validate_reference_binding(cfg, *, allowed_reference_root, actual_source_roo
     ):
         raise ValueError("Original source conformance receipt changed")
     report = json.loads(path.read_bytes())
+    from simready_bench.engine.verifier import digest
+    policy = cfg["validator_scoring"]
+    if policy["schema"].endswith("-v2") and report.get("scoring_policy_sha256") != digest(policy):
+        raise ValueError("Selected reference profile inventory binding differs")
     if (
         report.get("accepted") is not True
         or report.get("source_sha256") != manifest["source_sha256"]
+        or report.get("profile") != cfg["validator_scoring"]["profile"]
     ):
         raise ValueError("Unfiltered source NVIDIA conformance binding differs")
     return {
@@ -147,6 +183,9 @@ def prepare_validator_assets(resolved, *, work_dir, runtime):
     import numpy as np
 
     policy = validate_policy(resolved["normalized_manifest"]["scoring"])
+    from simready_bench.engine.profiles import inventories
+    semantics_required = any(row["code"].startswith("com.nvidia.simready.SL.")
+                             for row in inventories(policy)[0]["mandatory_requirements"])
     profile = validate_shared_profile(runtime["shared_profile"])
     verify_profile_code(profile)
     root = confined_work_dir(work_dir, fresh=True, ram_only=True)
@@ -164,7 +203,7 @@ def prepare_validator_assets(resolved, *, work_dir, runtime):
         )
         raw = _reference_input(asset, ar, package_root=package)
         metadata = _metadata(
-            Path(raw["usd"]), package, runtime, ar / "source-conformance.json"
+            Path(raw["usd"]), package, runtime, ar / "source-conformance.json", profile=policy["profile"], scoring_policy=policy
         )
         bounds = np.asarray(metadata["visible_bounds_m"], float)
         dimensions = (bounds[1] - bounds[0]).tolist()
@@ -239,8 +278,8 @@ def prepare_validator_assets(resolved, *, work_dir, runtime):
             "model_call_budget": settings["budgets"]["inference_requests"],
             "benchmark_output_token_cap": None,
             "semantic_labels": {
-                "required": True,
-                "scoring": True,
+                "required": semantics_required,
+                "scoring": semantics_required,
                 "criterion": "mandatory NVIDIA SL IDs only",
             },
             "reward_reporting": {
@@ -249,7 +288,7 @@ def prepare_validator_assets(resolved, *, work_dir, runtime):
                 "formula": "95 * passed / fixed_applicable + 5_if_all_pass",
             },
             "composite_scores": {
-                "formal": "SimReady Robotics-Prop mandatory requirements",
+                "formal": "SimReady " + policy["profile"]["id"] + " mandatory requirements",
                 "visual": "geometric mean of shape and appearance material correspondence",
                 "kinematic": "joint recovery and allowed relative motion correspondence",
             },
@@ -258,7 +297,7 @@ def prepare_validator_assets(resolved, *, work_dir, runtime):
         contents = {
             "instruction.md": instruction.encode(),
             "thumbnail.png": image.read_bytes(),
-            "contract.md": CONTRACT.encode(),
+            "contract.md": profile_contract(policy).encode(),
             "tool-docs.md": TOOLS.replace(
                 "{inference_requests}", str(limits["inference_requests"]),
             ).encode(),

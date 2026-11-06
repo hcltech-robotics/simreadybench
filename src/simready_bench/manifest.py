@@ -12,8 +12,9 @@ def validate_freeze(value):
         for k in ("id", "version")
     ):
         raise ValueError("Explicit benchmark identity required")
-    if value["conformance_profile"] != {"id": "Robotics-Prop", "version": "4.0.0"}:
-        raise ValueError("Unsupported frozen conformance profile")
+    from simready_bench.engine.profiles import selection
+    if value["conformance_profile"] != selection(value["conformance_profile"]):
+        raise ValueError("Frozen conformance needs an explicit profile id and version")
     from simready_bench.config import _relative
 
     for field in ("source_files",):

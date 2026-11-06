@@ -122,6 +122,8 @@ done
 
 This compares two models, two harnesses and the presence of the selected skill set, with four reconstructions per asset. The [configuration guide](docs/configuration.md#references) describes custom reference images, dimensions and model connections.
 
+Custom experiments can also [select an installed NVIDIA validation profile and exact version](docs/configuration.md#validation-profiles). `simready-bench profiles` lists the installed choices; `benchmark --validation-policy FILE` uses a frozen profile policy throughout reference admission, feedback and scoring. The standard NV25 and frozen NV100 profiles retain their original scoring contracts.
+
 ## Connect a model provider
 
 The model connection must accept reference images and tool calls. Provider credentials stay with the benchmark controller.

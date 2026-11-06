@@ -21,6 +21,10 @@ def main(argv=None):
     raw_arguments = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(prog="simready-bench")
     commands = parser.add_subparsers(dest="command", required=True)
+    profiles = commands.add_parser("profiles", help="List installed NVIDIA profiles or freeze a scoring policy")
+    profiles.add_argument("--id")
+    profiles.add_argument("--version")
+    profiles.add_argument("--output", type=Path)
     status = commands.add_parser('status', help='Show durable measurement, publication and cleanup progress')
     status.add_argument('--output-dir', type=Path, required=True)
     status.add_argument('--json', action='store_true')
@@ -44,6 +48,7 @@ def main(argv=None):
         help="the NV25 public reference set, a USD file or a JSON asset list",
     )
     command.add_argument("--model", required=True)
+    command.add_argument("--validation-policy", type=Path, help="Scoring policy frozen by the profiles command; makes a custom protocol")
     command.add_argument("--harness", default="pi")
     command.add_argument("--deploy", choices=("local", "daytona"), default="local")
     command.add_argument("--output-dir", type=Path, required=True)
@@ -108,6 +113,21 @@ def main(argv=None):
         help="Continue the saved benchmark in this output directory",
     )
     arguments = parser.parse_args(raw_arguments)
+    if arguments.command == "profiles":
+        from simready_bench.engine.profiles import installed_policy, installed_profiles
+        try:
+            if arguments.id or arguments.version or arguments.output:
+                if not (arguments.id and arguments.version and arguments.output):
+                    parser.error("profiles requires --id, --version and --output together")
+                value = installed_policy({"id": arguments.id, "version": arguments.version})
+                with arguments.output.open("x") as stream:
+                    stream.write(json.dumps(value, sort_keys=True, indent=2) + "\n")
+            else:
+                sys.stdout.write(json.dumps(installed_profiles(), sort_keys=True, indent=2) + "\n")
+        except (ValueError, OSError, ImportError, RuntimeError, KeyError) as error:
+            sys.stderr.write(str(error) + "\n")
+            return 2
+        return 0
     if arguments.command == 'status':
         from simready_bench.attempt_state import read_status
         try:
@@ -186,6 +206,8 @@ def main(argv=None):
             "resume",
         )
     }
+    if arguments.validation_policy is not None:
+        options["validation_policy"] = arguments.validation_policy
     try:
         results = benchmark(arguments.reference, **options)
     except (

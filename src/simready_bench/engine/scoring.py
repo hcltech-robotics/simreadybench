@@ -1,4 +1,4 @@
-"NVIDIA Robotics-Prop 4.0.0 requirement scoring."
+"NVIDIA requirement scoring with a frozen historical default."
 
 from copy import deepcopy
 from pathlib import Path
@@ -9,8 +9,11 @@ from simready_bench.engine.verifier import (
     digest,
     pinned_profile,
     validate_policy,
+    scoring_policy,
     validate_wire,
 )
+
+from simready_bench.engine.profiles import inventories
 
 SCHEMA = "simready-validator-score-v1"
 
@@ -69,10 +72,9 @@ def _recorded_optional_requirements(nvidia, roster):
     return requirement_outcomes(roster, buckets, issues)
 
 
-def score_optional_validation(nvidia, *, candidate_invalid=False):
+def score_optional_validation(nvidia, *, candidate_invalid=False, policy=None):
     """Score optional requirement IDs independently from the mandatory grade."""
-    mandatory = pinned_profile()
-    profile = pinned_optional_profile()
+    mandatory, profile = inventories(policy)
     roster = profile["optional_requirements"]
     statuses = {row["code"]: "unknown" for row in roster}
     reason = None
@@ -178,21 +180,21 @@ def score_optional_validation(nvidia, *, candidate_invalid=False):
         "profile": {"id": profile["profile_id"], "version": profile["profile_version"]},
         "profile_inventory_sha256": digest(profile),
         "scope": "all_optional_profile",
-        "status": "invalid_candidate"
+        "status": "not_applicable" if not count else "invalid_candidate"
         if candidate_invalid
         else "unknown"
         if unknown
         else "scored",
-        "score_percent": None if unknown else 100 * passed / count,
+        "score_percent": None if unknown or not count else 100 * passed / (count or 1),
         "passed_count": passed,
         "failed_count": failed,
         "unknown_count": unknown,
         "measured_count": passed + failed,
         "applicable_count": count,
         "profile_optional_count": count,
-        "coverage_fraction": (passed + failed) / count,
-        "lower_bound_percent": 100 * passed / count,
-        "upper_bound_percent": 100 * (passed + unknown) / count,
+        "coverage_fraction": (passed + failed) / (count or 1),
+        "lower_bound_percent": 100 * passed / (count or 1),
+        "upper_bound_percent": 100 * (passed + unknown) / (count or 1),
         "unknown_reason": (reason or "optional_requirement_not_assessed")
         if unknown
         else None,
@@ -209,9 +211,9 @@ def score_optional_validation(nvidia, *, candidate_invalid=False):
     }
 
 
-def validate_optional_score(score):
+def validate_optional_score(score, *, policy=None):
     """Validate the optional denominator, outcomes and partial measurement bounds."""
-    profile = pinned_optional_profile()
+    _, profile = inventories(policy)
     roster = profile["optional_requirements"]
     rows = score.get("checks") if isinstance(score, dict) else None
     if (
@@ -244,7 +246,7 @@ def validate_optional_score(score):
         for key, value in counts.items()
     ):
         raise ValueError("Optional requirement accounting is inconsistent")
-    expected_status = "unknown" if unknown else "scored"
+    expected_status = "not_applicable" if not count else "unknown" if unknown else "scored"
     invalid = sum(row["status"] == "invalid" for row in rows)
     if invalid and (invalid != count or score.get("status") != "invalid_candidate"):
         raise ValueError("Invalid optional outcomes require a wholly invalid candidate")
@@ -260,10 +262,10 @@ def validate_optional_score(score):
     ):
         raise ValueError("Pinned optional scoring scope is required")
     expected = {
-        "score_percent": None if unknown else 100 * passed / count,
-        "coverage_fraction": (passed + failed) / count,
-        "lower_bound_percent": 100 * passed / count,
-        "upper_bound_percent": 100 * (passed + unknown) / count,
+        "score_percent": None if unknown or not count else 100 * passed / (count or 1),
+        "coverage_fraction": (passed + failed) / (count or 1),
+        "lower_bound_percent": 100 * passed / (count or 1),
+        "upper_bound_percent": 100 * (passed + unknown) / (count or 1),
     }
     for key, value in expected.items():
         actual = score.get(key)
@@ -314,7 +316,7 @@ def category(code):
 def score_validation(nvidia, policy, *, candidate_invalid=False):
     """Pure projection of genuine SDK requirement outcomes; no candidate mutation."""
     policy = validate_policy(policy)
-    p = pinned_profile()
+    p, _ = inventories(policy)
     roster = p["mandatory_requirements"]
     active = set(policy["applicable_requirement_ids"])
     statuses = {r["code"]: "unknown" for r in roster}
@@ -462,8 +464,9 @@ def score_validation(nvidia, policy, *, candidate_invalid=False):
             summary["failed"] += status in ("fail", "invalid")
             summary["unknown"] += status == "unknown"
     return {
+        **({"scoring_policy": deepcopy(policy)} if policy["schema"].endswith("-v2") else {}),
         "schema": SCHEMA,
-        "policy_id": POLICY_ID,
+        "policy_id": policy["policy_id"],
         "policy_sha256": digest(policy),
         "scope": policy["scope"],
         "status": "invalid_candidate"
@@ -494,7 +497,7 @@ def score_validation(nvidia, policy, *, candidate_invalid=False):
         "categories": categories,
         "optional_requirements": "report_only",
         "optional_score": score_optional_validation(
-            nvidia, candidate_invalid=candidate_invalid
+            nvidia, candidate_invalid=candidate_invalid, policy=policy
         ),
     }
 
@@ -580,11 +583,13 @@ def public_report(report, *, candidate_path=None):
     return project(deepcopy(report))
 
 
-def verify_validator_installation(inventory):
+def verify_validator_installation(inventory, *, policy=None):
     import importlib, inspect
     from simready_bench.engine.validator import _sdk_source_identity
 
-    p = pinned_profile()
+    if policy is not None:
+        policy = validate_policy(policy)
+    p, optional = inventories(policy)
     for key in (
         "profile_id",
         "profile_version",
@@ -600,7 +605,13 @@ def verify_validator_installation(inventory):
     if _sdk_source_identity() != p["SDK_dispatch_source_sha256"]:
         raise RuntimeError("Pinned NVIDIA dispatch implementation changed")
     observed = {}
-    for module, expected in p["rule_module_sha256"].items():
+    modules = dict(p["rule_module_sha256"])
+    if policy is not None and policy["schema"].endswith("-v2"):
+        for key in ("optional_features", "optional_requirements", "optional_requirement_count"):
+            if inventory.get(key) != optional[key]:
+                raise RuntimeError("Selected NVIDIA optional inventory changed")
+        modules.update(optional["rule_module_sha256"])
+    for module, expected in modules.items():
         path = Path(inspect.getfile(importlib.import_module(module)))
         actual = hashlib.sha256(path.read_bytes()).hexdigest()
         observed[module] = actual
@@ -613,12 +624,13 @@ def verify_validator_installation(inventory):
     }
 
 
-def observe_validator_candidate(source, *, package_root, snapshot_sha256):
+def observe_validator_candidate(source, *, package_root, snapshot_sha256, policy=None):
     """Safe dependency scan, then real NVIDIA dispatch with no extra physics gate."""
     import tempfile, shutil
     from simready_bench.engine.package_checks import inspect_package
     from simready_bench.engine.validator import validate_asset
 
+    policy = validate_policy(policy) if policy is not None else scoring_policy()
     source = Path(source).absolute()
     package = Path(package_root).absolute()
     if (
@@ -646,9 +658,9 @@ def observe_validator_candidate(source, *, package_root, snapshot_sha256):
             }
             if originals != copied:
                 raise RuntimeError("Candidate validation copy changed")
-            nvidia = validate_asset(target / source.relative_to(package))
+            nvidia = validate_asset(target / source.relative_to(package), **({"profile": policy["profile"]} if policy["schema"].endswith("-v2") else {}))
             if nvidia.get("inventory") is not None:
-                implementation = verify_validator_installation(nvidia["inventory"])
+                implementation = verify_validator_installation(nvidia["inventory"], policy=policy)
             if originals != {
                 str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in package.rglob("*")
@@ -797,9 +809,9 @@ def evaluate_snapshot(
         info = information(observation.get("semantic_labels"))
         info.update(
             schema="simready-NVIDIA-mandatory-semantic-observations-v1",
-            required=True,
-            scoring=True,
-            scoring_source="six mandatory NVIDIA SL requirement IDs; no bespoke label metric",
+            required=any(r["requirement_id"].startswith("com.nvidia.simready.SL.") for r in score["checks"]),
+            scoring=any(r["requirement_id"].startswith("com.nvidia.simready.SL.") for r in score["checks"]),
+            scoring_source="six mandatory NVIDIA SL requirement IDs; no bespoke label metric" if policy["schema"].endswith("-v1") else "selected profile mandatory NVIDIA SL requirement IDs; no bespoke label metric",
         )
         safe = public_report(raw, candidate_path=snapshot.path)
         for check in score["checks"]:
@@ -927,10 +939,12 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--snapshot-sha256", required=True)
     p.add_argument("--package-root", required=True)
+    p.add_argument("--scoring-policy", type=Path)
     a = p.parse_args()
     resource.setrlimit(resource.RLIMIT_AS, (8 * 1024**3, 8 * 1024**3))
     result = observe_validator_candidate(
-        a.source, package_root=a.package_root, snapshot_sha256=a.snapshot_sha256
+        a.source, package_root=a.package_root, snapshot_sha256=a.snapshot_sha256,
+        policy=json.loads(a.scoring_policy.read_text()) if a.scoring_policy else None
     )
     Path(a.output).write_text(
         json.dumps(result, sort_keys=True, allow_nan=False) + "\n"

@@ -180,7 +180,7 @@ def _components(manifest, contract):
     groups = {
         "prompt": ("engine/pi.py", "engine/task_contract.py", "asset_inputs.py", "harbor_agents.py"),
         "tool": ("engine/tools.py", "engine/actor_mcp.py", "engine/harbor_services.py", "engine/pi_runtime.py"),
-        "evaluator": ("engine/scoring.py", "engine/validator.py", "engine/evaluation.py", "engine/nvidia_profile.json",
+        "evaluator": ("engine/scoring.py", "engine/profiles.py", "engine/verifier.py", "engine/validator.py", "engine/evaluation.py", "engine/nvidia_profile.json",
                       "engine/nvidia_optional_profile.json", "composites.py", "fidelity.py", "fidelity_worker.py"),
     }
     result = {"references": references, "skills": skills,

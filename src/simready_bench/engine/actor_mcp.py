@@ -30,7 +30,7 @@ TOOLS = [
     },
     {
         "name": "validate_candidate",
-        "description": "Validate the frozen candidate against NVIDIA Robotics-Prop 4.0.0 and return its score plus the complete report file path. Each new request uses one validation call.",
+        "description": "Validate the frozen candidate against the task’s selected NVIDIA profile and return its score plus the complete report file path. Each new request uses one validation call.",
         "inputSchema": {
             "type": "object",
             "properties": {

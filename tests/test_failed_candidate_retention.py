@@ -10,6 +10,7 @@ import pytest
 
 from simready_bench import captures, fidelity_control, local, reporting
 from simready_bench.engine import environment, evaluation, harbor, harbor_services
+from simready_bench.engine.verifier import scoring_policy
 from test_budget_completion import docker_boundary, evaluate_final, native_result
 from test_confirmed_submit_stop import setup
 
@@ -41,7 +42,7 @@ def test_raised_job_retains_a_portable_frozen_candidate(tmp_path, monkeypatch, f
         (public / "thumbnail.png").write_bytes(b"input fixture")
         (source / "task.toml").write_text("")
         private = tmp_path / "config.json"
-        private.write_text("{}")
+        private.write_text(json.dumps({"validator_scoring": scoring_policy()}))
         condition = {
             "condition_id": "condition-" + "a" * 64,
             "asset_id": "box", "harness_id": "pi", "model_id": "fixture",
