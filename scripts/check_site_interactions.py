@@ -115,7 +115,8 @@ def main():
                 expected = sum(run['metrics']['cost_usd_per_asset']['value'] is not None and
                     run['metrics']['cost_usd_per_asset']['paired_scores'][score]['value'] is not None
                     for run in leaderboard['runs'] for score in scores)
-                assert len(labels) == expected
+                assert page.locator(".pareto-point").count() == expected
+                assert len(labels) == (expected if len(leaderboard["runs"]) <= 12 else 0)
                 for i,a in enumerate(labels):
                     assert '/' in a['text'] and 'Reasoning' not in a['text']
                     for b in labels[i+1:]:
