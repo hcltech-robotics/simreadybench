@@ -38,3 +38,7 @@ test('model marker identity stays stable across metrics and custom harnesses',()
  assert.equal(markerStyle({requested_model:'openai/gpt-6.1-terra',harness_id:'codex-text2cad-build123d'}).custom,true);
  assert.equal(markerStyle({requested_model:'openai/deepseek-v4.1-flash-1017',harness:'Terminus 2'}).initial,'D');
 });
+
+test('Astra uses its own initial in OpenAI chart markers',()=>{
+ assert.deepEqual(markerStyle({requested_model:'openai/gpt-6.2-astra',model:'ChatGPT 6.2 Astra',harness:'Codex'}),{colour:'#0072b2',initial:'A',custom:false});
+});
